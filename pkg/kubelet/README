@@ -1,0 +1,16 @@
+Communicate with CRI
+Expose API to Control the Pods
+
+// Create a Pod
+// Start a Pod
+// Stop a Pod
+// Delete a Pod
+
+// List Pods?
+// Get Pod Info?
+
+// Get Pod Status
+// Get Pod Events
+// Get Pod Metrics
+// Get Pod Spec
+// Get Pod Log?
