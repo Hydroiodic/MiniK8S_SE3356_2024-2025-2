@@ -1,8 +1,6 @@
 package containerd
 
-import (
-	containerd "github.com/containerd/containerd/v2/client"
-)
+import "github.com/containerd/containerd"
 
 func NewContainerdClient() (*containerd.Client, error) {
 	client, err := containerd.New("/run/containerd/containerd.sock")

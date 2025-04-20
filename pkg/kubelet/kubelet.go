@@ -36,7 +36,7 @@ func CreateContainer(ctx context.Context, client *containerd.Client, pod *object
 		containerd.WithNewSnapshot(fmt.Sprintf("snapshot-%s", containerSpec.Name), image),
 		containerd.WithNewSpec(
 			oci.WithImageConfig(image),
-			oci.WithHostNamespace(oci.NetworkNamespace), // 共享网络
+			// oci.WithHostNamespace(oci.NetworkNamespace), // 共享网络
 			oci.WithEnv([]string{"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"}),
 			oci.WithProcessArgs(containerSpec.Command...), // 设置命令和参数
 		),
