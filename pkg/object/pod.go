@@ -1,6 +1,9 @@
 package object
 
-import "time"
+import (
+	"encoding/json"
+	"time"
+)
 
 type Pod struct {
 	Kind     string    `yaml:"kind"`     // 固定为 "Pod"
@@ -21,7 +24,8 @@ type PodSpec struct {
 }
 
 type Container struct {
-	Name      string          `yaml:"name"`
+	ID        string          `yaml:"id"`        // 容器 ID
+	Name      string          `yaml:"name"`      // 容器名称
 	Image     string          `yaml:"image"`     // 镜像名和 Tag，如 nginx:latest
 	Command   []string        `yaml:"command"`   // 容器执行命令
 	Args      []string        `yaml:"args"`      // 命令参数
@@ -47,4 +51,24 @@ type PodStatus struct {
 	Phase      string    `yaml:"phase"`      // 运行状态：Pending, Running, Failed 等
 	StartTime  time.Time `yaml:"startTime"`  // 启动时间
 	Conditions []string  `yaml:"conditions"` // 状态条件
+}
+
+func (c *Container) ToJSON() (string, error) {
+	data, err := json.Marshal(c)
+	if err != nil {
+		return "", err
+	}
+
+	return string(data), nil
+}
+
+func ContainerFromJSON(data string) (*Container, error) {
+	var c Container
+
+	err := json.Unmarshal([]byte(data), &c)
+	if err != nil {
+		return nil, err
+	}
+
+	return &c, nil
 }
