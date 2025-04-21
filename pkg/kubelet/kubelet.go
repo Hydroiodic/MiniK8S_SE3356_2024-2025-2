@@ -16,14 +16,27 @@ import (
 // TODO: 以Pod为单位进行管理？
 // 一个Pod包含多个Container
 
-func CreateContainer(ctx context.Context, client *containerd.Client, pod *object.Pod, containerSpec object.Container) error {
+func CreateContainer(
+	ctx context.Context,
+	client *containerd.Client,
+	pod *object.Pod,
+	containerSpec object.Container,
+) error {
 	// 设置 Containerd namespace（对应 Pod 的 namespace）
 	ctx = namespaces.WithNamespace(ctx, pod.Metadata.Namespace)
 
 	// 1. 拉取镜像
-	image, err := client.Pull(ctx, containerSpec.Image, containerd.WithPullUnpack)
+	image, err := client.Pull(
+		ctx,
+		containerSpec.Image,
+		containerd.WithPullUnpack,
+	)
 	if err != nil {
-		return fmt.Errorf("failed to pull image %s: %v", containerSpec.Image, err)
+		return fmt.Errorf(
+			"failed to pull image %s: %v",
+			containerSpec.Image,
+			err,
+		)
 	}
 
 	// 2. 创建容器
@@ -31,11 +44,18 @@ func CreateContainer(ctx context.Context, client *containerd.Client, pod *object
 		ctx,
 		fmt.Sprintf("%s-%s", pod.Metadata.Name, containerSpec.Name), // 容器名称
 		containerd.WithImage(image),
-		containerd.WithNewSnapshot(fmt.Sprintf("snapshot-%s", containerSpec.Name), image),
+		containerd.WithNewSnapshot(
+			fmt.Sprintf("snapshot-%s", containerSpec.Name),
+			image,
+		),
 		containerd.WithNewSpec(
 			oci.WithImageConfig(image),
 			// oci.WithHostNamespace(oci.NetworkNamespace), // 共享网络
-			oci.WithEnv([]string{"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"}),
+			oci.WithEnv(
+				[]string{
+					"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
+				},
+			),
 			oci.WithProcessArgs(containerSpec.Command...), // 设置命令和参数
 		),
 	)

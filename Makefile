@@ -6,5 +6,8 @@ install-containerd:
 install-golangci:
 	$(MAKE) -f scripts/golangci-lint.mk
 
+install-golines:
+	$(MAKE) -f scripts/golines.mk install
+
 clean:
 	@rm -rf build/*
