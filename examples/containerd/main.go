@@ -31,7 +31,11 @@ func redisExample() error {
 	ctx := namespaces.WithNamespace(context.Background(), "example")
 
 	// pull the redis image from DockerHub
-	image, err := client.Pull(ctx, "docker.io/library/redis:alpine", containerd.WithPullUnpack)
+	image, err := client.Pull(
+		ctx,
+		"docker.io/library/redis:alpine",
+		containerd.WithPullUnpack,
+	)
 	if err != nil {
 		return err
 	}
