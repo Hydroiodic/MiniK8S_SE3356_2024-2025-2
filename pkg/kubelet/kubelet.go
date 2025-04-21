@@ -4,13 +4,11 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
 	"github.com/containerd/containerd"
 	"github.com/containerd/containerd/cio"
-	"github.com/containerd/containerd/oci"
-
 	"github.com/containerd/containerd/namespaces"
-
-	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
+	"github.com/containerd/containerd/oci"
 )
 
 // Kubelet持有一个全局唯一的Containerd Client实例

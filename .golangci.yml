@@ -1,0 +1,24 @@
+version: "2"
+linters:
+  enable:
+    # basic
+    - govet
+    - staticcheck
+    - errcheck
+    - ineffassign
+    - unused
+    # style
+    - misspell
+    - dupl
+    - wsl
+    - goconst
+    - revive
+    # complexity
+    - funlen
+    - gocyclo
+    - lll
+    # security
+    - gosec
+  settings:
+    revive:
+      enable-all-rules: true
