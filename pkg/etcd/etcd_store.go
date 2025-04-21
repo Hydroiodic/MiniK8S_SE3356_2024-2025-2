@@ -4,7 +4,7 @@ import (
 	"context"
 	"path"
 
-	object "github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
+	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
 	clientv3 "go.etcd.io/etcd/client/v3"
 )
 

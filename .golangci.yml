@@ -1,22 +1,32 @@
 version: "2"
 linters:
+  default: standard
   enable:
-    # basic
-    - govet
-    - staticcheck
-    - errcheck
-    - ineffassign
-    - unused
+    # linters
+    - asasalint
+    - asciicheck
+    - bidichk
+    - exhaustive
+    - nolintlint
     # style
     - misspell
     - dupl
-    - wsl
+    - dupword
+    - funlen
     - goconst
+    - godot
+    - godox
+    - nestif
     - revive
+    - wsl
+    - whitespace
     # complexity
+    - exptostd
     - funlen
     - gocyclo
     - lll
+    - unconvert
+    - wastedassign
     # security
     - gosec
   settings:
