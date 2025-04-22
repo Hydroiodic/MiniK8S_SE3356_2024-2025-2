@@ -7,5 +7,6 @@ func NewContainerdClient() (*containerd.Client, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	return client, nil
 }

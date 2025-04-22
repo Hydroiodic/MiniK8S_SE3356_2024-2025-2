@@ -1,3 +1,10 @@
+// Kubelet持有一个全局唯一的Containerd Client实例
+// 一个Pod包含多个Container
+// Pod内的所有容器共享以下资源：
+// 1. 网络命名空间
+// 2. 储存卷
+// 资源的共享通过Pause容器实现
+
 package kubelet
 
 import (
@@ -13,6 +20,7 @@ import (
 	"github.com/containerd/containerd/namespaces"
 	"github.com/containerd/containerd/oci"
 	"github.com/containerd/typeurl/v2"
+	"github.com/opencontainers/runtime-spec/specs-go"
 )
 
 func formatContainerName(podName, containerName string) string {
@@ -23,16 +31,13 @@ func formatSnapshotName(containerName string) string {
 	return fmt.Sprintf("snapshot-%s", containerName)
 }
 
-// Kubelet持有一个全局唯一的Containerd Client实例
-
-// TODO: 以Pod为单位进行管理？
-// 一个Pod包含多个Container
-// Pod内的所有容器共享以下资源：
-// 1. 网络命名空间
-// 2. 储存卷
+func formatPauseContainerName(podName string) string {
+	return fmt.Sprintf("%s-pause", podName)
+}
 
 /*
-* 创建Pod
+ * 按照Pod的规格创建Pause容器和业务容器
+ * Pause容器用于提供网络命名空间
  */
 func CreatePod(
 	ctx context.Context,
@@ -42,9 +47,44 @@ func CreatePod(
 	// 设置 Containerd namespace（对应 Pod 的 namespace）
 	ctx = namespaces.WithNamespace(ctx, pod.Metadata.Namespace)
 
+	// 创建Pause容器
+	err := createPauseContainer(ctx, client, pod.Metadata.Name)
+	if err != nil {
+		return fmt.Errorf("failed to create pause container: %v", err)
+	}
+
+	// 获取Pause容器的网络命名空间路径
+	pauseContainer, err := client.LoadContainer(
+		ctx,
+		formatPauseContainerName(pod.Metadata.Name),
+	)
+
+	if err != nil {
+		return fmt.Errorf(
+			"failed to load pause container: %v",
+			err,
+		)
+	}
+
+	pauseTask, err := pauseContainer.Task(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("failed to load pause task: %v", err)
+	}
+
+	// Get Proceess ID of the pause container
+	pausePid := pauseTask.Pid()
+	netNSPath := fmt.Sprintf("/proc/%d/ns/net", pausePid)
+
+	// 让业务容器加入Pause容器的网络命名空间
 	// 创建所有容器
 	for _, container := range pod.Spec.Containers {
-		err := CreateContainer(ctx, client, pod, container)
+		err := CreateContainer(
+			ctx,
+			client,
+			pod.Metadata.Name,
+			container,
+			netNSPath,
+		)
 		if err != nil {
 			return fmt.Errorf(
 				"failed to create container %s: %v",
@@ -57,11 +97,56 @@ func CreatePod(
 	return nil
 }
 
+func createPauseContainer(
+	ctx context.Context,
+	client *containerd.Client,
+	podName string) error {
+	// 1. 拉取Pause镜像
+	image, err := client.Pull(ctx, PauseImage, containerd.WithPullUnpack)
+	if err != nil {
+		return fmt.Errorf("failed to pull image %s: %v", PauseImage, err)
+	}
+
+	// 2. 创建Pause容器
+	container, err := client.NewContainer(
+		ctx,
+		formatContainerName(podName, "pause"),
+		containerd.WithImage(image),
+		containerd.WithNewSnapshot(
+			// 反正一个Pod只有一个Pause容器
+			formatSnapshotName("pause"), image),
+		containerd.WithNewSpec(
+			oci.WithImageConfig(image),
+			// 共享网络NETWORKNAMESPACE？隔离网络！？
+			oci.WithHostNamespace(specs.PIDNamespace)),
+	)
+
+	if err != nil {
+		return fmt.Errorf("failed to create pause container: %v", err)
+	}
+
+	// 3. 启动Pause容器
+	task, err := container.NewTask(ctx, cio.NewCreator(cio.WithStdio))
+	if err != nil {
+		return fmt.Errorf("failed to create task for pause container: %v", err)
+	}
+
+	err = task.Start(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to start pause container: %v", err)
+	}
+
+	// TODO: Configure CNI on the pause container?
+
+	return nil
+}
+
 func CreateContainer(
 	ctx context.Context,
 	client *containerd.Client,
 	podName string, // Pod名称
 	containerSpec object.Container, // 容器规格
+	netNSPath string, // 网络命名空间路径
 ) error {
 	// 1. 拉取镜像
 	image, err := client.Pull(
@@ -88,7 +173,12 @@ func CreateContainer(
 		),
 		containerd.WithNewSpec(
 			oci.WithImageConfig(image),
-			// oci.WithHostNamespace(oci.NetworkNamespace), // 共享网络
+			oci.WithLinuxNamespace(
+				specs.LinuxNamespace{
+					Type: specs.NetworkNamespace,
+					Path: netNSPath,
+				},
+			), // 加入Pause容器的网络命名空间
 			oci.WithEnv(
 				[]string{
 					"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
@@ -125,6 +215,7 @@ func StopContainer(
 	// 1. 获取容器
 	containerID := formatContainerName(podName, containerName)
 	container, err := client.LoadContainer(ctx, containerID)
+
 	if err != nil {
 		return fmt.Errorf("failed to load container %s: %v", containerID, err)
 	}
@@ -135,6 +226,7 @@ func StopContainer(
 		if strings.Contains(err.Error(), "no running task") {
 			return fmt.Errorf("container %s is not running", containerID)
 		}
+
 		return fmt.Errorf(
 			"failed to load task for container %s: %v",
 			containerID,
