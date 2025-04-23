@@ -41,6 +41,32 @@ func CreateContainer(
 		)
 	}
 
+	// TODO: What if snapshot already exists?
+	// 2. 创建快照
+	// 获取快照服务
+	snapshotter := client.SnapshotService("overlayfs")
+	snapshotName := formatSnapshotName(
+		containerSpec.Name,
+	)
+
+	// 检查快照是否已存在
+	_, err = snapshotter.Stat(ctx, snapshotName)
+	if err == nil {
+		// 快照已存在，尝试删除
+		if err := snapshotter.Remove(ctx, snapshotName); err != nil {
+			return fmt.Errorf(
+				"failed to remove existing snapshot %s: %v",
+				snapshotName,
+				err,
+			)
+		}
+	} else if !strings.Contains(err.Error(), "not found") {
+		// 其他错误
+		return fmt.Errorf("failed to check snapshot %s: %v", snapshotName, err)
+	}
+
+	// TODO: 检查容器是否存在
+
 	// 2. 创建容器
 	container, err := client.NewContainer(
 		ctx,
@@ -143,7 +169,7 @@ func DeleteContainer(
 	client *containerd.Client,
 	containerSpec object.Container,
 ) error {
-	var containerName string = containerSpec.Name
+	var containerName = containerSpec.Name
 	// 1. 获取容器
 	container, err := client.LoadContainer(ctx, containerName)
 
@@ -184,12 +210,6 @@ func DeleteContainer(
 		return fmt.Errorf("failed to delete task %s: %v", containerName, err)
 	}
 
-	// TODO: 删除快照？
-	// snapshotName := formatSnapshotName(containerSpec.Name)
-	// if err := client.SnapshotService("overlayfs").Remove(ctx, snapshotName); err != nil {
-	// 	return fmt.Errorf("failed to remove snapshot %s: %v", snapshotName, err)
-	// }
-
 	// 4. 删除容器
 	if err := container.Delete(ctx); err != nil {
 		return fmt.Errorf(
@@ -197,6 +217,11 @@ func DeleteContainer(
 			containerName,
 			err,
 		)
+	}
+
+	snapshotName := formatSnapshotName(containerSpec.Name)
+	if err := client.SnapshotService("overlayfs").Remove(ctx, snapshotName); err != nil {
+		return fmt.Errorf("failed to remove snapshot %s: %v", snapshotName, err)
 	}
 
 	return nil

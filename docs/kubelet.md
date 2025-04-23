@@ -360,3 +360,40 @@ const (
 
 Network Namespace 隔离网络
 Mount Namespace 隔离挂载
+
+# Containerd Namespace
+
+一个Pod占用一个Containerd命名空间。
+在Containerd命名空间下，可以有多个容器。
+
+/**
+	 *  ProcessStatus returns a human readable status for the Process representing its current status
+		type ProcessStatus string
+
+		const (
+			// Running indicates the process is currently executing
+			Running ProcessStatus = "running"
+			// Created indicates the process has been created within containerd but the
+			// user's defined process has not started
+			Created ProcessStatus = "created"
+			// Stopped indicates that the process has ran and exited
+			Stopped ProcessStatus = "stopped"
+			// Paused indicates that the process is currently paused
+			Paused ProcessStatus = "paused"
+			// Pausing indicates that the process is currently switching from a
+			// running state into a paused state
+			Pausing ProcessStatus = "pausing"
+			// Unknown indicates that we could not determine the status from the runtime
+			Unknown ProcessStatus = "unknown"
+		)
+	*/
+
+# 各个级别的NameSpace应该如何设定？
+
+```
+ctr containers list
+ctr tasks list
+ctr images list
+ctr snapshots list
+ctr namespaces list
+```
