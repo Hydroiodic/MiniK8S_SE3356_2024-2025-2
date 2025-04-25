@@ -11,21 +11,21 @@ import (
 	"github.com/containerd/containerd/namespaces"
 )
 
-func setupNetNS(t *testing.T) string {
-	nsPath := "/var/run/netns/test-ns"
-	cmd := exec.Command("ip", "netns", "add", "test-ns")
-	err := cmd.Run()
+func setupNetNS(nsName string) {
+	cmd := exec.Command("ip", "netns", "add", nsName)
+	_ = cmd.Run()
+}
 
-	if err != nil {
-		t.Fatalf("Failed to create network namespace: %v", err)
-	}
-
-	return nsPath
+func cleanupNetNS(nsName string) {
+	cmd := exec.Command("ip", "netns", "delete", nsName)
+	_ = cmd.Run()
 }
 
 func TestCreateContainer(t *testing.T) {
 	// 定义网络命名空间路径
-	netNSPath := setupNetNS(t)
+	setupNetNS("test-ns")
+
+	netNSPath := "/var/run/netns/test-ns"
 
 	// 创建一个新的 containerd 客户端
 	client, err := containerd.NewContainerdClient()
@@ -54,8 +54,17 @@ func TestCreateContainer(t *testing.T) {
 		t.Fatalf("failed to create container: %v", err)
 	}
 
+	// 停止容器
+	err = kubelet.StopContainer(ctx, client, containerSpec.Name)
+	if err != nil {
+		t.Fatalf("failed to stop container: %v", err)
+	}
+
+	// 删除容器
 	err = kubelet.DeleteContainer(ctx, client, containerSpec)
 	if err != nil {
 		t.Fatalf("failed to delete container: %v", err)
 	}
+
+	cleanupNetNS("test-ns")
 }

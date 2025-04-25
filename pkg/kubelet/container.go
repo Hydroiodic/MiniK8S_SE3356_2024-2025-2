@@ -41,8 +41,8 @@ func CreateContainer(
 		)
 	}
 
-	// TODO: What if snapshot already exists?
 	// 2. 创建快照
+
 	// 获取快照服务
 	snapshotter := client.SnapshotService("overlayfs")
 	snapshotName := formatSnapshotName(
@@ -53,19 +53,22 @@ func CreateContainer(
 	_, err = snapshotter.Stat(ctx, snapshotName)
 	if err == nil {
 		// 快照已存在，尝试删除
-		if err := snapshotter.Remove(ctx, snapshotName); err != nil {
+		// 删不删得掉与我无关
+		_ = snapshotter.Remove(ctx, snapshotName)
+	}
+
+	// 检查容器是否已经存在
+	_, err = client.LoadContainer(ctx, containerSpec.Name)
+	if err == nil {
+		// 容器已存在，删除容器
+		if err := DeleteContainer(ctx, client, containerSpec); err != nil {
 			return fmt.Errorf(
-				"failed to remove existing snapshot %s: %v",
-				snapshotName,
+				"failed to delete existing container %s: %v",
+				containerSpec.Name,
 				err,
 			)
 		}
-	} else if !strings.Contains(err.Error(), "not found") {
-		// 其他错误
-		return fmt.Errorf("failed to check snapshot %s: %v", snapshotName, err)
 	}
-
-	// TODO: 检查容器是否存在
 
 	// 2. 创建容器
 	container, err := client.NewContainer(
@@ -130,7 +133,8 @@ func StopContainer(
 	task, err := container.Task(ctx, nil)
 	if err != nil {
 		if strings.Contains(err.Error(), "no running task") {
-			return fmt.Errorf("container %s is not running", containerName)
+			// 任务不存在，容器已经停止
+			return nil
 		}
 
 		return fmt.Errorf(
@@ -174,43 +178,20 @@ func DeleteContainer(
 	container, err := client.LoadContainer(ctx, containerName)
 
 	if err != nil {
-		return fmt.Errorf("failed to load container %s: %v", containerName, err)
+		// 容器已经不存在
+		return nil
 	}
 
-	// 2. 获取任务
-	task, err := container.Task(ctx, nil)
-
-	if err != nil {
+	// 2. 停止容器
+	if err := StopContainer(ctx, client, containerName); err != nil {
 		return fmt.Errorf(
-			"failed to load task for container %s: %v",
+			"failed to stop container %s: %v",
 			containerName,
 			err,
 		)
 	}
 
-	// 3. 停止并删除任务
-	// First, attempt to stop the task gracefully
-	if err := task.Kill(ctx, syscall.SIGTERM); err != nil {
-		return fmt.Errorf(
-			"failed to send SIGTERM to task %s: %v",
-			containerName,
-			err,
-		)
-	}
-
-	// Wait for task to exit
-	_, err = task.Wait(ctx)
-	if err != nil && !strings.Contains(err.Error(), "not found") {
-		return fmt.Errorf("failed to wait for task %s: %v", containerName, err)
-	}
-
-	// Delete task with force kill if necessary
-	if _, err := task.Delete(ctx, containerd.WithProcessKill); err != nil &&
-		!strings.Contains(err.Error(), "not found") {
-		return fmt.Errorf("failed to delete task %s: %v", containerName, err)
-	}
-
-	// 4. 删除容器
+	// 2. 删除容器
 	if err := container.Delete(ctx); err != nil {
 		return fmt.Errorf(
 			"failed to delete container %s: %v",
@@ -219,10 +200,9 @@ func DeleteContainer(
 		)
 	}
 
+	// 3. 删除快照
 	snapshotName := formatSnapshotName(containerSpec.Name)
-	if err := client.SnapshotService("overlayfs").Remove(ctx, snapshotName); err != nil {
-		return fmt.Errorf("failed to remove snapshot %s: %v", snapshotName, err)
-	}
+	_ = client.SnapshotService("overlayfs").Remove(ctx, snapshotName)
 
 	return nil
 }
