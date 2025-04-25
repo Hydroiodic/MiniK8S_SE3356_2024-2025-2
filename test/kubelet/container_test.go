@@ -54,6 +54,32 @@ func TestCreateContainer(t *testing.T) {
 		t.Fatalf("failed to create container: %v", err)
 	}
 
+	info, err := kubelet.GetContainerInfo(
+		ctx,
+		client,
+		"example_pod_name",
+		containerSpec.Name,
+	)
+
+	if err != nil {
+		t.Fatalf("failed to get container info: %v", err)
+	}
+
+	// 检查容器信息
+	if info == nil {
+		t.Fatalf("container info is nil")
+	}
+
+	if info.Name != containerSpec.Name {
+		t.Fatalf(
+			"expected container name %s, got %s",
+			containerSpec.Name,
+			info.Name,
+		)
+	}
+
+	t.Logf("Container Info: %v", info)
+
 	// 停止容器
 	err = kubelet.StopContainer(ctx, client, containerSpec.Name)
 	if err != nil {

@@ -43,8 +43,7 @@ func createPauseContainer(
 			formatSnapshotName("pause"), image),
 		containerd.WithNewSpec(
 			oci.WithImageConfig(image),
-			// 共享网络NETWORKNAMESPACE？隔离网络！？
-			oci.WithHostNamespace(specs.PIDNamespace)),
+			oci.WithHostNamespace(specs.PIDNamespace)), // 可以共享PID命名空间？
 	)
 
 	if err != nil {
