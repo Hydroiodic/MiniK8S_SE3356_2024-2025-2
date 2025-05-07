@@ -1,3 +1,4 @@
+// Package cmd implements basic functionality for MiniK8S.
 package cmd
 
 import (
@@ -13,18 +14,23 @@ var rootCmd = &cobra.Command{
 	Use:   "kubectl",
 	Short: "An interactive CLI like kubectl",
 }
+var kubectlCmd = &cobra.Command{
+	Use:   "kubectl",
+	Short: "Kubernetes command line tool",
+}
 
+// Execute runs the root command of the kubectl CLI.
 func Execute() {
 	reader := bufio.NewReader(os.Stdin)
-	fmt.Println("Interactive mode started. Type 'exit' to quit.")
+	_, _ = fmt.Println("Interactive mode started. Type 'exit' to quit.")
 
 	for {
-		fmt.Print("> ")
+		_, _ = fmt.Print("> ")
 		input, _ := reader.ReadString('\n')
 		input = strings.TrimSpace(input)
 
 		if input == "exit" {
-			fmt.Println("Exiting interactive mode.")
+			_, _ = fmt.Println("Exiting interactive mode.")
 			break
 		}
 
@@ -33,7 +39,12 @@ func Execute() {
 		err := rootCmd.Execute()      // 执行 `cobra` 解析
 
 		if err != nil {
-			fmt.Println("Error:", err)
+			_, _ = fmt.Println("Error:", err)
 		}
 	}
+}
+
+func init() {
+	// 将 kubectlCmd 添加到 rootCmd，使它成为所有命令的前缀
+	rootCmd.AddCommand(kubectlCmd)
 }

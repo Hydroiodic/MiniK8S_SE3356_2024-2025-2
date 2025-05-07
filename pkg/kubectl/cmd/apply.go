@@ -12,61 +12,105 @@ import (
 var execCmd = &cobra.Command{
 	Use:   "apply",
 	Short: "Interactive exec into a resource",
-	Run: func(cmd *cobra.Command, args []string) {
-
+	Run: func(cmd *cobra.Command, _ []string) {
 		fileFlag, _ := cmd.Flags().GetString("file") // 获取 `-f` 参数的值
 		if fileFlag != "" {
-			fmt.Println("Using file:", fileFlag)
-			pod_config, err := parse_yaml(fileFlag)
-			if err != nil {
-				fmt.Println("Error:", err)
-			} else {
-				pass_to_api_server(pod_config)
-			}
+			_, _ = fmt.Println("Using file:", fileFlag)
+			parseYaml(fileFlag)
 		} else {
-			fmt.Println("No file provided.")
+			_, _ = fmt.Println("No file provided.")
 		}
 		// **手动重置 flag**
-		cmd.Flags().Lookup("file").Value.Set("")
+		if err := cmd.Flags().Lookup("file").Value.Set(""); err != nil {
+			// 处理错误或打印日志
+			_, _ = fmt.Println("Failed to set flag value:", err)
+		}
 	},
 }
 
-func pass_to_api_server(podconfig *object.Pod) {
-
-}
-
-// 在 `init()` 里添加 `-f` flag
+// 在 `init()` 里添加 `-f` flag.
 func init() {
 	execCmd.Flags().StringP("file", "f", "", "Specify the configuration file")
-	rootCmd.AddCommand(execCmd)
+	kubectlCmd.AddCommand(execCmd)
 }
 
-func parse_yaml(file_addr string) (*object.Pod, error) {
-	data, err := os.ReadFile(file_addr)
+func parseYaml(fileAddr string) {
+	//读取文件内容
+	data, err := os.ReadFile(fileAddr) // #nosec G304
 	if err != nil {
-		fmt.Println("Error reading file:", err)
-		return nil, err
+		_, _ = fmt.Println("Error reading file:", err)
+		return
 	}
 
-	var podConfig object.Pod
-
-	// 解析 YAML
-	err = yaml.Unmarshal(data, &podConfig)
-	if err != nil {
-		fmt.Println("Error parsing YAML:", err)
-		return nil, err
+	//把文件解析成结构体
+	// 定义一个临时结构体，只包含 Kind 字段
+	var kindStruct struct {
+		Kind string `yaml:"kind"`
+	}
+	if err := yaml.Unmarshal([]byte(data), &kindStruct); err != nil {
+		_, _ = fmt.Println("error decoding YAML kind:", err)
+		return
 	}
 
-	// 输出解析结果
-	fmt.Printf("Pod Name: %s\n", podConfig.Metadata.Name)
-	fmt.Printf("Namespace: %s\n", podConfig.Metadata.Namespace)
-
-	fmt.Println("Containers:")
-	for _, container := range podConfig.Spec.Containers {
-		fmt.Printf("- Name: %s, Image: %s\n", container.Name, container.Image)
-		if len(container.Ports) > 0 {
-			fmt.Printf("  Ports: %d\n", container.Ports[0].ContainerPort)
+	//判断yaml文件的类型
+	switch kindStruct.Kind {
+	case "Pod":
+		var pod object.Pod
+		if err := yaml.Unmarshal(data, &pod); err != nil {
+			_, _ = fmt.Println("error parsing Pod YAML:", err)
+			return
 		}
+		handlePod(&pod)
+	case "Service":
+		var svc object.Service
+		if err := yaml.Unmarshal(data, &svc); err != nil {
+			_, _ = fmt.Println("error parsing Pod YAML:", err)
+			return
+		}
+		handleService(&svc)
+	case "ReplicaSet":
+		var rs object.ReplicaSet
+		if err := yaml.Unmarshal(data, &rs); err != nil {
+			_, _ = fmt.Println("error parsing ReplicaSet YAML:", err)
+			return
+		}
+		handleReplicaSet(&rs)
+	case "DNS":
+		var dns object.DNS
+		if err := yaml.Unmarshal(data, &dns); err != nil {
+			_, _ = fmt.Println("error parsing DNS YAML:", err)
+			return
+		}
+		handleDNSConfig(&dns)
+	case "HorizontalPodAutoscaler":
+		var hpa object.HorizontalPodAutoscaler
+		if err := yaml.Unmarshal(data, &hpa); err != nil {
+			_, _ = fmt.Println("error parsing DNS YAML:", err)
+			return
+		}
+		handleHPA(&hpa)
+	default:
+		_, _ = fmt.Println("unsupported kind:", err)
+		return
 	}
-	return &podConfig, err
+	return
+}
+
+func handlePod(pod *object.Pod) {
+	_, _ = fmt.Println("pod apply")
+}
+
+func handleService(pod *object.Service) {
+	_, _ = fmt.Println("service apply")
+}
+
+func handleReplicaSet(pod *object.ReplicaSet) {
+	_, _ = fmt.Println("replicaset apply")
+}
+
+func handleDNSConfig(pod *object.DNS) {
+	_, _ = fmt.Println("dns apply")
+}
+func handleHPA(pod *object.HorizontalPodAutoscaler) {
+	_, _ = fmt.Println("hpa apply")
 }
