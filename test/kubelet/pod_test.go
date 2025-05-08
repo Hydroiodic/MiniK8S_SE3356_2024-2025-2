@@ -64,7 +64,7 @@ func TestCreatePod(t *testing.T) {
 	info, err = kubelet.GetContainerInfo(
 		namespaces.WithNamespace(context.Background(), pod.Metadata.Namespace),
 		cli,
-		"test-container",
+		"test-pod-test-container", // 业务容器名称为 "Pod名-容器名"
 	)
 
 	if err != nil {
