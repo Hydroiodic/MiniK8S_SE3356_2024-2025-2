@@ -13,6 +13,7 @@ import (
 	"github.com/containerd/containerd/cio"
 	"github.com/containerd/containerd/namespaces"
 	"github.com/containerd/containerd/oci"
+	"github.com/containerd/errdefs"
 	"github.com/containerd/typeurl/v2"
 	"github.com/opencontainers/runtime-spec/specs-go"
 )
@@ -21,6 +22,65 @@ func formatSnapshotName(containerName string) string {
 	return fmt.Sprintf("snapshot-%s", containerName)
 }
 
+// 拉取镜像，如果已经存在则不拉取
+// 只许成功，不许失败！
+func pullImage(
+	ctx context.Context,
+	client *containerd.Client,
+	imageName string,
+) (containerd.Image, error) {
+	image, err := client.GetImage(ctx, imageName)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			// 镜像不存在，拉取镜像
+			image, err = client.Pull(
+				ctx,
+				imageName,
+				containerd.WithPullUnpack,
+			)
+			if err != nil {
+				return nil, fmt.Errorf(
+					"failed to pull image %s: %v",
+					imageName,
+					err,
+				)
+			}
+		} else {
+			return nil, fmt.Errorf("failed to check image %s: %v", imageName, err)
+		}
+	}
+	return image, nil
+}
+
+// 如果快照已经存在，则删除快照
+func deleteSnapShotIfExists(
+	ctx context.Context,
+	client *containerd.Client,
+	snapshotName string,
+) error {
+	// 获取快照服务
+	snapshotter := client.SnapshotService("overlayfs")
+	log.Printf("检查快照 %s 是否存在", snapshotName)
+
+	// 检查快照是否已存在
+	_, err := snapshotter.Stat(ctx, snapshotName)
+	if err == nil {
+		// 快照已存在，尝试删除
+		log.Printf("快照 %s 已存在，正在删除", snapshotName)
+		if err := snapshotter.Remove(ctx, snapshotName); err != nil {
+			return fmt.Errorf("删除已有快照 %s 失败: %v", snapshotName, err)
+		}
+	} else if !errdefs.IsNotFound(err) {
+		// 如果不是 "not found" 错误，返回错误
+		return fmt.Errorf("检查快照 %s 失败: %v", snapshotName, err)
+	}
+	return nil
+}
+
+/**
+ * 创建容器
+ * 1. 保证在SnapShot已经存在的情况下可以处理
+ */
 func CreateContainer(
 	ctx context.Context,
 	client *containerd.Client,
@@ -28,12 +88,14 @@ func CreateContainer(
 	netNSPath string, // 网络命名空间路径
 ) error {
 	// 1. 拉取镜像
-	image, err := client.Pull(
+	image, err := pullImage(
 		ctx,
+		client,
 		containerSpec.Image,
-		containerd.WithPullUnpack,
 	)
+
 	if err != nil {
+		// 不应该发生！除非网络错误。
 		return fmt.Errorf(
 			"failed to pull image %s: %v",
 			containerSpec.Image,
@@ -41,20 +103,21 @@ func CreateContainer(
 		)
 	}
 
-	// 2. 创建快照
-
-	// 获取快照服务
-	snapshotter := client.SnapshotService("overlayfs")
-	snapshotName := formatSnapshotName(
-		containerSpec.Name,
+	// 2. 删除已有的快照
+	snapshotName := formatSnapshotName(containerSpec.Name)
+	err = deleteSnapShotIfExists(
+		ctx,
+		client,
+		snapshotName,
 	)
 
-	// 检查快照是否已存在
-	_, err = snapshotter.Stat(ctx, snapshotName)
-	if err == nil {
-		// 快照已存在，尝试删除
-		// 删不删得掉与我无关
-		_ = snapshotter.Remove(ctx, snapshotName)
+	if err != nil {
+		// 不应该发生！除非网络错误。
+		return fmt.Errorf(
+			"[FATAL]: failed to delete snapshot %s: %v",
+			snapshotName,
+			err,
+		)
 	}
 
 	// 检查容器是否已经存在
@@ -70,34 +133,53 @@ func CreateContainer(
 		}
 	}
 
+	opts := []oci.SpecOpts{
+		oci.WithImageConfig(image),
+	}
+
+	if netNSPath == "" {
+		opts = append(
+			opts,
+			oci.WithHostNamespace(specs.PIDNamespace),
+		) // 可以共享PID命名空间
+	} else {
+		opts = append(opts, oci.WithLinuxNamespace(
+			specs.LinuxNamespace{
+				Type: specs.NetworkNamespace,
+				Path: netNSPath,
+			},
+		)) // 加入Pause容器的网络命名空间
+
+		opts = append(opts,
+			oci.WithProcessArgs(containerSpec.Command...), // 设置命令和参数
+		)
+	}
+
 	// 2. 创建容器
 	container, err := client.NewContainer(
 		ctx,
 		containerSpec.Name, // 容器名称
 		containerd.WithImage(image),
 		containerd.WithNewSnapshot(
-			formatSnapshotName(containerSpec.Name),
-			image,
+			formatSnapshotName(containerSpec.Name), image,
 		),
 		containerd.WithNewSpec(
-			oci.WithImageConfig(image),
-			oci.WithLinuxNamespace(
-				specs.LinuxNamespace{
-					Type: specs.NetworkNamespace,
-					Path: netNSPath,
-				},
-			), // 加入Pause容器的网络命名空间
-			// oci.WithEnv(
-			// 	[]string{
-			// 		"PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin",
-			// 	},
-			// ),
-			oci.WithProcessArgs(containerSpec.Command...), // 设置命令和参数
+			opts...,
 		),
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create container: %v", err)
 	}
+
+	log.Printf(
+		"容器 %s 创建成功，快照名称: %s, 命名空间: %s",
+		containerSpec.Name,
+		formatSnapshotName(containerSpec.Name),
+		func() string {
+			ns, _ := namespaces.Namespace(ctx)
+			return ns
+		}(),
+	)
 
 	// 3. 启动容器
 	task, err := container.NewTask(ctx, cio.NewCreator(cio.WithStdio))
@@ -272,16 +354,13 @@ type ContainerInfo struct {
 }
 
 // GetContainerInfo 获取特定容器的信息
+// 命名空间应预先设置
+// ctx = namespaces.WithNamespace(ctx, podNameSpace) // 例如 k8s.io/podName 命名空间
 func GetContainerInfo(
 	ctx context.Context,
 	client *containerd.Client,
-	podNameSpace string,
 	containerName string,
 ) (*ContainerInfo, error) {
-	// 设置命名空间（如果需要）
-	// TODO: 修改命名空间
-	ctx = namespaces.WithNamespace(ctx, podNameSpace) // 例如 k8s.io/podName 命名空间
-
 	// 加载容器
 	container, err := client.LoadContainer(ctx, containerName)
 	if err != nil {

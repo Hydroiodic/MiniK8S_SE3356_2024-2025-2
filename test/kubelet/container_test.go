@@ -57,7 +57,6 @@ func TestCreateContainer(t *testing.T) {
 	info, err := kubelet.GetContainerInfo(
 		ctx,
 		client,
-		"example_pod_name",
 		containerSpec.Name,
 	)
 

@@ -14,10 +14,8 @@ import (
 	containerd_manager "github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/containerd"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
 	"github.com/containerd/containerd"
-	"github.com/containerd/containerd/cio"
 	"github.com/containerd/containerd/namespaces"
-	"github.com/containerd/containerd/oci"
-	"github.com/opencontainers/runtime-spec/specs-go"
+	log "github.com/sirupsen/logrus"
 )
 
 func formatPauseContainerName(podName string) string {
@@ -26,42 +24,18 @@ func formatPauseContainerName(podName string) string {
 
 func createPauseContainer(
 	ctx context.Context,
-	client *containerd.Client) error {
-	// 1. 拉取Pause镜像
-	image, err := client.Pull(ctx, PauseImage, containerd.WithPullUnpack)
-	if err != nil {
-		return fmt.Errorf("failed to pull image %s: %v", PauseImage, err)
-	}
+	client *containerd.Client,
+	containerName string) error {
 
-	// 2. 创建Pause容器
-	container, err := client.NewContainer(
-		ctx,
-		"pause",
-		containerd.WithImage(image),
-		containerd.WithNewSnapshot(
-			// 反正一个Pod只有一个Pause容器
-			formatSnapshotName("pause"), image),
-		containerd.WithNewSpec(
-			oci.WithImageConfig(image),
-			oci.WithHostNamespace(specs.PIDNamespace)), // 可以共享PID命名空间？
-	)
+	err := CreateContainer(ctx, client, object.Container{
+		Name:  containerName,
+		Image: PauseImage,
+	}, "")
 
 	if err != nil {
+		log.Errorf("Failed to create pause container: %v", err)
 		return fmt.Errorf("failed to create pause container: %v", err)
 	}
-
-	// 3. 启动Pause容器
-	task, err := container.NewTask(ctx, cio.NewCreator(cio.WithStdio))
-	if err != nil {
-		return fmt.Errorf("failed to create task for pause container: %v", err)
-	}
-
-	err = task.Start(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to start pause container: %v", err)
-	}
-
-	// TODO: Configure CNI on the pause container?
 
 	return nil
 }
@@ -84,6 +58,10 @@ func NewKubeletInstance() *KubeletInstance {
 	}
 }
 
+func (inst *KubeletInstance) GetContainerdClient() *containerd.Client {
+	return inst.cli
+}
+
 /*
  * 按照Pod的规格创建Pause容器和业务容器
  * Pause容器用于提供网络命名空间
@@ -96,8 +74,16 @@ func (inst *KubeletInstance) CreatePod(
 	ctx = namespaces.WithNamespace(ctx, pod.Metadata.Namespace)
 	client := inst.cli
 
+	pauseContainerName := formatPauseContainerName(pod.Metadata.Name)
+
+	log.Infof(
+		"Creating pod %s with pause container %s",
+		pod.Metadata.Name,
+		pauseContainerName,
+	)
+
 	// 创建Pause容器
-	err := createPauseContainer(ctx, client)
+	err := createPauseContainer(ctx, client, pauseContainerName)
 	if err != nil {
 		return fmt.Errorf("failed to create pause container: %v", err)
 	}
@@ -105,7 +91,7 @@ func (inst *KubeletInstance) CreatePod(
 	// 获取Pause容器的网络命名空间路径
 	pauseContainer, err := client.LoadContainer(
 		ctx,
-		formatPauseContainerName(pod.Metadata.Name),
+		pauseContainerName,
 	)
 
 	if err != nil {
@@ -123,6 +109,13 @@ func (inst *KubeletInstance) CreatePod(
 	// Get Proceess ID of the pause container
 	pausePid := pauseTask.Pid()
 	netNSPath := fmt.Sprintf("/proc/%d/ns/net", pausePid)
+
+	log.Infof(
+		"Pause container %s created with PID %d and netns %s",
+		pauseContainerName,
+		pausePid,
+		netNSPath,
+	)
 
 	// 让业务容器加入Pause容器的网络命名空间
 	// 创建所有容器
