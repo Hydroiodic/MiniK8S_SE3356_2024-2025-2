@@ -19,7 +19,7 @@ jobs:
           go-version: stable
 
       - name: Build
-        run: go build -v ./...
+        run: sudo go build -v ./...
       
       - name: Set up containerd
         uses: crazy-max/ghaction-setup-containerd@v3
@@ -28,7 +28,7 @@ jobs:
         #   containerd-version: "2.0.4" # 指定 containerd 版本
 
       - name: Test
-        run: go test -v ./...
+        run: sudo go test -v ./...
 
   golangci-lint:
     name: lint
