@@ -17,11 +17,31 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: stable
+      
+      - name: Cache Go modules
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+            # 如果 sudo go build/test 生成了 root 权限的文件，添加可能的系统路径
+            /root/.cache/go-build
+            /root/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.mod', '**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
 
       - name: Build
-        run: go build -v ./...
+        run: sudo go build -v ./...
+      
+      - name: Set up containerd
+        uses: crazy-max/ghaction-setup-containerd@v3
+        # 可选：可以添加 with 部分来配置特定参数，例如：
+        # with:
+        #   containerd-version: "2.0.4" # 指定 containerd 版本
+
       - name: Test
-        run: go test -v ./...
+        run: sudo go test -v ./...
 
   golangci-lint:
     name: lint

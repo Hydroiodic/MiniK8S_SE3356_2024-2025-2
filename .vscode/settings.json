@@ -8,5 +8,5 @@
         "80"
     ],
     "go.formatTool": "custom",
-    "go.lintTool": "golangci-lint",
+    "go.lintTool": "golangci-lint-v2",
 }

@@ -82,10 +82,12 @@ func redisExample() error {
 	// wait for the process to fully exit and print out the exit status
 
 	status := <-exitStatusC
+
 	code, _, err := status.Result()
 	if err != nil {
 		return err
 	}
+
 	fmt.Printf("redis-server exited with status: %d\n", code)
 
 	return nil
