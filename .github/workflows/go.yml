@@ -20,6 +20,13 @@ jobs:
 
       - name: Build
         run: go build -v ./...
+      
+      - name: Set up containerd
+        uses: crazy-max/ghaction-setup-containerd@v3
+        # 可选：可以添加 with 部分来配置特定参数，例如：
+        # with:
+        #   containerd-version: "2.0.4" # 指定 containerd 版本
+
       - name: Test
         run: go test -v ./...
 

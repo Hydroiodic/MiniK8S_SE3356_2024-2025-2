@@ -13,7 +13,6 @@ import (
 	"github.com/containerd/containerd/cio"
 	"github.com/containerd/containerd/namespaces"
 	"github.com/containerd/containerd/oci"
-	"github.com/containerd/errdefs"
 	"github.com/containerd/typeurl/v2"
 	"github.com/opencontainers/runtime-spec/specs-go"
 )
@@ -49,6 +48,7 @@ func pullImage(
 			return nil, fmt.Errorf("failed to check image %s: %v", imageName, err)
 		}
 	}
+
 	return image, nil
 }
 
@@ -60,6 +60,7 @@ func deleteSnapShotIfExists(
 ) error {
 	// 获取快照服务
 	snapshotter := client.SnapshotService("overlayfs")
+
 	log.Printf("检查快照 %s 是否存在", snapshotName)
 
 	// 检查快照是否已存在
@@ -67,13 +68,9 @@ func deleteSnapShotIfExists(
 	if err == nil {
 		// 快照已存在，尝试删除
 		log.Printf("快照 %s 已存在，正在删除", snapshotName)
-		if err := snapshotter.Remove(ctx, snapshotName); err != nil {
-			return fmt.Errorf("删除已有快照 %s 失败: %v", snapshotName, err)
-		}
-	} else if !errdefs.IsNotFound(err) {
-		// 如果不是 "not found" 错误，返回错误
-		return fmt.Errorf("检查快照 %s 失败: %v", snapshotName, err)
+		_ = snapshotter.Remove(ctx, snapshotName)
 	}
+
 	return nil
 }
 
