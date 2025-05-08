@@ -10,12 +10,12 @@ package kubelet
 import (
 	"context"
 	"fmt"
+	"log"
 
 	containerd_manager "github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/containerd"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
 	"github.com/containerd/containerd"
 	"github.com/containerd/containerd/namespaces"
-	log "github.com/sirupsen/logrus"
 )
 
 func formatPauseContainerName(podName string) string {
@@ -30,14 +30,13 @@ func createPauseContainer(
 	ctx context.Context,
 	client *containerd.Client,
 	containerName string) error {
-
 	err := CreateContainer(ctx, client, object.Container{
 		Name:  containerName,
 		Image: PauseImage,
 	}, "")
 
 	if err != nil {
-		log.Errorf("Failed to create pause container: %v", err)
+		log.Printf("Failed to create pause container: %v", err)
 		return fmt.Errorf("failed to create pause container: %v", err)
 	}
 
@@ -82,7 +81,7 @@ func (inst *KubeletInstance) CreatePod(
 
 	pauseContainerName := formatPauseContainerName(pod.Metadata.Name)
 
-	log.Infof(
+	log.Printf(
 		"Creating pod %s with pause container %s",
 		pod.Metadata.Name,
 		pauseContainerName,
@@ -116,7 +115,7 @@ func (inst *KubeletInstance) CreatePod(
 	pausePid := pauseTask.Pid()
 	netNSPath := fmt.Sprintf("/proc/%d/ns/net", pausePid)
 
-	log.Infof(
+	log.Printf(
 		"Pause container %s created with PID %d and netns %s",
 		pauseContainerName,
 		pausePid,

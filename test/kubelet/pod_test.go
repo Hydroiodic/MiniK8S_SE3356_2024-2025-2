@@ -11,7 +11,6 @@ import (
 )
 
 func TestCreatePod(t *testing.T) {
-
 	inst := kubelet.NewKubeletInstance()
 	pod := &object.Pod{
 		Kind: "Pod",
@@ -74,5 +73,4 @@ func TestCreatePod(t *testing.T) {
 	if info == nil {
 		t.Fatalf("container not found")
 	}
-
 }
