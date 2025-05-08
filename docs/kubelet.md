@@ -1,3 +1,19 @@
+# 目前的 Pod 抽象
+
+> 2025-05-08
+
+使用`Pod.Metadata.Namesapce`作为`Containerd`的`NameSpace`
+`Pod`名称在同一命名空间下名称应该唯一。
+
+`Container`在Containerd下的名称为`Pod名称-Container名称`
+
+```shell
+> $ sudo ctr --namespace example-pod-namespace containers ls                                                    [±feat/kubelet ●]
+CONTAINER                  IMAGE                             RUNTIME                  
+test-pod-pause             k8s.gcr.io/pause:3.6              io.containerd.runc.v2    
+test-pod-test-container    docker.io/library/nginx:latest    io.containerd.runc.v2    
+```
+
 # Containerd
 
 Containerd Namespace
@@ -41,7 +57,7 @@ lrwxrwxrwx 1 liu liu 0 Apr 22 22:03 /proc/1470/ns/net -> 'net:[4026533291]'
 这确保 Pod 内的所有容器共享同一个网络命名空间，从而拥有相同的 IP 地址和网络配置。
 
 Containerd Namespace：
-在 Kubernetes 中，Containerd namespace 通常与 Kubernetes namespace 对齐，用于隔离不同命名空间的 Pod。例如，你的代码通过 pod.Metadata.Namespace 设置 Containerd namespace，确保 Pod 的容器操作在正确的隔离范围内。
+在 Kubernetes 中，**Containerd namespace 通常与 Kubernetes namespace 对齐**，用于隔离不同命名空间的 Pod。例如，你的代码通过 pod.Metadata.Namespace 设置 Containerd namespace，确保 Pod 的容器操作在正确的隔离范围内。
 同一个 Containerd namespace 可以包含多个 Pod，每个 Pod 有自己的网络命名空间。
 
 在 Kubernetes 的 Pod 模型中，Pod 内的所有容器共享同一个网络命名空间，由 Pause 容器创建和持有。
@@ -49,12 +65,6 @@ Pause 容器的网络命名空间通过 CNI 插件配置网络（例如分配 Po
 在你的代码中，Pause 容器的 PID 用于获取网络命名空间路径（/proc/<pid>/ns/net），业务容器通过 oci.WithLinuxNamespace 加入该命名空间。
 
 # Containerd API
-
-Containerd 是一个高性能的容器运行时，其 API 提供了丰富的功能来管理容器、镜像、快照、任务等资源。Containerd 的 API 是基于 gRPC 的，定义在 `containerd/api` 模块中，主要通过 Go 语言的客户端库（如 `github.com/containerd/containerd`）与 Containerd 服务交互。你的代码中已经使用了部分 Containerd API，例如创建容器、拉取镜像、启动任务等。
-
-为了回答你的问题，我将详细介绍 Containerd API 中涉及的核心参数，结合你的代码，聚焦于常用的 API 调用（如创建容器、任务管理等）及其参数，尽量简洁但全面。如果你有特定的 API 或场景需要深入分析，可以进一步说明。
-
----
 
 ### 1. **Containerd API 概述**
 Containerd 的 API 按功能划分为多个服务，每个服务对应一组操作。例如：

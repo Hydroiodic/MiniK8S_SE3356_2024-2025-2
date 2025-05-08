@@ -22,6 +22,10 @@ func formatPauseContainerName(podName string) string {
 	return fmt.Sprintf("%s-pause", podName)
 }
 
+func formatContainerName(podName string, containerName string) string {
+	return fmt.Sprintf("%s-%s", podName, containerName)
+}
+
 func createPauseContainer(
 	ctx context.Context,
 	client *containerd.Client,
@@ -65,6 +69,8 @@ func (inst *KubeletInstance) GetContainerdClient() *containerd.Client {
 /*
  * 按照Pod的规格创建Pause容器和业务容器
  * Pause容器用于提供网络命名空间
+ * 注意：Pause容器的名称是固定的，格式为 <pod-name>-pause
+ * 上下文会被修改为Pod指定的NameSpace
  */
 func (inst *KubeletInstance) CreatePod(
 	ctx context.Context,
@@ -120,12 +126,19 @@ func (inst *KubeletInstance) CreatePod(
 	// 让业务容器加入Pause容器的网络命名空间
 	// 创建所有容器
 	for _, container := range pod.Spec.Containers {
+		// Edit Container Name
+		container.Name = formatContainerName(
+			pod.Metadata.Name,
+			container.Name,
+		)
+
 		err := CreateContainer(
 			ctx,
 			client,
 			container,
 			netNSPath,
 		)
+
 		if err != nil {
 			return fmt.Errorf(
 				"failed to create container %s: %v",

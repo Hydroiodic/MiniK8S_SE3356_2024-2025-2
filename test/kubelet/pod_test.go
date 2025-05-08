@@ -39,7 +39,6 @@ func TestCreatePod(t *testing.T) {
 		},
 	}
 
-	// FIXME: Each Pod is in a different namespace
 	err := inst.CreatePod(context.Background(), pod)
 	if err != nil {
 		t.Fatalf("failed to create pod: %v", err)
@@ -50,7 +49,7 @@ func TestCreatePod(t *testing.T) {
 	info, err := kubelet.GetContainerInfo(
 		namespaces.WithNamespace(context.Background(), pod.Metadata.Namespace),
 		cli,
-		"test-pod-pause",
+		"test-pod-pause", // Pause 容器名称为 "Pod名-pause"
 	)
 
 	if err != nil {
@@ -59,6 +58,21 @@ func TestCreatePod(t *testing.T) {
 
 	if info == nil {
 		t.Fatalf("pause container not found")
+	}
+
+	// 测试Nginx容器运行情况
+	info, err = kubelet.GetContainerInfo(
+		namespaces.WithNamespace(context.Background(), pod.Metadata.Namespace),
+		cli,
+		"test-container",
+	)
+
+	if err != nil {
+		t.Fatalf("failed to get container info: %v", err)
+	}
+
+	if info == nil {
+		t.Fatalf("container not found")
 	}
 
 }
