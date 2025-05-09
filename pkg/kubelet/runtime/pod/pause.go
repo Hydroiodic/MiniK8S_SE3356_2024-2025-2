@@ -2,6 +2,7 @@ package pod
 
 import (
 	ctr_runtime "github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/container"
+	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/utils"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
 	"github.com/docker/docker/api/types/container"
 )
@@ -11,9 +12,12 @@ func CreatePauseContainer(
 	c ctr_runtime.ContainerServiceInterface,
 	pod *object.Pod,
 ) (string, error) {
-	// TODO: How to use UID?
 	ctr := object.Container{
-		Name:  pod.Metadata.Name + "-pause",
+		Name: utils.FormatContainerName(
+			pod.Metadata.Namespace,
+			pod.Metadata.Name,
+			"pause",
+		),
 		Image: "k8s.gcr.io/pause:3.6",
 	}
 

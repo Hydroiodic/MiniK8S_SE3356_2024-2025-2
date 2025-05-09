@@ -31,7 +31,6 @@ func (p *PodService) CreatePod(pod *object.Pod) error {
 	// 容器间可以通过 localhost 通信。
 	// 容器共享进程视图和 IPC 资源。
 	for i, ctrConfig := range pod.Spec.Containers {
-
 		// 无需端口映射
 		ctr := object.Container{
 			Name: utils.FormatContainerName(
