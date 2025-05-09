@@ -23,7 +23,12 @@ func (c *MetricsClient) GetPodMetric(podName, resource string) float64 {
 	if err != nil {
 		return 0
 	}
-	defer resp.Body.Close()
+
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			fmt.Println("关闭响应体失败:", err)
+		}
+	}()
 
 	var data map[string]interface{}
 	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {

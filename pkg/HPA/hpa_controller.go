@@ -74,6 +74,7 @@ func (c *HPAController) getAllHPA() ([]*object.HorizontalPodAutoscaler, error) {
 	}
 
 	var hpas []*object.HorizontalPodAutoscaler
+
 	for _, kv := range resp.Kvs {
 		hpa := &object.HorizontalPodAutoscaler{}
 		// 假设 hpa 数据是以 JSON 格式存储的
@@ -81,6 +82,7 @@ func (c *HPAController) getAllHPA() ([]*object.HorizontalPodAutoscaler, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to unmarshal HPA data: %v", err)
 		}
+
 		hpas = append(hpas, hpa)
 	}
 
@@ -111,7 +113,7 @@ func (c *HPAController) reconcileHPA() {
 		adjustedReplicas := applyScalingPolicy(hpa, desiredReplicas)
 
 		// 更新副本数
-		if adjustedReplicas != (int32)(target.Status.Replicas) {
+		if (int)(adjustedReplicas) != target.Status.Replicas {
 			updateReplicaSet(target, adjustedReplicas)
 		}
 	}
