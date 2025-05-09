@@ -9,6 +9,9 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
+// PodResource 代表 Pod 资源类型.
+const PodResource = "pod"
+
 var execCmd = &cobra.Command{
 	Use:   "apply",
 	Short: "Interactive exec into a resource",
@@ -34,83 +37,81 @@ func init() {
 	kubectlCmd.AddCommand(execCmd)
 }
 
+// 统一解析并处理 YAML 资源的通用函数.
+func parseAndHandle[T any](data []byte, handler func(*T)) error {
+	var obj T
+	if err := yaml.Unmarshal(data, &obj); err != nil {
+		return fmt.Errorf("解析 YAML 失败: %w", err)
+	}
+
+	handler(&obj)
+
+	return nil
+}
+
 func parseYaml(fileAddr string) {
-	//读取文件内容
 	data, err := os.ReadFile(fileAddr) // #nosec G304
 	if err != nil {
-		_, _ = fmt.Println("Error reading file:", err)
+		_, _ = fmt.Println("读取文件失败:", err)
 		return
 	}
 
-	//把文件解析成结构体
-	// 定义一个临时结构体，只包含 Kind 字段
 	var kindStruct struct {
 		Kind string `yaml:"kind"`
 	}
-	if err := yaml.Unmarshal([]byte(data), &kindStruct); err != nil {
-		_, _ = fmt.Println("error decoding YAML kind:", err)
+
+	marshalErr := yaml.Unmarshal(data, &kindStruct)
+	if marshalErr != nil {
+		_, _ = fmt.Println("解析 YAML 结构失败:", marshalErr)
 		return
 	}
 
-	//判断yaml文件的类型
-	switch kindStruct.Kind {
-	case "Pod":
-		var pod object.Pod
-		if err := yaml.Unmarshal(data, &pod); err != nil {
-			_, _ = fmt.Println("error parsing Pod YAML:", err)
-			return
-		}
-		handlePod(&pod)
-	case "Service":
-		var svc object.Service
-		if err := yaml.Unmarshal(data, &svc); err != nil {
-			_, _ = fmt.Println("error parsing Pod YAML:", err)
-			return
-		}
-		handleService(&svc)
-	case "ReplicaSet":
-		var rs object.ReplicaSet
-		if err := yaml.Unmarshal(data, &rs); err != nil {
-			_, _ = fmt.Println("error parsing ReplicaSet YAML:", err)
-			return
-		}
-		handleReplicaSet(&rs)
-	case "DNS":
-		var dns object.DNS
-		if err := yaml.Unmarshal(data, &dns); err != nil {
-			_, _ = fmt.Println("error parsing DNS YAML:", err)
-			return
-		}
-		handleDNSConfig(&dns)
-	case "HorizontalPodAutoscaler":
-		var hpa object.HorizontalPodAutoscaler
-		if err := yaml.Unmarshal(data, &hpa); err != nil {
-			_, _ = fmt.Println("error parsing DNS YAML:", err)
-			return
-		}
-		handleHPA(&hpa)
-	default:
-		_, _ = fmt.Println("unsupported kind:", err)
-		return
+	resourceHandlers := map[string]func([]byte) error{
+		PodResource: func(data []byte) error {
+			return parseAndHandle[object.Pod](data, handlePod)
+		},
+		"Service": func(data []byte) error {
+			return parseAndHandle[object.Service](data, handleService)
+		},
+		"ReplicaSet": func(data []byte) error {
+			return parseAndHandle[object.ReplicaSet](data, handleReplicaSet)
+		},
+		"DNS": func(data []byte) error {
+			return parseAndHandle[object.DNS](data, handleDNSConfig)
+		},
+		"HorizontalPodAutoscaler": func(data []byte) error {
+			return parseAndHandle[object.HorizontalPodAutoscaler](
+				data,
+				handleHPA,
+			)
+		},
 	}
-	return
+
+	// 根据 kind 处理相应的资源
+	if handler, exists := resourceHandlers[kindStruct.Kind]; exists {
+		if err := handler(data); err != nil {
+			_, _ = fmt.Println(err)
+		}
+	} else {
+		_, _ = fmt.Println("不支持的资源类型:", kindStruct.Kind)
+	}
 }
 
 func handlePod(pod *object.Pod) {
-	_, _ = fmt.Println("pod apply")
+	_, _ = fmt.Println("pod apply" + pod.Kind)
 }
 
 func handleService(pod *object.Service) {
-	_, _ = fmt.Println("service apply")
+	_, _ = fmt.Println("service apply" + pod.Kind)
 }
 
 func handleReplicaSet(pod *object.ReplicaSet) {
-	_, _ = fmt.Println("replicaset apply")
+	_, _ = fmt.Println("replicaset apply" + pod.Kind)
 }
 
 func handleDNSConfig(pod *object.DNS) {
-	_, _ = fmt.Println("dns apply")
+	_, _ = fmt.Println("dns apply" + pod.Kind)
 }
 func handleHPA(pod *object.HorizontalPodAutoscaler) {
-	_, _ = fmt.Println("hpa apply")
+	_, _ = fmt.Println("hpa apply" + pod.Kind)
 }

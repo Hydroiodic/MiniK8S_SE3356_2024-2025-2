@@ -7,10 +7,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// emptyReply default.
+const emptyReply = ""
+
 var getCmd = &cobra.Command{
 	Use:   "get",
 	Short: "Display one or many Kubernetes resources",
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, args []string) {
 		if len(args) < 1 {
 			_, _ = fmt.Println(
 				"Usage: minik8s kubectl get <resource-type> [<resource-name>]",
@@ -25,7 +28,7 @@ var getCmd = &cobra.Command{
 		}
 
 		switch strings.ToLower(resourceType) {
-		case "pods", "pod":
+		case "pods", PodResource:
 			if resourceName != "" {
 				getPod(resourceName)
 			} else {
@@ -65,57 +68,67 @@ func init() {
 	kubectlCmd.AddCommand(getCmd)
 }
 
-// Pod 相关操作
-func getPod(name string) {
+// Pod 相关操作.
+func getPod(name string) string {
 	_, _ = fmt.Printf("Getting Pod: %s\n", name)
 	// 这里添加实际获取单个 Pod 的逻辑
+	return emptyReply
 }
 
-func getAllPods() {
+func getAllPods() string {
 	_, _ = fmt.Println("Listing all Pods")
 	// 这里添加实际获取所有 Pod 的逻辑
+	return emptyReply
 }
 
-// Service 相关操作
-func getService(name string) {
+// Service 相关操作.
+func getService(name string) string {
 	_, _ = fmt.Printf("Getting Service: %s\n", name)
 	// 这里添加实际获取单个 Service 的逻辑
+	return emptyReply
 }
 
-func getAllServices() {
+func getAllServices() string {
 	_, _ = fmt.Println("Listing all Services")
 	// 这里添加实际获取所有 Service 的逻辑
+	return emptyReply
 }
 
-// ReplicaSet 相关操作
-func getReplicaSet(name string) {
+// ReplicaSet 相关操作.
+func getReplicaSet(name string) string {
 	_, _ = fmt.Printf("Getting ReplicaSet: %s\n", name)
 	// 这里添加实际获取单个 ReplicaSet 的逻辑
+	return emptyReply
 }
 
-func getAllReplicaSets() {
+func getAllReplicaSets() string {
 	_, _ = fmt.Println("Listing all ReplicaSets")
 	// 这里添加实际获取所有 ReplicaSet 的逻辑
+	return emptyReply
 }
 
-// DNS 相关操作
-func getDNS(name string) {
+// DNS 相关操作.
+func getDNS(name string) string {
 	_, _ = fmt.Printf("Getting DNS config: %s\n", name)
 	// 这里添加实际获取单个 DNS 配置的逻辑
+	return emptyReply
 }
 
-func getAllDNS() {
+func getAllDNS() string {
 	_, _ = fmt.Println("Listing all DNS configs")
 	// 这里添加实际获取所有 DNS 配置的逻辑
+	return emptyReply
 }
 
-// HPA 相关操作
-func getHPA(name string) {
+// HPA 相关操作.
+func getHPA(name string) string {
 	_, _ = fmt.Printf("Getting HPA config: %s\n", name)
 	// 这里添加实际获取单个 HPA 配置的逻辑
+	return emptyReply
 }
 
-func getAllHPA() {
+func getAllHPA() string {
 	_, _ = fmt.Println("Listing all HPA configs")
 	// 这里添加实际获取所有 HPA 配置的逻辑
+	return emptyReply
 }

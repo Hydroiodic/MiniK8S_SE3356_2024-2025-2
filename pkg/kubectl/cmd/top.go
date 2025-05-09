@@ -1,4 +1,3 @@
-// cmd/top.go
 package cmd
 
 import (
@@ -11,7 +10,7 @@ import (
 var topCmd = &cobra.Command{
 	Use:   "top",
 	Short: "Display resource usage metrics",
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, args []string) {
 		if len(args) < 1 {
 			_, _ = fmt.Println("Usage: minik8s kubectl top <pod|node> [<name>]")
 			return
@@ -24,7 +23,7 @@ var topCmd = &cobra.Command{
 		}
 
 		switch strings.ToLower(resourceType) {
-		case "pods", "pod":
+		case "pods", PodResource:
 			if resourceName != "" {
 				getPodMetrics(resourceName)
 			} else {
@@ -40,14 +39,16 @@ func init() {
 	kubectlCmd.AddCommand(topCmd)
 }
 
-// 获取单个 Pod 的资源指标
-func getPodMetrics(name string) {
+// 获取单个 Pod 的资源指标.
+func getPodMetrics(name string) string {
 	_, _ = fmt.Printf("Metrics for Pod: %s\n", name)
 	// 调用 cAdvisor API 获取 CPU/Memory 数据
+	return ""
 }
 
-// 获取所有 Pod 的资源指标
-func getAllPodMetrics() {
+// 获取所有 Pod 的资源指标.
+func getAllPodMetrics() string {
 	_, _ = fmt.Println("Metrics for all Pods")
 	// 批量获取指标并格式化输出
+	return ""
 }
