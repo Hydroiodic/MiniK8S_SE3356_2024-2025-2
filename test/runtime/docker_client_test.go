@@ -23,6 +23,7 @@ func TestMain(t *testing.T) {
 
 	// 打印容器信息
 	t.Logf("Currently running containers:")
+
 	for _, container := range containers {
 		t.Logf(
 			"ID: %s, Image: %s, Names: %v, State: %s, Status: %s",

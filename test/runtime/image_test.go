@@ -11,7 +11,6 @@ import (
 )
 
 func TestPullImage(t *testing.T) {
-
 	imgService := &image.ImageService{
 		Cli: docker.GetDockerClient(),
 	}

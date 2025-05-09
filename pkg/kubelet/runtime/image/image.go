@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 
+	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/docker"
 	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/client"
 )
@@ -18,6 +19,17 @@ type ImageServiceInterface interface {
 type ImageService struct {
 	// Docker 客户端
 	Cli *client.Client
+}
+
+func NewImageService() (*ImageService, error) {
+	cli := docker.GetDockerClient()
+	if cli == nil {
+		return nil, fmt.Errorf("无法创建 Docker 客户端")
+	}
+
+	return &ImageService{
+		Cli: cli,
+	}, nil
 }
 
 // TODO: What if Image Already Exists?
