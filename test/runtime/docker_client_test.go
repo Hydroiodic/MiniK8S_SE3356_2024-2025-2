@@ -1,4 +1,4 @@
-package docker_test
+package runtime_test
 
 import (
 	"context"
