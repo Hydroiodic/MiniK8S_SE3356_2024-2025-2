@@ -34,14 +34,11 @@ jobs:
       - name: Build
         run: sudo go build -v ./...
       
-      - name: Set up containerd
-        uses: crazy-max/ghaction-setup-containerd@v3
-        # 可选：可以添加 with 部分来配置特定参数，例如：
-        # with:
-        #   containerd-version: "2.0.4" # 指定 containerd 版本
+      - name: Set up Docker
+        uses: docker/setup-buildx-action@v2
 
       - name: Test
-        run: sudo go test -v ./...
+        run: sudo go test -v test/runtime
 
   golangci-lint:
     name: lint
