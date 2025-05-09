@@ -1,0 +1,28 @@
+kind: Pod
+metadata:
+  name: nginx-pod
+  namespace: default
+  labels:
+    app: nginx
+    tier: frontend
+spec:
+  containers:
+    - id: nginx-container
+      name: nginx
+      image: nginx:latest
+      command: ["nginx"]
+      args: ["-g", "daemon off;"]
+      ports:
+        - containerPort: 80
+      resources:
+        cpu: "1"
+        memory: "128Mi"
+  volumes:
+    - name: nginx-volume
+      path: /usr/share/nginx/html
+status:
+  phase: Running
+  startTime: "2023-10-15T10:00:00Z"
+  conditions:
+    - Ready
+    - ContainersReady
