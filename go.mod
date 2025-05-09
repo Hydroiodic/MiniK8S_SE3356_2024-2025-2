@@ -4,14 +4,13 @@ go 1.23.1
 
 require (
 	github.com/containerd/containerd v1.7.27
-	github.com/google/cadvisor v0.52.1
-	github.com/spf13/cobra v1.9.1
-	go.etcd.io/etcd/client/v3 v3.5.21
-	gopkg.in/yaml.v3 v3.0.1
 	github.com/containerd/typeurl/v2 v2.2.3
+	github.com/google/cadvisor v0.52.1
 	github.com/opencontainers/runtime-spec v1.2.0
+	github.com/spf13/cobra v1.9.1
 	github.com/stretchr/testify v1.10.0
 	go.etcd.io/etcd/client/v3 v3.5.21
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
@@ -51,8 +50,6 @@ require (
 	github.com/moby/sys/userns v0.1.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.1 // indirect
-	github.com/opencontainers/runtime-spec v1.2.0 // indirect
-	github.com/opencontainers/image-spec v1.1.0 // indirect
 	github.com/opencontainers/selinux v1.11.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
@@ -78,6 +75,4 @@ require (
 	google.golang.org/grpc v1.68.1 // indirect
 	google.golang.org/protobuf v1.36.1 // indirect
 	k8s.io/klog/v2 v2.100.1 // indirect
-	google.golang.org/protobuf v1.35.2 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
