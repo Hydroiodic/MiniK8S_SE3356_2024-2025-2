@@ -11,10 +11,16 @@ import (
 	"github.com/docker/docker/client"
 )
 
-type ContainerService interface {
+type ContainerServiceInterface interface {
 	// Returns Container ID
-	CreateContainer(container object.Container) (string, error)
-	ForceCreateContainer(container object.Container) (string, error)
+	CreateContainer(
+		container object.Container,
+		hostConfig *container.HostConfig,
+	) (string, error)
+	ForceCreateContainer(
+		container object.Container,
+		hostConfig *container.HostConfig,
+	) (string, error)
 	StartContainer(containerID string) error
 	StopContainer(containerID string) error
 	DeleteContainer(containerID string) error
@@ -22,12 +28,12 @@ type ContainerService interface {
 	GetContainerStatus(containerID string) (string, error)
 }
 
-type containerService struct {
+type ContainerService struct {
 	client      *client.Client
 	img_service *image.ImageService
 }
 
-func NewContainerService() (*containerService, error) {
+func NewContainerService() (*ContainerService, error) {
 	cli, err := client.NewClientWithOpts(
 		client.FromEnv,
 		client.WithAPIVersionNegotiation(),
@@ -42,11 +48,11 @@ func NewContainerService() (*containerService, error) {
 		return nil, fmt.Errorf("无法创建镜像服务: %v", err)
 	}
 
-	return &containerService{client: cli, img_service: imgService}, nil
+	return &ContainerService{client: cli, img_service: imgService}, nil
 }
 
-func (cs *containerService) CreateContainer(
-	ctr object.Container,
+func (cs *ContainerService) CreateContainer(
+	ctr object.Container, hostConfig *container.HostConfig,
 ) (string, error) {
 	ctx := context.Background()
 
@@ -55,6 +61,8 @@ func (cs *containerService) CreateContainer(
 	if err != nil {
 		return "", fmt.Errorf("无法拉取镜像 %s: %v", ctr.Image, err)
 	}
+
+	// TODO: Generate Docker Configs using Container Object
 
 	/**
 	 * config *container.Config,
@@ -67,8 +75,10 @@ func (cs *containerService) CreateContainer(
 		Cmd:   ctr.Command,
 	}
 
-	hostConfig := &container.HostConfig{
-		NetworkMode: "default", // 可根据需要设置 netNSPath
+	if hostConfig == nil {
+		hostConfig = &container.HostConfig{
+			NetworkMode: "default", // 可根据需要设置 netNSPath
+		}
 	}
 
 	// TODO: 设置网络配置
@@ -91,8 +101,9 @@ func (cs *containerService) CreateContainer(
 	return resp.ID, nil
 }
 
-func (cs *containerService) ForceCreateContainer(
+func (cs *ContainerService) ForceCreateContainer(
 	ctr object.Container,
+	hostConfig *container.HostConfig,
 ) (string, error) {
 	ctx := context.Background()
 
@@ -104,12 +115,12 @@ func (cs *containerService) ForceCreateContainer(
 		log.Printf("容器 %s 已存在，已删除", ctr.Name)
 	}
 
-	id, err := cs.CreateContainer(ctr)
+	id, err := cs.CreateContainer(ctr, hostConfig)
 
 	return id, err
 }
 
-func (cs *containerService) StartContainer(containerID string) error {
+func (cs *ContainerService) StartContainer(containerID string) error {
 	ctx := context.Background()
 	err := cs.client.ContainerStart(
 		ctx,
@@ -126,7 +137,7 @@ func (cs *containerService) StartContainer(containerID string) error {
 	return nil
 }
 
-func (cs *containerService) StopContainer(containerID string) error {
+func (cs *ContainerService) StopContainer(containerID string) error {
 	ctx := context.Background()
 	err := cs.client.ContainerStop(
 		ctx,
@@ -143,7 +154,7 @@ func (cs *containerService) StopContainer(containerID string) error {
 	return nil
 }
 
-func (cs *containerService) DeleteContainer(containerID string) error {
+func (cs *ContainerService) DeleteContainer(containerID string) error {
 	ctx := context.Background()
 
 	// 首先停止容器
@@ -170,7 +181,7 @@ func (cs *containerService) DeleteContainer(containerID string) error {
 	return nil
 }
 
-func (cs *containerService) GetContainerInfo(
+func (cs *ContainerService) GetContainerInfo(
 	containerID string,
 ) (*container.InspectResponse, error) {
 	ctx := context.Background()
@@ -183,7 +194,7 @@ func (cs *containerService) GetContainerInfo(
 	return &ctrInfo, nil
 }
 
-func (cs *containerService) GetContainerStatus(
+func (cs *ContainerService) GetContainerStatus(
 	containerID string,
 ) (string, error) {
 	ctx := context.Background()

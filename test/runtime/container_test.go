@@ -25,7 +25,7 @@ func TestCreateContainer(t *testing.T) {
 	}
 
 	// 创建一个新的容器
-	containerID, err := containerService.CreateContainer(containerSpec)
+	containerID, err := containerService.CreateContainer(containerSpec, nil)
 	assert.NoError(t, err)
 
 	// 检查容器是否存在
@@ -57,13 +57,16 @@ func TestForceCreateContainer(t *testing.T) {
 	}
 
 	// 创建一个新的容器
-	containerID, err := containerService.ForceCreateContainer(containerSpec)
+	containerID, err := containerService.ForceCreateContainer(
+		containerSpec,
+		nil,
+	)
 	assert.NoError(t, err)
 
 	t.Logf("Container created with ID: %s", containerID)
 
 	// 创建一个新的容器
-	containerID, err = containerService.ForceCreateContainer(containerSpec)
+	containerID, err = containerService.ForceCreateContainer(containerSpec, nil)
 	assert.NoError(t, err)
 
 	t.Logf("Container created with ID: %s", containerID)
@@ -90,7 +93,7 @@ func TestStartContainer(t *testing.T) {
 	}
 
 	// 创建一个新的容器
-	containerID, err := containerService.CreateContainer(containerSpec)
+	containerID, err := containerService.CreateContainer(containerSpec, nil)
 	assert.NoError(t, err)
 
 	t.Logf("Container created with ID: %s", containerID)
@@ -125,7 +128,7 @@ func TestDeleteContainer(t *testing.T) {
 	}
 
 	// 创建一个新的容器
-	containerID, err := containerService.CreateContainer(containerSpec)
+	containerID, err := containerService.CreateContainer(containerSpec, nil)
 	assert.NoError(t, err)
 
 	t.Logf("Container created with ID: %s", containerID)
@@ -157,7 +160,7 @@ func TestGetContainerStatus(t *testing.T) {
 	}
 
 	// 创建一个新的容器
-	containerID, err := containerService.CreateContainer(containerSpec)
+	containerID, err := containerService.CreateContainer(containerSpec, nil)
 	assert.NoError(t, err)
 	t.Logf("Container created with ID: %s", containerID)
 
