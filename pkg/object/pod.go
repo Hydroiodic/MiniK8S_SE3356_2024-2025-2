@@ -24,7 +24,7 @@ type PodSpec struct {
 }
 
 type Container struct {
-	ID        string          `yaml:"id"`        // 容器 ID
+	ID        string          `yaml:"id"`        // 容器 ID，由 Docker 生成
 	Name      string          `yaml:"name"`      // 容器名称
 	Image     string          `yaml:"image"`     // 镜像名和 Tag，如 nginx:latest
 	Command   []string        `yaml:"command"`   // 容器执行命令

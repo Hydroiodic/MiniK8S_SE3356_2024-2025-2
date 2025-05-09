@@ -4,6 +4,7 @@ import (
 	"log"
 
 	ctr_runtime "github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/container"
+	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/utils"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
 	"github.com/docker/docker/api/types/container"
 )
@@ -12,6 +13,10 @@ type PodService struct {
 	ctr_service *ctr_runtime.ContainerService
 }
 
+/**
+ * NOTE: Pod内的数据结构会被修改
+ * Container的ID会在创建后被赋值
+ */
 func (p *PodService) CreatePod(pod *object.Pod) error {
 	// Create Pause Container
 	pauseId, err := CreatePauseContainer(p.ctr_service, pod)
@@ -25,10 +30,15 @@ func (p *PodService) CreatePod(pod *object.Pod) error {
 	// 所有容器共享相同的 IP 地址（Pod IP）。
 	// 容器间可以通过 localhost 通信。
 	// 容器共享进程视图和 IPC 资源。
-	for _, ctrConfig := range pod.Spec.Containers {
+	for i, ctrConfig := range pod.Spec.Containers {
+
 		// 无需端口映射
 		ctr := object.Container{
-			Name:    ctrConfig.Name,
+			Name: utils.FormatContainerName(
+				pod.Metadata.Namespace,
+				pod.Metadata.Name,
+				ctrConfig.Name,
+			), // TODO: Edit the Name Here?
 			Image:   ctrConfig.Image,
 			Command: ctrConfig.Command,
 			Args:    ctrConfig.Args,
@@ -50,6 +60,8 @@ func (p *PodService) CreatePod(pod *object.Pod) error {
 		if err != nil {
 			log.Printf("Failed to create container %s: %v", ctr.Name, err)
 		}
+
+		(*pod).Spec.Containers[i].ID = ctrId
 
 		log.Printf("Created container %s with ID %s", ctr.Name, ctrId)
 	}
