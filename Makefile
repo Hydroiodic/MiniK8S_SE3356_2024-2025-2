@@ -1,5 +1,6 @@
 # TODO
 # Install containerd
+
 install-containerd:
 	@sudo $(MAKE) -f scripts/containerd.mk
 
@@ -11,3 +12,7 @@ install-golines:
 
 clean:
 	@rm -rf build/*
+
+lint:
+	@echo "Running golangci-lint..."
+	@golangci-lint-v2 run

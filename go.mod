@@ -8,6 +8,10 @@ require (
 	github.com/spf13/cobra v1.9.1
 	go.etcd.io/etcd/client/v3 v3.5.21
 	gopkg.in/yaml.v3 v3.0.1
+	github.com/containerd/typeurl/v2 v2.2.3
+	github.com/opencontainers/runtime-spec v1.2.0
+	github.com/stretchr/testify v1.10.0
+	go.etcd.io/etcd/client/v3 v3.5.21
 )
 
 require (
@@ -24,9 +28,9 @@ require (
 	github.com/containerd/log v0.1.0 // indirect
 	github.com/containerd/platforms v1.0.0-rc.1 // indirect
 	github.com/containerd/ttrpc v1.2.7 // indirect
-	github.com/containerd/typeurl/v2 v2.2.3 // indirect
 	github.com/coreos/go-semver v0.3.0 // indirect
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
+	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/distribution/reference v0.6.0 // indirect
 	github.com/docker/go-events v0.0.0-20190806004212-e31b211e4f1c // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
@@ -48,8 +52,10 @@ require (
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.1 // indirect
 	github.com/opencontainers/runtime-spec v1.2.0 // indirect
+	github.com/opencontainers/image-spec v1.1.0 // indirect
 	github.com/opencontainers/selinux v1.11.1 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/spf13/pflag v1.0.6 // indirect
 	go.etcd.io/etcd/api/v3 v3.5.21 // indirect
@@ -72,4 +78,6 @@ require (
 	google.golang.org/grpc v1.68.1 // indirect
 	google.golang.org/protobuf v1.36.1 // indirect
 	k8s.io/klog/v2 v2.100.1 // indirect
+	google.golang.org/protobuf v1.35.2 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

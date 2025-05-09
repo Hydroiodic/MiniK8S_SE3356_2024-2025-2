@@ -4,7 +4,7 @@ This repository contains our implementation of a simplified version of Kubernete
 
 ## Repository Owners
 
-__Group 10__
+__Group 9__
 
 - Liao Chengfan (liao_chengfan@sjtu.edu.cn)
 - Liu Shiqi (@xeonliu)

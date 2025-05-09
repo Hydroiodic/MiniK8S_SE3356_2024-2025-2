@@ -14,14 +14,15 @@ linters:
     - dupword
     - funlen
     - goconst
-    - godot
+    # - godot
     - godox
     - nestif
-    - revive
+    # - revive
     - wsl
     - whitespace
     # complexity
     - exptostd
+    # - errcheck
     - funlen
     - gocyclo
     - lll
