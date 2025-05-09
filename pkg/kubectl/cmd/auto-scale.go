@@ -46,6 +46,7 @@ func triggerAutoscale(
 	targetType, targetName string,
 	minValue, maxValue, cpuPercent int,
 ) {
+	// 调用 HPA 控制器的扩缩容逻辑
 	_, _ = fmt.Printf(
 		"Trigger autoscale for %s/%s (min=%d, max=%d, cpu=%d%%)\n",
 		targetType,
@@ -54,5 +55,4 @@ func triggerAutoscale(
 		maxValue,
 		cpuPercent,
 	)
-	// 调用 HPA 控制器的扩缩容逻辑
 }

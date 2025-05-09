@@ -44,30 +44,30 @@ func init() {
 
 // 删除 Pod.
 func deletePod(name string) {
-	_, _ = fmt.Printf("Deleting Pod: %s\n", name)
 	// 这里添加实际删除 Pod 的逻辑
+	_, _ = fmt.Printf("Deleting Pod: %s\n", name)
 }
 
 // 删除 Service.
 func deleteService(name string) {
-	_, _ = fmt.Printf("Deleting Service: %s\n", name)
 	// 这里添加实际删除 Service 的逻辑
+	_, _ = fmt.Printf("Deleting Service: %s\n", name)
 }
 
 // 删除 ReplicaSet.
 func deleteReplicaSet(name string) {
-	_, _ = fmt.Printf("Deleting ReplicaSet: %s\n", name)
 	// 这里添加实际删除 ReplicaSet 的逻辑
+	_, _ = fmt.Printf("Deleting ReplicaSet: %s\n", name)
 }
 
 // 删除 DNS 配置.
 func deleteDNS(name string) {
-	_, _ = fmt.Printf("Deleting DNS config: %s\n", name)
 	// 这里添加实际删除 DNS 配置的逻辑
+	_, _ = fmt.Printf("Deleting DNS config: %s\n", name)
 }
 
 // 删除 HPA配置.
 func deleteHPA(name string) {
-	_, _ = fmt.Printf("Deleting HPA config: %s\n", name)
 	// 这里添加实际删除 DNS 配置的逻辑
+	_, _ = fmt.Printf("Deleting HPA config: %s\n", name)
 }
