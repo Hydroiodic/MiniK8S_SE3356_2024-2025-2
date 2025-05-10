@@ -9,6 +9,7 @@ import (
 	"slices"
 
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/docker"
+	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/utils"
 	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/client"
 )
@@ -58,13 +59,21 @@ func (is *ImageService) PullImage(imageName string) error {
 		return fmt.Errorf("列出镜像失败: %v", err)
 	}
 
+	repo, img, version := utils.ChunkImageName(imageName)
+
+	// 对于 "docker.io/library/nginx:latest"，似乎并不会有前缀
+	if repo == "docker.io/library" {
+		imageName = img + ":" + version
+	} else {
+		imageName = fmt.Sprintf("%s/%s:%s", repo, img, version)
+	}
+
 	for _, img := range images {
 		if slices.Contains(img.RepoTags, imageName) {
 			log.Printf("镜像 %s 拉取成功", imageName)
 			return nil
 		}
 	}
-	// 对于 "docker.io/library/nginx:latest"，似乎并不会有前缀？
 	return fmt.Errorf("镜像 %s 拉取后未找到", imageName)
 }
 

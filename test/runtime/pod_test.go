@@ -27,8 +27,9 @@ func TestCreatePod(t *testing.T) {
 		Spec: object.PodSpec{
 			Containers: []object.Container{
 				{
-					Name:    "test-container",
-					Image:   "docker.io/library/nginx:latest",
+					Name:  "test-container",
+					Image: "docker.io/library/nginx:latest",
+					// Image:   "nginx:latest",
 					Command: []string{"nginx", "-g", "daemon off;"},
 					Ports: []object.ContainerPort{
 						{ContainerPort: 80},

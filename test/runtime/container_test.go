@@ -16,7 +16,7 @@ func TestCreateContainer(t *testing.T) {
 	// 定义容器规格
 	containerSpec := object.Container{
 		Name:  "test-container",
-		Image: "nginx:latest",
+		Image: "docker.io/library/nginx:latest",
 		Command: []string{
 			"nginx",
 			"-g",

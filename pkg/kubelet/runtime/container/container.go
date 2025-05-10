@@ -6,6 +6,7 @@ import (
 	"log"
 
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/image"
+	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/utils"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
@@ -69,6 +70,15 @@ func (cs *ContainerService) CreateContainer(
 	 * hostConfig *container.HostConfig,
 	 * networkingConfig *network.NetworkingConfig
 	 */
+
+	repo, img, version := utils.ChunkImageName(ctr.Image)
+
+	if repo == "docker.io/library" {
+		ctr.Image = img + ":" + version
+	} else {
+		ctr.Image = fmt.Sprintf("%s/%s:%s", repo, img, version)
+	}
+
 	// 配置容器
 	config := &container.Config{
 		Image: ctr.Image,
