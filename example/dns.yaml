@@ -1,0 +1,15 @@
+kind: DNS
+metadata:
+  name: my-dns
+  namespace: default
+  labels:
+    app: myapp
+spec:
+  host: example.com
+  paths:
+    - path: /api
+      serviceName: my-service
+      servicePort: 80
+    - path: /web
+      serviceName: web-service
+      servicePort: 8080

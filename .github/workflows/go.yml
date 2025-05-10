@@ -17,14 +17,13 @@ jobs:
       - uses: actions/setup-go@v5
         with:
           go-version: stable
-      
+
       - name: Cache Go modules
         uses: actions/cache@v4
         with:
           path: |
             ~/.cache/go-build
             ~/go/pkg/mod
-            # 如果 sudo go build/test 生成了 root 权限的文件，添加可能的系统路径
             /root/.cache/go-build
             /root/go/pkg/mod
           key: ${{ runner.os }}-go-${{ hashFiles('**/go.mod', '**/go.sum') }}
@@ -32,13 +31,13 @@ jobs:
             ${{ runner.os }}-go-
 
       - name: Build
-        run: sudo go build -v ./...
+        run: go build -v ./...
       
       - name: Set up Docker
         uses: docker/setup-buildx-action@v2
 
       - name: Test
-        run: sudo go test -v ./...
+        run: go test -v ./...
 
   golangci-lint:
     name: lint
