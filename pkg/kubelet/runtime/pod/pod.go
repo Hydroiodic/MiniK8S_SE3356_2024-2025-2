@@ -10,7 +10,13 @@ import (
 )
 
 type PodService struct {
-	ctr_service *ctr_runtime.ContainerService
+	CtrService *ctr_runtime.ContainerService
+}
+
+func NewPodService(ctrService *ctr_runtime.ContainerService) *PodService {
+	return &PodService{
+		CtrService: ctrService,
+	}
 }
 
 /**
@@ -19,9 +25,11 @@ type PodService struct {
  */
 func (p *PodService) CreatePod(pod *object.Pod) error {
 	// Create Pause Container
-	pauseId, err := CreatePauseContainer(p.ctr_service, pod)
+	pauseId, err := CreatePauseContainer(p.CtrService, pod)
 	if err != nil {
 		log.Printf("Failed to create pause container: %v", err)
+		// 如果创建 Pause Container 失败，后面创建也没有意义了，返回错误！
+		return err
 	}
 
 	// Create Pod Containers
@@ -55,7 +63,7 @@ func (p *PodService) CreatePod(pod *object.Pod) error {
 		}
 
 		// 创建容器
-		ctrId, err := p.ctr_service.CreateContainer(ctr, hostConfig)
+		ctrId, err := p.CtrService.CreateContainer(ctr, hostConfig)
 		if err != nil {
 			log.Printf("Failed to create container %s: %v", ctr.Name, err)
 		}
