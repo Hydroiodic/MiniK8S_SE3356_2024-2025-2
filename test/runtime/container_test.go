@@ -16,7 +16,7 @@ func TestCreateContainer(t *testing.T) {
 	// 定义容器规格
 	containerSpec := object.Container{
 		Name:  "test-container",
-		Image: "docker.io/library/nginx:latest",
+		Image: "nginx:latest",
 		Command: []string{
 			"nginx",
 			"-g",
@@ -48,7 +48,7 @@ func TestForceCreateContainer(t *testing.T) {
 	// 定义容器规格
 	containerSpec := object.Container{
 		Name:  "test-container",
-		Image: "docker.io/library/nginx:latest",
+		Image: "nginx:latest",
 		Command: []string{
 			"nginx",
 			"-g",
@@ -84,7 +84,7 @@ func TestStartContainer(t *testing.T) {
 	// 定义容器规格
 	containerSpec := object.Container{
 		Name:  "test-container",
-		Image: "docker.io/library/nginx:latest",
+		Image: "nginx:latest",
 		Command: []string{
 			"nginx",
 			"-g",
@@ -119,7 +119,7 @@ func TestDeleteContainer(t *testing.T) {
 	// 定义容器规格
 	containerSpec := object.Container{
 		Name:  "test-container",
-		Image: "docker.io/library/nginx:latest",
+		Image: "nginx:latest",
 		Command: []string{
 			"nginx",
 			"-g",
@@ -151,7 +151,7 @@ func TestGetContainerStatus(t *testing.T) {
 	// 定义容器规格
 	containerSpec := object.Container{
 		Name:  "test-container",
-		Image: "docker.io/library/nginx:latest",
+		Image: "nginx:latest",
 		Command: []string{
 			"nginx",
 			"-g",

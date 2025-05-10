@@ -3,7 +3,10 @@ package image
 import (
 	"context"
 	"fmt"
+	"io"
 	"log"
+	"os"
+	"slices"
 
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/docker"
 	"github.com/docker/docker/api/types/image"
@@ -33,17 +36,36 @@ func NewImageService() (*ImageService, error) {
 }
 
 // TODO: What if Image Already Exists?
+// BUG: 镜像名称似乎不支持域名
 func (is *ImageService) PullImage(imageName string) error {
 	ctx := context.Background()
-	_, err := is.Cli.ImagePull(ctx, imageName, image.PullOptions{})
+	out, err := is.Cli.ImagePull(ctx, imageName, image.PullOptions{})
 
 	if err != nil {
 		return fmt.Errorf("无法拉取镜像 %s: %v", imageName, err)
 	}
+	defer out.Close()
 
-	log.Printf("镜像 %s 拉取成功", imageName)
+	_, err = io.Copy(os.Stderr, out)
 
-	return nil
+	if err != nil {
+		return fmt.Errorf("读取镜像 %s 拉取输出失败: %v", imageName, err)
+	}
+
+	// 验证镜像存在
+	images, err := is.Cli.ImageList(ctx, image.ListOptions{})
+	if err != nil {
+		return fmt.Errorf("列出镜像失败: %v", err)
+	}
+
+	for _, img := range images {
+		if slices.Contains(img.RepoTags, imageName) {
+			log.Printf("镜像 %s 拉取成功", imageName)
+			return nil
+		}
+	}
+	// 对于 "docker.io/library/nginx:latest"，似乎并不会有前缀？
+	return fmt.Errorf("镜像 %s 拉取后未找到", imageName)
 }
 
 // FIXME: Image Chain Dependency
