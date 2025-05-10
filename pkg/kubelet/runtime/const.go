@@ -1,3 +1,3 @@
-package kubelet
+package runtime
 
-const PauseImage = "k8s.gcr.io/pause:3.6"
+const PauseImage = "registry.k8s.io/pause:3.6"

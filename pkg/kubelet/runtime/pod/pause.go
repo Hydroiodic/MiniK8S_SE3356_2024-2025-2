@@ -1,6 +1,7 @@
 package pod
 
 import (
+	runtime "github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime"
 	ctr_runtime "github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/container"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/utils"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
@@ -18,7 +19,7 @@ func CreatePauseContainer(
 			pod.Metadata.Name,
 			"pause",
 		),
-		Image: "k8s.gcr.io/pause:3.6",
+		Image: runtime.PauseImage,
 	}
 
 	// Append Port
