@@ -1,9 +1,11 @@
 package container
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"log"
+	"strings"
 
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/image"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/utils"
@@ -13,6 +15,7 @@ import (
 	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/client"
 	"github.com/docker/go-connections/nat"
+	"github.com/docker/docker/pkg/stdcopy"
 )
 
 const cadvisorContainerName = "cadvisor"
@@ -29,6 +32,7 @@ type ContainerServiceInterface interface {
 	) (string, error)
 	StartContainer(containerID string) error
 	StopContainer(containerID string) error
+	ExecCommand(containerID string, cmd []string) (string, error)
 	DeleteContainer(containerID string) error
 	GetContainerInfo(containerID string) (*container.InspectResponse, error)
 	GetContainerStatus(containerID string) (string, error)
@@ -306,4 +310,62 @@ func (cs *ContainerService) RunCadvisorContainer() (string, error) {
 
 		return "0", nil
 	}
+  
+// ExecCommand 在指定容器中执行命令并返回输出
+func (cs *ContainerService) ExecCommand(
+	containerID string,
+	cmd []string,
+) (string, error) {
+	ctx := context.Background()
+
+	// 创建 Exec 配置
+	execConfig := container.ExecOptions{
+		Cmd:          cmd,
+		AttachStdout: true,  // 捕获标准输出
+		AttachStderr: true,  // 捕获标准错误
+		Tty:          false, // 不分配伪终端
+	}
+
+	// 创建 Exec 实例
+	execResp, err := cs.client.ContainerExecCreate(ctx, containerID, execConfig)
+	if err != nil {
+		return "", fmt.Errorf("无法创建 Exec 实例: %v", err)
+	}
+
+	// 启动 Exec 实例并捕获输出
+	resp, err := cs.client.ContainerExecAttach(
+		ctx,
+		execResp.ID,
+		container.ExecStartOptions{},
+	)
+	if err != nil {
+		return "", fmt.Errorf("无法启动 Exec 实例: %v", err)
+	}
+	defer resp.Close()
+
+	// 捕获标准输出和标准错误
+	var stdout, stderr bytes.Buffer
+	_, err = stdcopy.StdCopy(&stdout, &stderr, resp.Reader)
+
+	if err != nil {
+		return "", fmt.Errorf("无法读取 Exec 输出: %v", err)
+	}
+
+	// 检查 Exec 命令的退出状态
+	inspectResp, err := cs.client.ContainerExecInspect(ctx, execResp.ID)
+	if err != nil {
+		return "", fmt.Errorf("无法检查 Exec 状态: %v", err)
+	}
+
+	// 如果退出码非 0，返回错误并包含 stderr
+	if inspectResp.ExitCode != 0 {
+		return "", fmt.Errorf(
+			"命令执行失败，退出码 %d: %s",
+			inspectResp.ExitCode,
+			stderr.String(),
+		)
+	}
+
+	// 返回标准输出，移除多余的换行符
+	return strings.TrimSpace(stdout.String()), nil
 }
