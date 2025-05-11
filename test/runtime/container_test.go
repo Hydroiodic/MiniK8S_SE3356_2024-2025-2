@@ -202,3 +202,47 @@ func TestGetContainerStatus(t *testing.T) {
 	assert.Error(t, err)
 	t.Logf("Container deleted with ID: %s", containerID)
 }
+
+func TestContainerExecCommand(t *testing.T) {
+	containerService, err := container.NewContainerService()
+	assert.NoError(t, err)
+
+	// 定义容器规格
+	containerSpec := object.Container{
+		Name:  "test-container",
+		Image: "alpine:latest",
+		Command: []string{
+			"sh",
+			"-c",
+			"while true; do sleep 1; done",
+		},
+	}
+
+	// 创建一个新的容器
+	containerID, err := containerService.CreateContainer(containerSpec, nil)
+	assert.NoError(t, err)
+	t.Logf("Container created with ID: %s", containerID)
+
+	// 启动容器
+	err = containerService.StartContainer(containerID)
+	assert.NoError(t, err)
+	t.Logf("Container started with ID: %s", containerID)
+
+	// 执行命令
+	output, err := containerService.ExecCommand(
+		containerID,
+		[]string{"echo", "Hello World"},
+	)
+	assert.NoError(t, err)
+	t.Logf("Command output: %s", output)
+
+	// 停止容器
+	err = containerService.StopContainer(containerID)
+	assert.NoError(t, err)
+	t.Logf("Container stopped with ID: %s", containerID)
+
+	// 删除容器
+	err = containerService.DeleteContainer(containerID)
+	assert.NoError(t, err)
+	t.Logf("Container deleted with ID: %s", containerID)
+}

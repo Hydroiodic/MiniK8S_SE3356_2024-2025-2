@@ -69,6 +69,7 @@ func (p *PodService) CreatePod(pod *object.Pod) error {
 		ctrId, err := p.CtrService.CreateContainer(ctr, hostConfig)
 		if err != nil {
 			log.Printf("Failed to create container %s: %v", ctr.Name, err)
+			return err
 		}
 
 		(*pod).Spec.Containers[i].ID = ctrId

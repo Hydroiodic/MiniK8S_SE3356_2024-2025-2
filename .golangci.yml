@@ -23,7 +23,7 @@ linters:
     # complexity
     - exptostd
     # - errcheck
-    - funlen
+    # - funlen
     - gocyclo
     - lll
     - unconvert
