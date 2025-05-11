@@ -12,8 +12,4 @@ type PodServiceInterface interface {
 	ListPods() ([]object.Pod, error)
 	GetPodContainerStatus(podName string) (map[string]string, error)
 	GetPodContainerInfo(podName string) (map[string]*object.Container, error)
-	// GetPodContainerID(podName string) (map[string]string, error)
-	// GetPodContainerName(podName string) (map[string]string, error)
-	// GetPodContainerImage(podName string) (map[string]string, error)
-	// GetPodContainerExitCode(podName string) (map[string]int, error)
 }
