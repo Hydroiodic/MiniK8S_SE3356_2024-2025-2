@@ -32,6 +32,9 @@ func (p *PodService) CreatePod(pod *object.Pod) error {
 		return err
 	}
 
+	// 将 Pause Container 的 ID 储存到 Pod
+	(*pod).Spec.PauseContainerID = pauseId
+
 	// Create Pod Containers
 	pauseNsArg := "container:" + pauseId
 
@@ -72,6 +75,81 @@ func (p *PodService) CreatePod(pod *object.Pod) error {
 
 		log.Printf("Created container %s with ID %s", ctr.Name, ctrId)
 	}
+
+	// TODO: 写入 Pod 的状态？
+
+	return nil
+}
+
+func (p *PodService) StartPod(pod *object.Pod) error {
+	// Start Pause Container
+	err := p.CtrService.StartContainer(pod.Spec.PauseContainerID)
+	if err != nil {
+		log.Printf("Failed to start pause container: %v", err)
+		return err
+	}
+
+	// Start Pod Containers
+	for _, ctrConfig := range pod.Spec.Containers {
+		err = p.CtrService.StartContainer(ctrConfig.ID)
+		if err != nil {
+			log.Printf("Failed to start container %s: %v", ctrConfig.Name, err)
+			return err
+		}
+	}
+
+	// TODO: 写入 Pod 的状态？
+
+	return nil
+}
+
+func (p *PodService) StopPod(pod *object.Pod) error {
+	// Stop Pod Containers
+	for _, ctrConfig := range pod.Spec.Containers {
+		err := p.CtrService.StopContainer(ctrConfig.ID)
+		if err != nil {
+			log.Printf("Failed to stop container %s: %v", ctrConfig.Name, err)
+			return err
+		}
+	}
+
+	// Stop Pause Container
+	err := p.CtrService.StopContainer(pod.Spec.PauseContainerID)
+	if err != nil {
+		log.Printf("Failed to stop pause container: %v", err)
+		return err
+	}
+
+	// TODO: 写入 Pod 的状态？
+
+	return nil
+}
+
+func (p *PodService) DeletePod(pod *object.Pod) error {
+	// Stop Pod Containers
+	err := p.StopPod(pod)
+	if err != nil {
+		log.Printf("Failed to stop pod: %v", err)
+	}
+
+	// Delete Pod Containers
+	for _, ctrConfig := range pod.Spec.Containers {
+		err := p.CtrService.DeleteContainer(ctrConfig.ID)
+		if err != nil {
+			log.Printf("Failed to delete container %s: %v", ctrConfig.Name, err)
+			return err
+		}
+	}
+
+	// Delete Pause Container
+	err = p.CtrService.DeleteContainer(pod.Spec.PauseContainerID)
+	if err != nil {
+		log.Printf("Failed to delete pause container: %v", err)
+		return err
+	}
+
+	// TODO: 修改其他的状态？
+	(*pod).Spec.PauseContainerID = ""
 
 	return nil
 }

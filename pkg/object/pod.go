@@ -99,8 +99,9 @@ type Metadata struct {
 }
 
 type PodSpec struct {
-	Containers []Container `yaml:"containers"` // 容器列表
-	Volumes    []Volume    `yaml:"volumes"`    // 共享卷
+	PauseContainerID string      `yaml:"pauseContainerId"` // Pause 容器 ID（哈希值）
+	Containers       []Container `yaml:"containers"`       // 容器列表
+	Volumes          []Volume    `yaml:"volumes"`          // 共享卷
 }
 
 type Container struct {
