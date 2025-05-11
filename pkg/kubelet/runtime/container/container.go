@@ -11,9 +11,14 @@ import (
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/utils"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/filters"
+	"github.com/docker/docker/api/types/mount"
 	"github.com/docker/docker/client"
+	"github.com/docker/go-connections/nat"
 	"github.com/docker/docker/pkg/stdcopy"
 )
+
+const cadvisorContainerName = "cadvisor"
 
 type ContainerServiceInterface interface {
 	// Returns Container ID
@@ -85,8 +90,9 @@ func (cs *ContainerService) CreateContainer(
 
 	// 配置容器
 	config := &container.Config{
-		Image: ctr.Image,
-		Cmd:   ctr.Command,
+		Image:        ctr.Image,
+		Cmd:          ctr.Command,
+		ExposedPorts: ctr.ExposedPorts,
 	}
 
 	if hostConfig == nil {
@@ -222,6 +228,89 @@ func (cs *ContainerService) GetContainerStatus(
 	return ctrInfo.State.Status, nil
 }
 
+func (cs *ContainerService) GetContainerByName(
+	containerName string,
+) (*container.Summary, error) {
+	filterArgs := filters.NewArgs()
+	filterArgs.Add("name", containerName)
+
+	allContainers, err := cs.client.ContainerList(
+		context.Background(),
+		container.ListOptions{
+			All:     true,
+			Filters: filterArgs,
+		},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, container := range allContainers {
+		for _, containerName := range container.Names {
+			if containerName == "/"+containerName {
+				return &container, nil
+			}
+		}
+	}
+
+	return nil, fmt.Errorf("container %s not found", containerName)
+}
+
+func (cs *ContainerService) RunCadvisorContainer() (string, error) {
+	cadvisorContainer, _ := cs.GetContainerByName(cadvisorContainerName)
+	if cadvisorContainer == nil {
+		//创建容器
+		// 配置 cAdvisor 容器
+		exposedPorts := nat.PortSet{
+			"8080/tcp": struct{}{},
+		}
+
+		containerSpec := object.Container{
+			Name:         "cadvisor",
+			Image:        "gcr.nju.edu.cn/cadvisor/cadvisor:v0.49.1",
+			ExposedPorts: exposedPorts,
+		}
+
+		portBindings := nat.PortMap{
+			"8080/tcp": []nat.PortBinding{
+				{
+					HostPort: "8090", // 将容器 8080 映射到主机 8090
+				},
+			},
+		}
+
+		hostConfig := &container.HostConfig{
+			Binds: []string{
+				"/:/rootfs:ro",
+				"/var/run:/var/run:rw", // 改为 rw（cAdvisor 需要写入）
+				"/sys:/sys:ro",
+				"/var/lib/docker/:/var/lib/docker:ro",
+				"/dev/disk/:/dev/disk:ro",
+				"/var/run/docker.sock:/var/run/docker.sock", // 关键：允许访问 Docker API
+			},
+			PortBindings: portBindings,
+			Privileged:   true, // 必须开启特权模式
+			RestartPolicy: container.RestartPolicy{
+				Name: "always", // 自动重启
+			},
+			Mounts: []mount.Mount{
+				{
+					Source: "/dev/kmsg",
+					Target: "/dev/kmsg",
+					Type:   mount.TypeBind,
+				},
+			},
+		}
+		containerID, _ := cs.CreateContainer(containerSpec, hostConfig)
+		err := cs.StartContainer(containerID)
+
+		return containerID, err
+	} else {
+		fmt.Println("the cadevisor container has already been created ")
+
+		return "0", nil
+	}
+  
 // ExecCommand 在指定容器中执行命令并返回输出
 func (cs *ContainerService) ExecCommand(
 	containerID string,
