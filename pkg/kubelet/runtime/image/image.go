@@ -45,7 +45,12 @@ func (is *ImageService) PullImage(imageName string) error {
 	if err != nil {
 		return fmt.Errorf("无法拉取镜像 %s: %v", imageName, err)
 	}
-	defer out.Close()
+
+	defer func() {
+		if err := out.Close(); err != nil {
+			log.Printf("Failed to close image pull output: %v", err)
+		}
+	}()
 
 	_, err = io.Copy(os.Stderr, out)
 
@@ -74,6 +79,7 @@ func (is *ImageService) PullImage(imageName string) error {
 			return nil
 		}
 	}
+
 	return fmt.Errorf("镜像 %s 拉取后未找到", imageName)
 }
 

@@ -12,10 +12,10 @@ linters:
     - misspell
     - dupl
     - dupword
-    - funlen
+    # - funlen # 函数长度 60 行
     - goconst
     # - godot
-    - godox
+    # - godox # 检查TODO
     - nestif
     # - revive
     - wsl
@@ -23,7 +23,6 @@ linters:
     # complexity
     - exptostd
     # - errcheck
-    # - funlen
     - gocyclo
     - lll
     - unconvert
