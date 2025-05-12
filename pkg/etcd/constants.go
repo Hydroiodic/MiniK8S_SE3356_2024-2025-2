@@ -5,7 +5,8 @@ package etcd
 import "time"
 
 const (
-	containerPrefix     = "/minik8s/containers/"
+	PodPrefix           = "/minik8s/pods/"
+	KubeletPrefix       = "/minik8s/kubelets/"
 	defaultEtcdEndpoint = "localhost:2379"
 	defaultTimeout      = 5 * time.Second
 	emptyLength         = 0
