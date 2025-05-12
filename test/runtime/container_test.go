@@ -14,6 +14,7 @@ func TestCreateCadvisorContainer(t *testing.T) {
 	// 定义容器规格
 	containerService, err := container.NewContainerService()
 	assert.NoError(t, err)
+
 	containerSpec := object.Container{
 		Name:  "test-container",
 		Image: "docker.io/library/nginx:latest",
@@ -23,14 +24,19 @@ func TestCreateCadvisorContainer(t *testing.T) {
 			"daemon off;",
 		},
 	}
-	containerID, err := containerService.RunCadvisorContainer()
+	containerID, _ := containerService.RunCadvisorContainer()
 
 	// 创建一个新的容器
 	containerID2, err := containerService.CreateContainer(containerSpec, nil)
 	assert.NoError(t, err)
-	containerService.StartContainer(containerID2)
-	cadvisor.GetContainerCPUandMem("localhost", "8090", "test-container")
 
+	_ = containerService.StartContainer(containerID2)
+
+	_, _, _ = cadvisor.GetContainerCPUandMem(
+		"localhost",
+		"8090",
+		"test-container",
+	)
 	// 检查容器是否存在
 	info, err := containerService.GetContainerInfo(containerID2)
 	t.Logf("Container info: %+v", info)
