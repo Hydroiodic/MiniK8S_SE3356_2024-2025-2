@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	utils "github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/utils"
+	info "github.com/google/cadvisor/info/v1"
 )
 
 // 获取某一个container的CPU和MEMORY信息
@@ -19,7 +20,7 @@ func GetContainerCPUandMem(
 		containerName,
 	)
 
-	var containerInfo map[string]ContainerInfo
+	var containerInfo map[string]info.ContainerInfo
 
 	responseStatus, err := utils.GetRequestWithParamsAndObject(
 		targetUrl,
@@ -59,7 +60,7 @@ func GetContainerCPUandMem(
 	return 0.0, 0.0, fmt.Errorf("no container info found")
 }
 
-func calculateCpuUsage(container ContainerInfo) (float64, float64) {
+func calculateCpuUsage(container info.ContainerInfo) (float64, float64) {
 	var totalCpuUtilization, cpuNums = 0.0, 0.0
 
 	for i := 1; i < len(container.Stats); i++ {
@@ -78,7 +79,7 @@ func calculateCpuUsage(container ContainerInfo) (float64, float64) {
 	return totalCpuUtilization, cpuNums
 }
 
-func calculateMemoryUsage(container ContainerInfo) float64 {
+func calculateMemoryUsage(container info.ContainerInfo) float64 {
 	var totalMemoryUsage uint64 = 0
 
 	// 避免除以零错误

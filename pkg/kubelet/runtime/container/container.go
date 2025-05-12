@@ -278,11 +278,11 @@ func (cs *ContainerService) RunCadvisorContainer() (string, error) {
 		hostConfig := &container.HostConfig{
 			Binds: []string{
 				"/:/rootfs:ro",
-				"/var/run:/var/run:rw", // 改为 rw（cAdvisor 需要写入）
+				"/var/run:/var/run:ro",
 				"/sys:/sys:ro",
 				"/var/lib/docker/:/var/lib/docker:ro",
 				"/dev/disk/:/dev/disk:ro",
-				"/var/run/docker.sock:/var/run/docker.sock", // 关键：允许访问 Docker API
+				"/var/run/docker.sock:/var/run/docker.sock", // Docker Socket 必须挂载
 			},
 			PortBindings: portBindings,
 			Privileged:   true, // 必须开启特权模式

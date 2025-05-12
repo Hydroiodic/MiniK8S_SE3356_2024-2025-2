@@ -4,10 +4,51 @@ import (
 	"testing"
 	"time"
 
+	cadvisor "github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/cadvisor"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/container"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
 	"github.com/stretchr/testify/assert"
 )
+
+func TestCreateCadvisorContainer(t *testing.T) {
+	// 定义容器规格
+	containerService, err := container.NewContainerService()
+	assert.NoError(t, err)
+	containerSpec := object.Container{
+		Name:  "test-container",
+		Image: "docker.io/library/nginx:latest",
+		Command: []string{
+			"nginx",
+			"-g",
+			"daemon off;",
+		},
+	}
+	containerID, err := containerService.RunCadvisorContainer()
+
+	// 创建一个新的容器
+	containerID2, err := containerService.CreateContainer(containerSpec, nil)
+	assert.NoError(t, err)
+	containerService.StartContainer(containerID2)
+	cadvisor.GetContainerCPUandMem("localhost", "8090", "test-container")
+
+	// 检查容器是否存在
+	info, err := containerService.GetContainerInfo(containerID2)
+	t.Logf("Container info: %+v", info)
+	assert.NoError(t, err)
+	// 检查容器是否存在
+	info2, err := containerService.GetContainerInfo(containerID)
+	t.Logf("Container info: %+v", info2)
+	assert.NoError(t, err)
+	// t.Logf("Container created with ID: %s", containerID2)
+	// // 删除容器
+	// err = containerService.DeleteContainer(containerID)
+	// assert.NoError(t, err)
+	// t.Logf("Container deleted with ID: %s", containerID)
+	// // 删除容器
+	// err = containerService.DeleteContainer(containerID2)
+	// assert.NoError(t, err)
+	// t.Logf("Container deleted with ID: %s", containerID2)
+}
 
 func TestCreateContainer(t *testing.T) {
 	containerService, err := container.NewContainerService()
