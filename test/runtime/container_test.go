@@ -39,15 +39,15 @@ func TestCreateCadvisorContainer(t *testing.T) {
 	info2, err := containerService.GetContainerInfo(containerID)
 	t.Logf("Container info: %+v", info2)
 	assert.NoError(t, err)
-	// t.Logf("Container created with ID: %s", containerID2)
-	// // 删除容器
-	// err = containerService.DeleteContainer(containerID)
-	// assert.NoError(t, err)
-	// t.Logf("Container deleted with ID: %s", containerID)
-	// // 删除容器
-	// err = containerService.DeleteContainer(containerID2)
-	// assert.NoError(t, err)
-	// t.Logf("Container deleted with ID: %s", containerID2)
+	t.Logf("Container created with ID: %s", containerID2)
+	// 删除容器
+	err = containerService.DeleteContainer(containerID)
+	assert.NoError(t, err)
+	t.Logf("Container deleted with ID: %s", containerID)
+	// 删除容器
+	err = containerService.DeleteContainer(containerID2)
+	assert.NoError(t, err)
+	t.Logf("Container deleted with ID: %s", containerID2)
 }
 
 func TestCreateContainer(t *testing.T) {
