@@ -2,6 +2,7 @@ package pod
 
 import (
 	"log"
+	"time"
 
 	ctr_runtime "github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/container"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/utils"
@@ -100,6 +101,8 @@ func (p *PodService) StartPod(pod *object.Pod) error {
 	}
 
 	// TODO: 写入 Pod 的状态？
+	pod.Status.StartTime = time.Now()
+	pod.Status.Phase = "Running"
 
 	return nil
 }
@@ -153,4 +156,105 @@ func (p *PodService) DeletePod(pod *object.Pod) error {
 	(*pod).Spec.PauseContainerID = ""
 
 	return nil
+}
+
+/**
+ * 这个函数主要通过查询Container的状态实现
+ */
+func (p *PodService) GetPodStatus(pod *object.Pod) (string, error) {
+	pauseCtrName := utils.FormatContainerName(
+		pod.Metadata.Namespace,
+		pod.Metadata.Name,
+		"pause",
+	)
+
+	_, err := p.CtrService.GetContainerIdByName(pauseCtrName)
+	if err != nil {
+		log.Printf("Failed to get pause container ID: %v", err)
+
+		// Pause 容器尚未创建
+		return PodStatusPending, err
+	}
+
+	// 收集所有容器的状态
+	containerInfos := make(
+		[]*container.InspectResponse,
+		len(pod.Spec.Containers),
+	)
+
+	for _, ctrConfig := range pod.Spec.Containers {
+		ctrName := utils.FormatContainerName(
+			pod.Metadata.Namespace,
+			pod.Metadata.Name,
+			ctrConfig.Name,
+		)
+		// 获取容器的 ID
+		_, err := p.CtrService.GetContainerIdByName(ctrName)
+		if err != nil {
+			log.Printf(
+				"Failed to get container ID for %s: %v",
+				ctrConfig.Name,
+				err,
+			)
+			// 容器尚未创建
+			return PodStatusPending, err
+		}
+		// 获取容器的状态
+		info, err := p.CtrService.GetContainerInfo(ctrName)
+		if err != nil {
+			log.Printf(
+				"Failed to get container status for %s: %v",
+				ctrConfig.Name,
+				err,
+			)
+
+			return PodStatusUnknown, err
+		}
+
+		containerInfos = append(containerInfos, info)
+	}
+
+	// 通过容器的状态来判断 Pod 的状态
+	allCreated := true
+	allStopped := true
+	abnormalExit := false
+
+	for _, info := range containerInfos {
+		if info.State.Status != ctr_runtime.ContainerStateCreated {
+			allCreated = false
+		}
+
+		if info.State.Status != ctr_runtime.ContainerStateExited {
+			allStopped = false
+		}
+
+		if info.State.Status == ctr_runtime.ContainerStateExited &&
+			info.State.ExitCode != 0 {
+			log.Printf(
+				"Container %s exited with abnormal code: %d",
+				info.Name,
+				info.State.ExitCode,
+			)
+			// 记录异常退出的容器
+			abnormalExit = true
+		}
+
+		// 如果至少有一个容器处于 Running 状态
+		// 则 Pod 处于 Running 状态
+		if info.State.Status == ctr_runtime.ContainerStateRunning {
+			return PodStatusRunning, nil
+		}
+	}
+
+	// 如果所有容器都是 Created 状态，则 Pod 处于 Pending 状态
+	if allCreated {
+		return PodStatusPending, nil
+	}
+
+	// Pod 中的所有容器都已终止，且至少有一个容器以非零退出码失败终止。表示 Pod 执行失败，通常不会重启。
+	if allStopped && abnormalExit {
+		return PodStatusFailed, nil
+	}
+
+	return PodStatusPending, nil
 }

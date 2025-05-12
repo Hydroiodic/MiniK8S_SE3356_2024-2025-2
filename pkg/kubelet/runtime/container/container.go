@@ -30,7 +30,10 @@ type ContainerServiceInterface interface {
 	ExecCommand(containerID string, cmd []string) (string, error)
 	DeleteContainer(containerID string) error
 	GetContainerInfo(containerID string) (*container.InspectResponse, error)
+	// String representation of the container state.
+	// Can be one of "created", "running", "paused", "restarting", "removing", "exited", or "dead"
 	GetContainerStatus(containerID string) (string, error)
+	GetContainerIdByName(name string) (string, error)
 }
 
 type ContainerService struct {
@@ -279,4 +282,28 @@ func (cs *ContainerService) ExecCommand(
 
 	// 返回标准输出，移除多余的换行符
 	return strings.TrimSpace(stdout.String()), nil
+}
+
+func (cs *ContainerService) GetContainerIdByName(name string) (string, error) {
+	ctx := context.Background()
+
+	// 获取所有容器
+	containers, err := cs.client.ContainerList(
+		ctx,
+		container.ListOptions{},
+	)
+	if err != nil {
+		return "", fmt.Errorf("无法获取容器列表: %v", err)
+	}
+
+	// 遍历容器，查找匹配的名称
+	for _, container := range containers {
+		// > $ docker inspect goofy_lalande | grep goofy
+		// "Name": "/goofy_lalande",
+		if container.Names[0] == "/"+name {
+			return container.ID, nil
+		}
+	}
+
+	return "", fmt.Errorf("未找到名为 %s 的容器", name)
 }
