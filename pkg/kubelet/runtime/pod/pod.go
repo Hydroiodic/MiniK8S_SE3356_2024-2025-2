@@ -55,6 +55,10 @@ func (p *PodService) CreatePod(pod *object.Pod) error {
 			Args:    ctrConfig.Args,
 			// Ports:   ctrConfig.Ports,
 			Resources: ctrConfig.Resources,
+			Labels: utils.NewLabelForOtherContainer(
+				pod.Metadata.Namespace,
+				pod.Metadata.Name,
+				pod.Metadata.Labels),
 		}
 
 		// 普通容器在创建时会通过 Docker 的
@@ -257,4 +261,49 @@ func (p *PodService) GetPodStatus(pod *object.Pod) (string, error) {
 	}
 
 	return PodStatusPending, nil
+}
+
+// FIXME：这个地方要改，改成使用标签！
+// 获取当前节点正在运行的 Pod （包含一些状态字段）
+func (p *PodService) ListPods() ([]object.Pod, error) {
+	// 获取所有容器的 ID
+	ctrIds, err := p.CtrService.ListContainerIds()
+	if err != nil {
+		log.Printf("Failed to list containers: %v", err)
+		return nil, err
+	}
+
+	pods := make([]object.Pod, 0)
+
+	// 我明白了，通过Label先筛选出Pause容器，然后就能搞出Pod的Namespace和Name
+	// 然后啥状态啥的就都能判断了！
+	for _, ctrId := range ctrIds {
+		// 获取容器的名称
+		name, err := p.CtrService.GetContainerNameById(ctrId)
+		if err != nil {
+			log.Printf("Failed to get container name: %v", err)
+			continue
+		}
+
+		podName, namespace, _ := utils.ParseContainerName(name)
+
+		pod := object.Pod{
+			// 这玩意就是恒定不变的
+			Metadata: object.Metadata{
+				Name:      podName,
+				Namespace: namespace,
+			},
+			Status: object.PodStatus{
+				// TODO:
+				// StartTime: time.Now(),
+			},
+			Spec: object.PodSpec{
+				// PauseContainerID: ctrId,
+			},
+		}
+
+		pods = append(pods, pod)
+	}
+
+	return pods, nil
 }

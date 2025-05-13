@@ -2,12 +2,30 @@ package utils
 
 import "strings"
 
+// TODO: 更换分隔符？
 func FormatContainerName(
 	podNs string,
 	podName string,
 	containerName string,
 ) string {
-	return podNs + "-" + podName + "-" + containerName
+	return podNs + "=" + podName + "=" + containerName
+}
+
+func ParseContainerName(
+	containerName string,
+) (string, string, string) {
+	// 解析容器名称
+	parts := strings.Split(containerName, "=")
+	if len(parts) < 3 {
+		return "", "", ""
+	}
+
+	// 获取命名空间、Pod 名称和容器名称
+	podNs := parts[0]
+	podName := parts[1]
+	name := strings.Join(parts[2:], "=")
+
+	return podNs, podName, name
 }
 
 // 读取docker.io/library/nginx:latest 的尾部 nginx:latest

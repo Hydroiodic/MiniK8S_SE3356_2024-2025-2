@@ -27,7 +27,12 @@ func CreatePauseContainer(
 		ctr.Ports = append(ctr.Ports, ctrConfig.Ports...)
 	}
 
-	// TODO: Append Label
+	// Append Labels
+	ctr.Labels = utils.NewLabelForPauseContainer(
+		pod.Metadata.Namespace,
+		pod.Metadata.Name,
+		pod.Metadata.Labels,
+	)
 
 	// 让容器共享 IPC 资源，允许使用共享内存、信号量等机制
 	hostConfig := &container.HostConfig{

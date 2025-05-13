@@ -29,11 +29,16 @@ type ContainerServiceInterface interface {
 	StopContainer(containerID string) error
 	ExecCommand(containerID string, cmd []string) (string, error)
 	DeleteContainer(containerID string) error
+
 	GetContainerInfo(containerID string) (*container.InspectResponse, error)
 	// String representation of the container state.
 	// Can be one of "created", "running", "paused", "restarting", "removing", "exited", or "dead"
 	GetContainerStatus(containerID string) (string, error)
+
 	GetContainerIdByName(name string) (string, error)
+	GetContainerNameById(id string) (string, error)
+
+	ListContainerIds() ([]string, error)
 }
 
 type ContainerService struct {
@@ -88,8 +93,9 @@ func (cs *ContainerService) CreateContainer(
 
 	// 配置容器
 	config := &container.Config{
-		Image: ctr.Image,
-		Cmd:   ctr.Command,
+		Image:  ctr.Image,
+		Cmd:    ctr.Command,
+		Labels: ctr.Labels,
 	}
 
 	if hostConfig == nil {
@@ -306,4 +312,38 @@ func (cs *ContainerService) GetContainerIdByName(name string) (string, error) {
 	}
 
 	return "", fmt.Errorf("未找到名为 %s 的容器", name)
+}
+
+func (cs *ContainerService) GetContainerNameById(id string) (string, error) {
+	ctx := context.Background()
+	// 获取容器信息
+	ctrInfo, err := cs.client.ContainerInspect(ctx, id)
+	if err != nil {
+		return "", fmt.Errorf("无法获取容器 %s 信息: %v", id, err)
+	}
+	// 提取容器名称
+	name := strings.TrimPrefix(ctrInfo.Name, "/")
+	// 返回容器名称
+	return name, nil
+}
+
+func (cs *ContainerService) ListContainerIds() ([]string, error) {
+	ctx := context.Background()
+
+	// 获取所有容器
+	containers, err := cs.client.ContainerList(
+		ctx,
+		container.ListOptions{},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("无法获取容器列表: %v", err)
+	}
+
+	// 提取容器 ID
+	var containerIDs []string
+	for _, container := range containers {
+		containerIDs = append(containerIDs, container.ID)
+	}
+
+	return containerIDs, nil
 }
