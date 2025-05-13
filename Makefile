@@ -1,9 +1,4 @@
 # TODO
-# Install containerd
-
-install-containerd:
-	@sudo $(MAKE) -f scripts/containerd.mk
-
 install-golangci:
 	$(MAKE) -f scripts/golangci-lint.mk
 
@@ -16,3 +11,14 @@ clean:
 lint:
 	@echo "Running golangci-lint..."
 	@golangci-lint-v2 run
+
+test:
+	@echo "Running tests..."
+	@go test -v ./test/...
+	@echo "Tests completed."
+	@echo "Check test.log for details."
+	@echo "Check coverage.out for coverage details."
+	@go tool cover -html=coverage.out -o coverage.html
+	@echo "Coverage report generated: coverage.html"
+
+.PHONY: install-containerd install-golangci install-golines clean lint test
