@@ -69,6 +69,7 @@ func (s *KubeletStore) GetKubelet(
 	}
 
 	var kubelet Kubelet
+
 	err = json.Unmarshal([]byte(data), &kubelet)
 	if err != nil {
 		return nil, err
@@ -117,6 +118,7 @@ func (s *KubeletStore) ListKubelets(
 
 	for _, v := range kvs {
 		var kubelet Kubelet
+
 		err := json.Unmarshal([]byte(v), &kubelet)
 		if err != nil {
 			return nil, err

@@ -20,10 +20,10 @@ type Kubelet struct {
 	Runtime   time.Duration `yaml:"runtime"   json:"runtime"`
 	Pods      []Pod         `yaml:"pods"      json:"pods"`
 
-	// we need to record the last update time of the kubelet for heartbeat
+	// We need to record the last update time of the kubelet for heartbeat.
 	LastUpdateTime time.Time `yaml:"lastUpdateTime" json:"lastUpdateTime"`
 
-	// a mutex to protect the kubelet instance
+	// A mutex to protect the kubelet instance.
 	Mu sync.Mutex
 }
 
@@ -34,7 +34,7 @@ type KubeletCopy struct {
 	Runtime   time.Duration `yaml:"runtime"   json:"runtime"`
 	Pods      []Pod         `yaml:"pods"      json:"pods"`
 
-	// we need to record the last update time of the kubelet for heartbeat
+	// We need to record the last update time of the kubelet for heartbeat.
 	LastUpdateTime time.Time `yaml:"lastUpdateTime" json:"lastUpdateTime"`
 }
 

@@ -5,6 +5,7 @@ go 1.23.1
 require (
 	github.com/docker/docker v28.1.1+incompatible
 	github.com/google/cadvisor v0.52.1
+	github.com/rabbitmq/amqp091-go v1.10.0
 	github.com/spf13/cobra v1.9.1
 	github.com/stretchr/testify v1.10.0
 	go.etcd.io/etcd/client/v3 v3.5.21

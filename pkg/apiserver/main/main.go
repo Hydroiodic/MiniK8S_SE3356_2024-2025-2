@@ -13,10 +13,13 @@ func main() {
 	// NOTE: we do not disdinguish between kubelet and node in this version.
 	r.POST("/kubelet/register", interfaces.KubeletRegister)
 	r.POST("/kubelet/heartbeat", interfaces.KubeletHeartbeat)
-	r.GET("/getNodes", interfaces.GetNodes)
+	r.GET("/kubelet/getNodes", interfaces.GetNodes)
 
-	// r.POST("/createPodFromFile", interfaces.CreatePod)
-	// r.POST("/assignNodetoPod", interfaces.HandlePodAssignToNode)
+	// Pod operations.
+	r.POST("/pod/createPod", interfaces.CreatePod)
+	r.GET("/pod/getPods", interfaces.GetPods)
+	r.POST("/pod/assignPodToNode", interfaces.AssignPodToNode)
+
 	// r.POST("/deletePodFromFile", interfaces.DeletePod)
 	// r.POST("/getOnePod", interfaces.GetOnePod)
 
