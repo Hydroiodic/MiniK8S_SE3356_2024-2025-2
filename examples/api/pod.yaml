@@ -20,9 +20,3 @@ spec:
   volumes:
     - name: nginx-volume
       path: /usr/share/nginx/html
-status:
-  phase: Running
-  startTime: "2023-10-15T10:00:00Z"
-  conditions:
-    - Ready
-    - ContainersReady
