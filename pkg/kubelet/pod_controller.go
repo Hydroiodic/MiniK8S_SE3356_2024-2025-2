@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/pod"
+	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/utils"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
 )
 
@@ -63,6 +64,7 @@ func (c *PodController) SyncPods() {
 		c.kubelet.mutex.RLock()
 		desiredPods = c.kubelet.CachedPods
 		c.kubelet.mutex.RUnlock()
+
 		useCache = true
 	} else {
 		c.kubelet.mutex.Lock()
@@ -78,35 +80,55 @@ func (c *PodController) Reconcile(
 	desiredPods, currentPods []object.Pod,
 	useCache bool,
 ) {
+	// 使用 map 优化查找
 	desiredMap := make(map[string]object.Pod)
+	currentMap := make(map[string]object.Pod)
+
+	// 构建 desiredPods 的 map
 	for _, pod := range desiredPods {
-		key := pod.Metadata.Name + "/" + pod.Metadata.Namespace
+		key := utils.GeneratePodNsNameLabel(
+			pod.Metadata.Namespace,
+			pod.Metadata.Namespace,
+		)
 		desiredMap[key] = pod
 	}
 
+	// 构建 currentPods 的 map
+	for _, pod := range currentPods {
+		key := utils.GeneratePodNsNameLabel(
+			pod.Metadata.Namespace,
+			pod.Metadata.Namespace,
+		)
+		currentMap[key] = pod
+	}
+
+	// 删除多余的 Pod（仅在非缓存模式下执行）
 	if !useCache {
-		for _, pod := range currentPods {
-			key := pod.Metadata.Name + "/" + pod.Metadata.Namespace
+		for key, pod := range currentMap {
 			if _, exists := desiredMap[key]; !exists {
-				if err := c.podService.DeletePod(pod); err != nil {
+				log.Printf("Deleting pod %s (cache=%v)", key, useCache)
+
+				if err := c.podService.DeletePod(&pod); err != nil {
 					log.Printf("Failed to delete pod %s: %v", key, err)
 					continue
 				}
-				log.Printf("Deleted pod %s", key)
 			}
 		}
 	}
 
+	// 创建缺少的 Pod
 	for key, pod := range desiredMap {
-		if _, exists := findPod(currentPods, pod.Metadata.Name, pod.Metadata.Namespace); !exists {
-			if err := c.podService.CreatePod(pod); err != nil {
+		if _, exists := currentMap[key]; !exists {
+			log.Printf("Creating pod %s (cache=%v)", key, useCache)
+
+			if err := c.podService.CreatePod(&pod); err != nil {
 				log.Printf("Failed to create pod %s: %v", key, err)
 				continue
 			}
-			log.Printf("Created pod %s", key)
 		}
 	}
 
+	// 更新 Kubelet.Pods
 	c.kubelet.mutex.Lock()
 	c.kubelet.Pods = desiredPods
 	c.kubelet.mutex.Unlock()

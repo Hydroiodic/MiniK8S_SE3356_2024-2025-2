@@ -59,6 +59,7 @@ func (c *PodStatusController) updatePodStatus() {
 				pod.Metadata.Namespace,
 				err,
 			)
+
 			continue
 		}
 
@@ -71,6 +72,7 @@ func (c *PodStatusController) updatePodStatus() {
 				pod.Metadata.Namespace,
 				err,
 			)
+
 			continue
 		}
 

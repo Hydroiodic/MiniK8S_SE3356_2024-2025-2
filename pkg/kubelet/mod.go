@@ -60,6 +60,7 @@ func NewKubeletService(
 		apiClient,
 		10*time.Second,
 	)
+
 	return &KubeletService{
 		kubelet:          kubelet,
 		podController:    podController,
