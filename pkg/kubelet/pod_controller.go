@@ -1,7 +1,6 @@
 package kubelet
 
 import (
-	"fmt"
 	"log"
 	"time"
 
@@ -41,7 +40,7 @@ func (c *PodController) Run(stopCh <-chan struct{}) {
 	for {
 		select {
 		case <-ticker.C:
-			c.kubelet.SyncPods()
+			c.SyncPods()
 		case <-stopCh:
 			return
 		}
@@ -52,12 +51,13 @@ func (c *PodController) SyncPods() {
 	// 1. 从运行时获取当前节点上所有 Pod 的运行状态
 	currentPods, err := c.podService.ListPods()
 	if err != nil {
-		return fmt.Errorf("list pods: %w", err)
+		log.Printf("Failed to list pods: %v", err)
+		return
 	}
 
 	useCache := false
 	// 2. 从API Server 获取完整的 Pod 信息
-	desiredPods, err := c.apiClient.ListPods(c.kubelet.Config.Name)
+	desiredPods, err := c.apiClient.FetchPods(c.kubelet.Config.Name)
 	if err != nil {
 		log.Printf("API Server unavailable, using cached pods: %v", err)
 		c.kubelet.mutex.RLock()
@@ -71,13 +71,13 @@ func (c *PodController) SyncPods() {
 	}
 
 	// 3. 添加缺少，删除多余
-	return c.Reconcile(desiredPods, currentPods, useCache)
+	c.Reconcile(desiredPods, currentPods, useCache)
 }
 
 func (c *PodController) Reconcile(
 	desiredPods, currentPods []object.Pod,
 	useCache bool,
-) error {
+) {
 	desiredMap := make(map[string]object.Pod)
 	for _, pod := range desiredPods {
 		key := pod.Metadata.Name + "/" + pod.Metadata.Namespace
@@ -110,5 +110,4 @@ func (c *PodController) Reconcile(
 	c.kubelet.mutex.Lock()
 	c.kubelet.Pods = desiredPods
 	c.kubelet.mutex.Unlock()
-	return nil
 }

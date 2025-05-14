@@ -20,9 +20,11 @@ type Kubelet struct {
 	Config         KubeletConfig `yaml:"config"         json:"config"`
 	StartTime      time.Time     `yaml:"startTime"      json:"startTime"`
 	LastUpdateTime time.Time     `yaml:"lastUpdateTime" json:"lastUpdateTime"`
-	Pods           []object.Pod  `yaml:"pods"           json:"pods"`
-	CachedPods     []object.Pod  `yaml:"cachedPods"     json:"cachedPods"`
-	mutex          sync.RWMutex
+	// Pods 是当前节点上运行的 Pod 列表
+	Pods []object.Pod `yaml:"pods"           json:"pods"`
+	// CachedPods 是从 API Server 获取的 Pod 列表
+	CachedPods []object.Pod `yaml:"cachedPods"     json:"cachedPods"`
+	mutex      sync.RWMutex
 }
 
 func NewKubelet(config KubeletConfig) *Kubelet {
@@ -55,6 +57,7 @@ func NewKubeletService(
 	statusController := NewPodStatusController(
 		kubelet,
 		podService,
+		apiClient,
 		10*time.Second,
 	)
 	return &KubeletService{

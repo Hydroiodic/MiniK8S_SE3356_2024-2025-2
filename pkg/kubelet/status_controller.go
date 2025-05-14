@@ -10,6 +10,7 @@ import (
 type PodStatusController struct {
 	kubelet    *Kubelet
 	podService pod.PodServiceInterface
+	apiClient  APIServerClient
 	period     time.Duration
 }
 
@@ -18,11 +19,13 @@ type PodStatusController struct {
 func NewPodStatusController(
 	kubelet *Kubelet,
 	podService pod.PodServiceInterface,
+	apiClient APIServerClient,
 	period time.Duration,
 ) *PodStatusController {
 	return &PodStatusController{
 		kubelet:    kubelet,
 		podService: podService,
+		apiClient:  apiClient,
 		period:     period,
 	}
 }
@@ -75,5 +78,22 @@ func (c *PodStatusController) updatePodStatus() {
 		// 填写Pod的状态
 		c.kubelet.Pods[i].Status.Phase = status
 		c.kubelet.mutex.Unlock()
+	}
+
+	// TODO：上报状态到 API Server
+	// 上报 kubelet 状态
+	c.kubelet.mutex.RLock()
+	lastUpdateTime := time.Now()
+	kubeletCopy := &Kubelet{
+		Config:         c.kubelet.Config,
+		Pods:           c.kubelet.Pods,
+		StartTime:      c.kubelet.StartTime,
+		LastUpdateTime: lastUpdateTime,
+		// Copy other fields as needed, excluding the mutex
+	}
+	c.kubelet.mutex.RUnlock()
+
+	if err := c.apiClient.UpdateNodeStatus(kubeletCopy); err != nil {
+		log.Printf("Failed to update node status to API Server: %v", err)
 	}
 }
