@@ -1,0 +1,250 @@
+package apiserver
+
+import (
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+
+	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
+)
+
+type APIClient struct {
+	// The base URL for the API server.
+	BaseURL string
+	// The HTTP client used to make requests.
+	Client *http.Client
+}
+
+func NewAPIClient(baseURL string) *APIClient {
+	// If baseURL is empty, set it to the default API server URL.
+	if baseURL == "" {
+		baseURL = APIServerUrl
+	}
+
+	// Create a new API client with the specified base URL and a default HTTP client.
+	return &APIClient{
+		BaseURL: baseURL,
+		Client:  &http.Client{},
+	}
+}
+
+func (c *APIClient) RegisterKubelet(kubelet *object.Kubelet) error {
+	// Construct the URL for the Kubelet registration endpoint.
+	url := c.BaseURL + KubeletRegisterURL
+
+	// Create a new HTTP POST request with the node name as the body.
+	req, err := http.NewRequest("POST", url, nil)
+	if err != nil {
+		return err
+	}
+
+	// Send the request and return the response.
+	resp, err := c.Client.Do(req)
+	if err != nil {
+		return err
+	}
+
+	// Ensure the response body is closed after use.
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			// Log the error if closing the response body fails.
+			fmt.Println("Failed to close response body: ", cerr)
+		}
+	}()
+
+	// Check if the response status code is OK (200).
+	if resp.StatusCode != http.StatusOK {
+		// If not, read the response body and return an error.
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("%s", string(bodyBytes))
+	}
+
+	return nil
+}
+
+func (c *APIClient) HeartbeatKubelet(kubelet *object.Kubelet) error {
+	// Construct the URL for the Kubelet heartbeat endpoint.
+	url := c.BaseURL + KubeletHeartbeatURL
+
+	// Create a new HTTP POST request with the node name as the body.
+	req, err := http.NewRequest("POST", url, nil)
+	if err != nil {
+		return err
+	}
+
+	// Send the request and return the response.
+	resp, err := c.Client.Do(req)
+	if err != nil {
+		return err
+	}
+
+	// Ensure the response body is closed after use.
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			// Log the error if closing the response body fails.
+			fmt.Println("Failed to close response body: ", cerr)
+		}
+	}()
+
+	// Check if the response status code is OK (200).
+	if resp.StatusCode != http.StatusOK {
+		// If not, read the response body and return an error.
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("%s", string(bodyBytes))
+	}
+
+	return nil
+}
+
+func (c *APIClient) GetNodes() ([]object.Kubelet, error) {
+	// Construct the URL for the Kubelet get nodes endpoint.
+	url := c.BaseURL + KubeletGetNodesURL
+
+	// Create a new HTTP GET request.
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// Send the request and return the response.
+	resp, err := c.Client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	// Ensure the response body is closed after use.
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			// Log the error if closing the response body fails.
+			fmt.Println("Failed to close response body: ", cerr)
+		}
+	}()
+
+	// Check if the response status code is OK (200).
+	if resp.StatusCode != http.StatusOK {
+		// If not, read the response body and return an error.
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("%s", string(bodyBytes))
+	}
+
+	// Parse the response body as a list of Kubelet objects.
+	var nodes []object.Kubelet
+	if err := json.NewDecoder(resp.Body).Decode(&nodes); err != nil {
+		// If parsing fails, return an error.
+		return nil, err
+	}
+
+	// Return the list of Kubelet objects.
+	return nodes, nil
+}
+
+func (c *APIClient) CreatePod(pod *object.Pod) error {
+	// Construct the URL for the Pod creation endpoint.
+	url := c.BaseURL + PodCreationURL
+
+	// Create a new HTTP POST request with the pod as the body.
+	req, err := http.NewRequest("POST", url, nil)
+	if err != nil {
+		return err
+	}
+
+	// Send the request and return the response.
+	resp, err := c.Client.Do(req)
+	if err != nil {
+		return err
+	}
+
+	// Ensure the response body is closed after use.
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			// Log the error if closing the response body fails.
+			fmt.Println("Failed to close response body: ", cerr)
+		}
+	}()
+
+	// Check if the response status code is OK (200).
+	if resp.StatusCode != http.StatusOK {
+		// If not, read the response body and return an error.
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("%s", string(bodyBytes))
+	}
+
+	return nil
+}
+
+func (c *APIClient) GetPods() ([]object.Pod, error) {
+	// Construct the URL for the Pod get endpoint.
+	url := c.BaseURL + PodGetURL
+
+	// Create a new HTTP GET request.
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// Send the request and return the response.
+	resp, err := c.Client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	// Ensure the response body is closed after use.
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			// Log the error if closing the response body fails.
+			fmt.Println("Failed to close response body: ", cerr)
+		}
+	}()
+
+	// Check if the response status code is OK (200).
+	if resp.StatusCode != http.StatusOK {
+		// If not, read the response body and return an error.
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("%s", string(bodyBytes))
+	}
+
+	// Parse the response body as a list of Pod objects.
+	var pods []object.Pod
+	if err := json.NewDecoder(resp.Body).Decode(&pods); err != nil {
+		// If parsing fails, return an error.
+		return nil, err
+	}
+
+	// Return the list of Pod objects.
+	return pods, nil
+}
+
+func (c *APIClient) AssignPodToNode(pod *object.Pod) error {
+	// Construct the URL for the Pod assignment endpoint.
+	url := c.BaseURL + PodAssignURL
+
+	// Create a new HTTP POST request with the pod as the body.
+	req, err := http.NewRequest("POST", url, nil)
+	if err != nil {
+		return err
+	}
+
+	// Send the request and return the response.
+	resp, err := c.Client.Do(req)
+	if err != nil {
+		return err
+	}
+
+	// Ensure the response body is closed after use.
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			// Log the error if closing the response body fails.
+			fmt.Println("Failed to close response body: ", cerr)
+		}
+	}()
+
+	// Check if the response status code is OK (200).
+	if resp.StatusCode != http.StatusOK {
+		// If not, read the response body and return an error.
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("%s", string(bodyBytes))
+	}
+
+	return nil
+}
