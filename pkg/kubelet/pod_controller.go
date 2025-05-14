@@ -10,7 +10,7 @@ import (
 )
 
 type PodController struct {
-	kubelet    *Kubelet
+	kubelet    *object.Kubelet
 	podService pod.PodServiceInterface
 	apiClient  APIServerClient
 	syncPeriod time.Duration
@@ -21,7 +21,7 @@ type PodController struct {
 // 它还会从 API Server 获取最新的 Pod 配置，并与本地缓存进行比较
 // 以确保本地 Pod 的状态与 API Server 上的 Pod 状态一致
 func NewPodController(
-	kubelet *Kubelet,
+	kubelet *object.Kubelet,
 	podService pod.PodServiceInterface,
 	apiClient APIServerClient,
 	syncPeriod time.Duration,
@@ -56,20 +56,12 @@ func (c *PodController) SyncPods() {
 		return
 	}
 
+	// TODO：修改这边的逻辑
 	useCache := false
 	// 2. 从API Server 获取完整的 Pod 信息
 	desiredPods, err := c.apiClient.FetchPods(c.kubelet.Config.Name)
 	if err != nil {
 		log.Printf("API Server unavailable, using cached pods: %v", err)
-		c.kubelet.mutex.RLock()
-		desiredPods = c.kubelet.CachedPods
-		c.kubelet.mutex.RUnlock()
-
-		useCache = true
-	} else {
-		c.kubelet.mutex.Lock()
-		c.kubelet.CachedPods = desiredPods
-		c.kubelet.mutex.Unlock()
 	}
 
 	// 3. 添加缺少，删除多余
@@ -129,7 +121,7 @@ func (c *PodController) Reconcile(
 	}
 
 	// 更新 Kubelet.Pods
-	c.kubelet.mutex.Lock()
+	c.kubelet.Mu.Lock()
 	c.kubelet.Pods = desiredPods
-	c.kubelet.mutex.Unlock()
+	c.kubelet.Mu.Unlock()
 }
