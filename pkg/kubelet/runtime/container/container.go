@@ -34,8 +34,24 @@ type ContainerServiceInterface interface {
 	StopContainer(containerID string) error
 	ExecCommand(containerID string, cmd []string) (string, error)
 	DeleteContainer(containerID string) error
+
 	GetContainerInfo(containerID string) (*container.InspectResponse, error)
+	// String representation of the container state.
+	// Can be one of "created", "running", "paused", "restarting", "removing", "exited", or "dead"
 	GetContainerStatus(containerID string) (string, error)
+
+	GetContainerIdByName(name string) (string, error)
+	GetContainerNameById(id string) (string, error)
+
+	ListContainerIds() ([]string, error)
+
+	GetContainersByLabels(
+		labels map[string]string,
+	) ([]object.Container, error)
+
+	GetContainerInspectsByLabels(
+		labels map[string]string,
+	) ([]*container.InspectResponse, error)
 }
 
 type ContainerService struct {
@@ -92,8 +108,11 @@ func (cs *ContainerService) CreateContainer(
 	config := &container.Config{
 		Image:        ctr.Image,
 		Cmd:          ctr.Command,
+		Labels:       ctr.Labels,
 		ExposedPorts: ctr.ExposedPorts,
 	}
+
+	log.Printf("Labels: %v", ctr.Labels)
 
 	if hostConfig == nil {
 		hostConfig = &container.HostConfig{
@@ -369,4 +388,165 @@ func (cs *ContainerService) ExecCommand(
 
 	// 返回标准输出，移除多余的换行符
 	return strings.TrimSpace(stdout.String()), nil
+}
+
+func (cs *ContainerService) GetContainerIdByName(name string) (string, error) {
+	ctx := context.Background()
+
+	// 获取所有容器
+	containers, err := cs.client.ContainerList(
+		ctx,
+		container.ListOptions{},
+	)
+	if err != nil {
+		return "", fmt.Errorf("无法获取容器列表: %v", err)
+	}
+
+	// 遍历容器，查找匹配的名称
+	for _, container := range containers {
+		// > $ docker inspect goofy_lalande | grep goofy
+		// "Name": "/goofy_lalande",
+		if container.Names[0] == "/"+name {
+			return container.ID, nil
+		}
+	}
+
+	return "", fmt.Errorf("未找到名为 %s 的容器", name)
+}
+
+func (cs *ContainerService) GetContainerNameById(id string) (string, error) {
+	ctx := context.Background()
+	// 获取容器信息
+	ctrInfo, err := cs.client.ContainerInspect(ctx, id)
+	if err != nil {
+		return "", fmt.Errorf("无法获取容器 %s 信息: %v", id, err)
+	}
+	// 提取容器名称
+	name := strings.TrimPrefix(ctrInfo.Name, "/")
+	// 返回容器名称
+	return name, nil
+}
+
+func (cs *ContainerService) ListContainerIds() ([]string, error) {
+	ctx := context.Background()
+
+	// 获取所有容器
+	containers, err := cs.client.ContainerList(
+		ctx,
+		container.ListOptions{},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("无法获取容器列表: %v", err)
+	}
+
+	// 提取容器 ID
+	var containerIDs []string
+	for _, container := range containers {
+		containerIDs = append(containerIDs, container.ID)
+	}
+
+	return containerIDs, nil
+}
+
+func (cs *ContainerService) GetContainersByLabels(
+	labels map[string]string,
+) ([]object.Container, error) {
+	ctx := context.Background()
+
+	// 获取所有容器
+	containers, err := cs.client.ContainerList(
+		ctx,
+		container.ListOptions{
+			All: true,
+		},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("无法获取容器列表: %v", err)
+	}
+
+	var result []object.Container
+
+	for _, container := range containers {
+		// 获取容器的标签
+		ctrInfo, err := cs.client.ContainerInspect(ctx, container.ID)
+		if err != nil {
+			return nil, fmt.Errorf("无法获取容器 %s 信息: %v", container.ID, err)
+		}
+
+		log.Printf(
+			"容器 %s 的标签: %v",
+			container.ID,
+			ctrInfo.Config.Labels,
+		)
+
+		// 检查标签是否匹配
+		matches := true
+
+		for key, value := range labels {
+			if ctrInfo.Config.Labels[key] != value {
+				log.Printf(
+					"标签不匹配: %s=%s, 实际为: %s",
+					key,
+					value,
+					ctrInfo.Config.Labels[key],
+				)
+
+				matches = false
+
+				break
+			}
+		}
+
+		if matches {
+			result = append(result, object.Container{
+				ID:     container.ID,
+				Name:   strings.TrimPrefix(container.Names[0], "/"),
+				Image:  ctrInfo.Config.Image,
+				Labels: ctrInfo.Config.Labels,
+			})
+		}
+	}
+
+	return result, nil
+}
+
+func (cs *ContainerService) GetContainerInspectsByLabels(
+	labels map[string]string,
+) ([]*container.InspectResponse, error) {
+	ctx := context.Background()
+
+	// 获取所有容器
+	containers, err := cs.client.ContainerList(
+		ctx,
+		container.ListOptions{},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("无法获取容器列表: %v", err)
+	}
+
+	var result []*container.InspectResponse
+
+	for _, container := range containers {
+		// 获取容器的标签
+		ctrInfo, err := cs.client.ContainerInspect(ctx, container.ID)
+		if err != nil {
+			return nil, fmt.Errorf("无法获取容器 %s 信息: %v", container.ID, err)
+		}
+
+		// 检查标签是否匹配
+		matches := true
+
+		for key, value := range labels {
+			if ctrInfo.Config.Labels[key] != value {
+				matches = false
+				break
+			}
+		}
+
+		if matches {
+			result = append(result, &ctrInfo)
+		}
+	}
+
+	return result, nil
 }

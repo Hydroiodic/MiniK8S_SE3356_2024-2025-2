@@ -1,6 +1,8 @@
 package pod
 
 import (
+	"log"
+
 	runtime "github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime"
 	ctr_runtime "github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/container"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/utils"
@@ -27,7 +29,14 @@ func CreatePauseContainer(
 		ctr.Ports = append(ctr.Ports, ctrConfig.Ports...)
 	}
 
-	// TODO: Append Label
+	// Append Labels
+	ctr.Labels = utils.NewLabelForPauseContainer(
+		pod.Metadata.Namespace,
+		pod.Metadata.Name,
+		pod.Metadata.Labels,
+	)
+
+	log.Printf("Pause Container Labels: %v", ctr.Labels)
 
 	// 让容器共享 IPC 资源，允许使用共享内存、信号量等机制
 	hostConfig := &container.HostConfig{

@@ -21,19 +21,22 @@ type Metadata struct {
 
 type PodSpec struct {
 	PauseContainerID string      `yaml:"pauseContainerId"` // Pause 容器 ID（哈希值）
+	RestartPolicy    string      `yaml:"restartPolicy"`    // 重启策略：Always, OnFailure, Never
 	Containers       []Container `yaml:"containers"`       // 容器列表
 	Volumes          []Volume    `yaml:"volumes"`          // 共享卷
 }
 
 type Container struct {
-	ID           string          `yaml:"id"`        // 容器 ID，由 Docker 生成
-	Name         string          `yaml:"name"`      // 容器名称
-	Image        string          `yaml:"image"`     // 镜像名和 Tag，如 nginx:latest
-	Command      []string        `yaml:"command"`   // 容器执行命令
-	Args         []string        `yaml:"args"`      // 命令参数
-	Ports        []ContainerPort `yaml:"ports"`     // 暴露端口
-	Resources    ResourceLimits  `yaml:"resources"` // 资源限制
-	ExposedPorts nat.PortSet     `yaml:"-"`
+	ID        string          `yaml:"id"`        // 容器 ID，由 Docker 生成
+	Name      string          `yaml:"name"`      // 容器名称
+	Image     string          `yaml:"image"`     // 镜像名和 Tag，如 nginx:latest
+	Command   []string        `yaml:"command"`   // 容器执行命令
+	Args      []string        `yaml:"args"`      // 命令参数
+	Ports     []ContainerPort `yaml:"ports"`     // 暴露端口
+	Resources ResourceLimits  `yaml:"resources"` // 资源限制
+
+	Labels       map[string]string `yaml:"labels"` // 容器标签
+	ExposedPorts nat.PortSet       `yaml:"-"`      // FIXME：这是干什么的？
 }
 
 type ContainerPort struct {
