@@ -366,7 +366,9 @@ func (cs *ContainerService) GetContainersByLabels(
 	// 获取所有容器
 	containers, err := cs.client.ContainerList(
 		ctx,
-		container.ListOptions{},
+		container.ListOptions{
+			All: true,
+		},
 	)
 	if err != nil {
 		return nil, fmt.Errorf("无法获取容器列表: %v", err)
