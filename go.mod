@@ -4,8 +4,10 @@ go 1.23.1
 
 require (
 	github.com/docker/docker v28.1.1+incompatible
+	github.com/docker/go-connections v0.5.0
 	github.com/google/cadvisor v0.52.1
 	github.com/rabbitmq/amqp091-go v1.10.0
+	github.com/shirou/gopsutil v2.21.11+incompatible
 	github.com/spf13/cobra v1.9.1
 	github.com/stretchr/testify v1.10.0
 	go.etcd.io/etcd/client/v3 v3.5.21
@@ -43,12 +45,12 @@ require (
 	github.com/coreos/go-systemd/v22 v22.5.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/distribution/reference v0.6.0 // indirect
-	github.com/docker/go-connections v0.5.0 // indirect
 	github.com/docker/go-units v0.5.0 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/gin-gonic/gin v1.10.0
 	github.com/go-logr/logr v1.4.2 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
+	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
@@ -60,6 +62,9 @@ require (
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/spf13/pflag v1.0.6 // indirect
+	github.com/tklauser/go-sysconf v0.3.15 // indirect
+	github.com/tklauser/numcpus v0.10.0 // indirect
+	github.com/yusufpapurcu/wmi v1.2.4 // indirect
 	go.etcd.io/etcd/api/v3 v3.5.21 // indirect
 	go.etcd.io/etcd/client/pkg/v3 v3.5.21 // indirect
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect

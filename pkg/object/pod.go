@@ -2,6 +2,8 @@ package object
 
 import (
 	"time"
+
+	"github.com/docker/go-connections/nat"
 )
 
 type Pod struct {
@@ -24,13 +26,14 @@ type PodSpec struct {
 }
 
 type Container struct {
-	ID        string          `yaml:"id"`        // 容器 ID，由 Docker 生成
-	Name      string          `yaml:"name"`      // 容器名称
-	Image     string          `yaml:"image"`     // 镜像名和 Tag，如 nginx:latest
-	Command   []string        `yaml:"command"`   // 容器执行命令
-	Args      []string        `yaml:"args"`      // 命令参数
-	Ports     []ContainerPort `yaml:"ports"`     // 暴露端口
-	Resources ResourceLimits  `yaml:"resources"` // 资源限制
+	ID           string          `yaml:"id"`        // 容器 ID，由 Docker 生成
+	Name         string          `yaml:"name"`      // 容器名称
+	Image        string          `yaml:"image"`     // 镜像名和 Tag，如 nginx:latest
+	Command      []string        `yaml:"command"`   // 容器执行命令
+	Args         []string        `yaml:"args"`      // 命令参数
+	Ports        []ContainerPort `yaml:"ports"`     // 暴露端口
+	Resources    ResourceLimits  `yaml:"resources"` // 资源限制
+	ExposedPorts nat.PortSet     `yaml:"-"`
 }
 
 type ContainerPort struct {
