@@ -1,6 +1,7 @@
 package main
 
 import (
+	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/apiserver"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/apiserver/interfaces"
 	"github.com/gin-gonic/gin"
 )
@@ -11,14 +12,14 @@ func main() {
 
 	// Kubelet/Node operations.
 	// NOTE: we do not disdinguish between kubelet and node in this version.
-	r.POST("/kubelet/register", interfaces.KubeletRegister)
-	r.POST("/kubelet/heartbeat", interfaces.KubeletHeartbeat)
-	r.GET("/kubelet/getNodes", interfaces.GetNodes)
+	r.POST(apiserver.KubeletRegisterURL, interfaces.KubeletRegister)
+	r.POST(apiserver.KubeletHeartbeatURL, interfaces.KubeletHeartbeat)
+	r.GET(apiserver.KubeletGetNodesURL, interfaces.GetNodes)
 
 	// Pod operations.
-	r.POST("/pod/createPod", interfaces.CreatePod)
-	r.GET("/pod/getPods", interfaces.GetPods)
-	r.POST("/pod/assignPodToNode", interfaces.AssignPodToNode)
+	r.POST(apiserver.PodCreationURL, interfaces.CreatePod)
+	r.GET(apiserver.PodGetURL, interfaces.GetPods)
+	r.POST(apiserver.PodAssignURL, interfaces.AssignPodToNode)
 
 	// r.POST("/deletePodFromFile", interfaces.DeletePod)
 	// r.POST("/getOnePod", interfaces.GetOnePod)

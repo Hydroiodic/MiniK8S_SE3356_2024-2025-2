@@ -90,7 +90,7 @@ func AssignPodToNode(c *gin.Context) {
 	}
 
 	// Send the message to the queue.
-	err = mqtemplate.SendMessageToQueue(mqtemplate.CreatePodQueueName, msg)
+	err = mqtemplate.SendMessageToQueue(mqtemplate.KubeletCreatePodQueue, msg)
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
