@@ -36,6 +36,7 @@ require (
 	github.com/ugorji/go/codec v1.2.12 // indirect
 	golang.org/x/arch v0.8.0 // indirect
 	golang.org/x/crypto v0.37.0 // indirect
+	sigs.k8s.io/yaml v1.4.0 // indirect
 )
 
 require (

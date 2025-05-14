@@ -1,16 +1,21 @@
 package cmd
 
 import (
+	"bytes"
 	"fmt"
+	"io"
+	"net/http"
 	"os"
+	"time"
 
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
+	yaml2 "sigs.k8s.io/yaml"
 )
 
 // PodResource 代表 Pod 资源类型.
-const PodResource = "pod"
+const PodResource = "Pod"
 
 var execCmd = &cobra.Command{
 	Use:   "apply",
@@ -67,24 +72,40 @@ func parseYaml(fileAddr string) {
 	}
 
 	resourceHandlers := map[string]func([]byte) error{
-		PodResource: func(data []byte) error {
-			return parseAndHandle[object.Pod](data, handlePod)
+		PodResource: func(rawData []byte) error {
+			// 直接传递原始 JSON/YAML 数据，不解析成结构体
+			return handlePodRaw(rawData)
 		},
-		"Service": func(data []byte) error {
-			return parseAndHandle[object.Service](data, handleService)
+		"Service": func(rawData []byte) error {
+			return handleServiceRaw(rawData)
 		},
-		"ReplicaSet": func(data []byte) error {
-			return parseAndHandle[object.ReplicaSet](data, handleReplicaSet)
+		"ReplicaSet": func(rawData []byte) error {
+			return handleReplicaSetRaw(rawData)
 		},
-		"DNS": func(data []byte) error {
-			return parseAndHandle[object.DNS](data, handleDNSConfig)
+		"DNS": func(rawData []byte) error {
+			return handleDNSConfigRaw(rawData)
 		},
-		"HorizontalPodAutoscaler": func(data []byte) error {
-			return parseAndHandle[object.HorizontalPodAutoscaler](
-				data,
-				handleHPA,
-			)
+		"HorizontalPodAutoscaler": func(rawData []byte) error {
+			return handleHPARaw(rawData)
 		},
+		// PodResource: func(data []byte) error {
+		// 	return parseAndHandle[object.Pod](data, handlePod)
+		// },
+		// "Service": func(data []byte) error {
+		// 	return parseAndHandle[object.Service](data, handleService)
+		// },
+		// "ReplicaSet": func(data []byte) error {
+		// 	return parseAndHandle[object.ReplicaSet](data, handleReplicaSet)
+		// },
+		// "DNS": func(data []byte) error {
+		// 	return parseAndHandle[object.DNS](data, handleDNSConfig)
+		// },
+		// "HorizontalPodAutoscaler": func(data []byte) error {
+		// 	return parseAndHandle[object.HorizontalPodAutoscaler](
+		// 		data,
+		// 		handleHPA,
+		// 	)
+		// },
 	}
 
 	// 根据 kind 处理相应的资源
@@ -95,6 +116,67 @@ func parseYaml(fileAddr string) {
 	} else {
 		_, _ = fmt.Println("不支持的资源类型:", kindStruct.Kind)
 	}
+}
+
+func handlePodRaw(rawData []byte) error {
+	// 1. 解析 YAML 到 map
+	var data map[string]interface{}
+	if err := yaml.Unmarshal(rawData, &data); err != nil {
+		panic(err)
+	}
+	//获取当前时间
+	currentTime := time.Now().UTC().Format(time.RFC3339)
+	// 2. 添加 status 字段
+	data["status"] = map[string]string{
+		"phase":     "Running",
+		"startTime": currentTime,
+	}
+	// 3. 重新生成 YAML
+	newYAML, err := yaml.Marshal(data)
+	if err != nil {
+		panic(err)
+	}
+	fmt.Println(string(newYAML))
+	jsonData, err := yaml2.YAMLToJSON([]byte(newYAML))
+	resp, err := http.Post( //nolint:gosec
+		"http://localhost:8080/pod/createPod",
+		"application/json",
+		bytes.NewBuffer(jsonData),
+	)
+	if err != nil {
+		return fmt.Errorf("HTTP request failed: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body) // 读取错误响应体
+		return fmt.Errorf(
+			"server returned %d: %s",
+			resp.StatusCode,
+			string(body),
+		)
+	}
+	return nil
+}
+
+func handleServiceRaw(rawData []byte) error {
+	fmt.Println("Raw Service JSON/YAML:", string(rawData))
+	return nil
+}
+
+func handleReplicaSetRaw(rawData []byte) error {
+	fmt.Println("Raw ReplicaSet JSON/YAML:", string(rawData))
+	// 在这里可以直接操作 JSON，如提取字段、修改内容等
+	return nil
+}
+
+func handleDNSConfigRaw(rawData []byte) error {
+	fmt.Println("Raw DNS JSON/YAML:", string(rawData))
+	return nil
+}
+func handleHPARaw(rawData []byte) error {
+	fmt.Println("Raw HPA JSON/YAML:", string(rawData))
+	return nil
 }
 
 func handlePod(pod *object.Pod) {

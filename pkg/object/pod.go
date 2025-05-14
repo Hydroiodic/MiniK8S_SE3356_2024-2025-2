@@ -10,7 +10,7 @@ type Pod struct {
 	Kind     string    `yaml:"kind"`     // 固定为 "Pod"
 	Metadata Metadata  `yaml:"metadata"` // 包含 name, namespace, labels
 	Spec     PodSpec   `yaml:"spec"`     // 容器配置
-	Status   PodStatus `yaml:"status"`   // 运行状态
+	Status   PodStatus `yaml:"status"`   // 禁止 YAML 解析
 }
 
 type Metadata struct {
@@ -51,7 +51,7 @@ type Volume struct {
 }
 
 type PodStatus struct {
-	Phase      string    `yaml:"phase"`      // 运行状态：Pending, Running, Failed 等
-	StartTime  time.Time `yaml:"startTime"`  // 启动时间
-	Conditions []string  `yaml:"conditions"` // 状态条件
+	Phase     string    `yaml:"phase"`     // 运行状态：Pending, Running, Failed 等
+	StartTime time.Time `yaml:"startTime"` // 启动时间
+	// Conditions []string  `yaml:"conditions"` // 状态条件
 }
