@@ -164,6 +164,7 @@ func (p *PodService) DeletePod(pod *object.Pod) error {
 
 /**
  * 这个函数主要通过查询Container的状态实现
+ * TODO: 改用Label进行筛选
  */
 func (p *PodService) GetPodStatus(pod *object.Pod) (string, error) {
 	pauseCtrName := utils.FormatContainerName(
@@ -263,47 +264,118 @@ func (p *PodService) GetPodStatus(pod *object.Pod) (string, error) {
 	return PodStatusPending, nil
 }
 
-// FIXME：这个地方要改，改成使用标签！
 // 获取当前节点正在运行的 Pod （包含一些状态字段）
+// 可以在Kubelet重启时调用？
 func (p *PodService) ListPods() ([]object.Pod, error) {
-	// 获取所有容器的 ID
-	ctrIds, err := p.CtrService.ListContainerIds()
+	// 1. 获取所有 Pause 容器，搞清楚有多少个 Pod
+	pauseCtrs, err := p.CtrService.GetContainersByLabels(
+		map[string]string{
+			utils.IsPauseLabelKey: "true",
+		},
+	)
 	if err != nil {
-		log.Printf("Failed to list containers: %v", err)
+		log.Printf("Failed to get pause containers: %v", err)
 		return nil, err
 	}
 
-	pods := make([]object.Pod, 0)
+	pods := make([]object.Pod, len(pauseCtrs))
 
-	// 我明白了，通过Label先筛选出Pause容器，然后就能搞出Pod的Namespace和Name
-	// 然后啥状态啥的就都能判断了！
-	for _, ctrId := range ctrIds {
-		// 获取容器的名称
-		name, err := p.CtrService.GetContainerNameById(ctrId)
+	// 2. 对于每个 Pod，搞清楚其容器的运行状态
+	for i, pauseCtr := range pauseCtrs {
+		// 获取 Pod 的 Namespace 和 Name
+		podNs, podName := utils.ParsePodNsNameLabel(
+			pauseCtr.Labels[utils.PodNsNameLabelKey],
+		)
+
+		// 找到这个Pod的所有容器（Pause以外）
+		ctrConfigs, err := p.CtrService.GetContainersByLabels(
+			map[string]string{
+				utils.PodNsNameLabelKey: utils.GeneratePodNsNameLabel(
+					podNs,
+					podName),
+				utils.IsPauseLabelKey: "false",
+			},
+		)
+
 		if err != nil {
-			log.Printf("Failed to get container name: %v", err)
-			continue
+			log.Printf("Failed to get containers for pod %s: %v", podName, err)
+			return nil, err
 		}
-
-		podName, namespace, _ := utils.ParseContainerName(name)
 
 		pod := object.Pod{
-			// 这玩意就是恒定不变的
 			Metadata: object.Metadata{
-				Name:      podName,
-				Namespace: namespace,
-			},
-			Status: object.PodStatus{
-				// TODO:
-				// StartTime: time.Now(),
+				Name:      podNs,
+				Namespace: podName,
+				Labels:    pauseCtr.Labels,
 			},
 			Spec: object.PodSpec{
-				// PauseContainerID: ctrId,
+				PauseContainerID: pauseCtr.ID,
+				Containers:       ctrConfigs,
+			},
+			Status: object.PodStatus{
+				StartTime:  time.Now(), // 这个东西是应该Kubelet一直存着的？？
+				Conditions: []string{},
 			},
 		}
 
-		pods = append(pods, pod)
+		pods[i] = pod
 	}
 
 	return pods, nil
+}
+
+func (p *PodService) AutoRestartPod(
+	pod *object.Pod,
+) error {
+	// 构建 Pod 内容器的标签
+	ctrLabels := utils.NewLabelForOtherContainer(
+		pod.Metadata.Namespace,
+		pod.Metadata.Name,
+		pod.Metadata.Labels,
+	)
+
+	// 获取相应的所有容器
+	ctrInspects, err := p.CtrService.GetContainerInspectsByLabels(
+		ctrLabels,
+	)
+
+	if err != nil {
+		log.Printf("Failed to get container inspects: %v", err)
+		return err
+	}
+
+	// TODO: 处理重启策略
+	restartPolicy := pod.Spec.RestartPolicy
+	// 遍历所有容器，依据状态进行重启
+	for _, inspect := range ctrInspects {
+		status := inspect.State.Status
+		exitCode := inspect.State.ExitCode
+
+		switch restartPolicy {
+		case "Always", "":
+			// dead, exited or created
+			if status == ctr_runtime.ContainerStateDead ||
+				status == ctr_runtime.ContainerStateExited ||
+				status == ctr_runtime.ContainerStateCreated {
+				_ = p.CtrService.StopContainer(inspect.ID)
+				_ = p.CtrService.StartContainer(inspect.ID)
+			}
+		case "OnFailure":
+			// dead, exited or created
+			if status == ctr_runtime.ContainerStateDead ||
+				status == ctr_runtime.ContainerStateExited {
+				if exitCode != 0 {
+					_ = p.CtrService.StopContainer(inspect.ID)
+					_ = p.CtrService.StartContainer(inspect.ID)
+				}
+			}
+		case "Never":
+			// TODO: Stop if created?
+			if status == ctr_runtime.ContainerStateCreated {
+				_ = p.CtrService.StopContainer(inspect.ID)
+			}
+		}
+	}
+
+	return nil
 }

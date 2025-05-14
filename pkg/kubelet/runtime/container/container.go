@@ -39,6 +39,14 @@ type ContainerServiceInterface interface {
 	GetContainerNameById(id string) (string, error)
 
 	ListContainerIds() ([]string, error)
+
+	GetContainersByLabels(
+		labels map[string]string,
+	) ([]object.Container, error)
+
+	GetContainerInspectsByLabels(
+		labels map[string]string,
+	) ([]*container.InspectResponse, error)
 }
 
 type ContainerService struct {
@@ -346,4 +354,91 @@ func (cs *ContainerService) ListContainerIds() ([]string, error) {
 	}
 
 	return containerIDs, nil
+}
+
+func (cs *ContainerService) GetContainersByLabels(
+	labels map[string]string,
+) ([]object.Container, error) {
+	ctx := context.Background()
+
+	// 获取所有容器
+	containers, err := cs.client.ContainerList(
+		ctx,
+		container.ListOptions{},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("无法获取容器列表: %v", err)
+	}
+
+	var result []object.Container
+
+	for _, container := range containers {
+		// 获取容器的标签
+		ctrInfo, err := cs.client.ContainerInspect(ctx, container.ID)
+		if err != nil {
+			return nil, fmt.Errorf("无法获取容器 %s 信息: %v", container.ID, err)
+		}
+
+		// 检查标签是否匹配
+		matches := true
+
+		for key, value := range labels {
+			if ctrInfo.Config.Labels[key] != value {
+				matches = false
+				break
+			}
+		}
+
+		if matches {
+			result = append(result, object.Container{
+				ID:     container.ID,
+				Name:   strings.TrimPrefix(container.Names[0], "/"),
+				Image:  ctrInfo.Config.Image,
+				Labels: ctrInfo.Config.Labels,
+			})
+		}
+	}
+
+	return result, nil
+}
+
+func (cs *ContainerService) GetContainerInspectsByLabels(
+	labels map[string]string,
+) ([]*container.InspectResponse, error) {
+	ctx := context.Background()
+
+	// 获取所有容器
+	containers, err := cs.client.ContainerList(
+		ctx,
+		container.ListOptions{},
+	)
+	if err != nil {
+		return nil, fmt.Errorf("无法获取容器列表: %v", err)
+	}
+
+	var result []*container.InspectResponse
+
+	for _, container := range containers {
+		// 获取容器的标签
+		ctrInfo, err := cs.client.ContainerInspect(ctx, container.ID)
+		if err != nil {
+			return nil, fmt.Errorf("无法获取容器 %s 信息: %v", container.ID, err)
+		}
+
+		// 检查标签是否匹配
+		matches := true
+
+		for key, value := range labels {
+			if ctrInfo.Config.Labels[key] != value {
+				matches = false
+				break
+			}
+		}
+
+		if matches {
+			result = append(result, &ctrInfo)
+		}
+	}
+
+	return result, nil
 }

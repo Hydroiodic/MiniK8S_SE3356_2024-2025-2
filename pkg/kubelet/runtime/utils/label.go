@@ -1,6 +1,9 @@
 package utils
 
-import "maps"
+import (
+	"maps"
+	"strings"
+)
 
 const PodNsNameLabelKey = "pod"
 const IsPauseLabelKey = "pause"
@@ -12,6 +15,21 @@ func GeneratePodNsNameLabel(
 	podName string,
 ) string {
 	return podNs + "=" + podName
+}
+
+func ParsePodNsNameLabel(
+	podNsNameLabel string,
+) (string, string) {
+	// 解析 Pod 的命名空间和名称
+	parts := strings.Split(podNsNameLabel, "=")
+	if len(parts) != 2 {
+		return "", ""
+	}
+
+	podNs := parts[0]
+	podName := parts[1]
+
+	return podNs, podName
 }
 
 // Generate Labels for Container
@@ -40,6 +58,7 @@ func NewLabelForOtherContainer(
 ) map[string]string {
 	mergedLabels := map[string]string{
 		PodNsNameLabelKey: podNs + "=" + podName,
+		IsPauseLabelKey:   "false",
 	}
 
 	maps.Copy(mergedLabels, labels)
