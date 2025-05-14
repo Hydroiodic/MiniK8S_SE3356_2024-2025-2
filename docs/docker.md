@@ -1,4 +1,4 @@
-Dokcer 提供的状态接口
+Docker 提供的状态接口
 ```json
 "State": {
             "Status": "exited",

@@ -307,8 +307,8 @@ func (p *PodService) ListPods() ([]object.Pod, error) {
 
 		pod := object.Pod{
 			Metadata: object.Metadata{
-				Name:      podNs,
-				Namespace: podName,
+				Namespace: podNs,
+				Name:      podName,
 				Labels:    pauseCtr.Labels,
 			},
 			Spec: object.PodSpec{
