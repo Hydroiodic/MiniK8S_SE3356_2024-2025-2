@@ -1,8 +1,9 @@
 package object
 
 import (
-	"encoding/json"
 	"time"
+
+	"github.com/docker/go-connections/nat"
 )
 
 type Pod struct {
@@ -34,7 +35,8 @@ type Container struct {
 	Ports     []ContainerPort `yaml:"ports"`     // 暴露端口
 	Resources ResourceLimits  `yaml:"resources"` // 资源限制
 
-	Labels map[string]string `yaml:"labels"` // 容器标签
+	Labels       map[string]string `yaml:"labels"` // 容器标签
+	ExposedPorts nat.PortSet       `yaml:"-"`      // FIXME：这是干什么的？
 }
 
 type ContainerPort struct {
@@ -55,24 +57,4 @@ type PodStatus struct {
 	Phase      string    `yaml:"phase"`      // 运行状态：Pending, Running, Failed 等
 	StartTime  time.Time `yaml:"startTime"`  // 启动时间
 	Conditions []string  `yaml:"conditions"` // 状态条件
-}
-
-func (c *Container) ToJSON() (string, error) {
-	data, err := json.Marshal(c)
-	if err != nil {
-		return "", err
-	}
-
-	return string(data), nil
-}
-
-func ContainerFromJSON(data string) (*Container, error) {
-	var c Container
-
-	err := json.Unmarshal([]byte(data), &c)
-	if err != nil {
-		return nil, err
-	}
-
-	return &c, nil
 }
