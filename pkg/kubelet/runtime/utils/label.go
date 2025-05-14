@@ -14,14 +14,14 @@ func GeneratePodNsNameLabel(
 	podNs string,
 	podName string,
 ) string {
-	return podNs + "=" + podName
+	return podNs + "_" + podName
 }
 
 func ParsePodNsNameLabel(
 	podNsNameLabel string,
 ) (string, string) {
 	// 解析 Pod 的命名空间和名称
-	parts := strings.Split(podNsNameLabel, "=")
+	parts := strings.Split(podNsNameLabel, "_")
 	if len(parts) != 2 {
 		return "", ""
 	}
@@ -42,7 +42,7 @@ func NewLabelForPauseContainer(
 	labels map[string]string,
 ) map[string]string {
 	mergedLabels := map[string]string{
-		PodNsNameLabelKey: podNs + "=" + podName,
+		PodNsNameLabelKey: podNs + "_" + podName,
 		IsPauseLabelKey:   "true",
 	}
 
@@ -57,7 +57,7 @@ func NewLabelForOtherContainer(
 	labels map[string]string,
 ) map[string]string {
 	mergedLabels := map[string]string{
-		PodNsNameLabelKey: podNs + "=" + podName,
+		PodNsNameLabelKey: podNs + "_" + podName,
 		IsPauseLabelKey:   "false",
 	}
 

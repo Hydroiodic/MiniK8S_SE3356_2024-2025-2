@@ -273,6 +273,9 @@ func (p *PodService) ListPods() ([]object.Pod, error) {
 			utils.IsPauseLabelKey: "true",
 		},
 	)
+
+	log.Printf("Pause containers: %v", pauseCtrs)
+
 	if err != nil {
 		log.Printf("Failed to get pause containers: %v", err)
 		return nil, err

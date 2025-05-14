@@ -407,3 +407,15 @@ ctr images list
 ctr snapshots list
 ctr namespaces list
 ```
+
+受不了了我现在对预期行为没有任何可控的估计。
+我也不知道这跑着跑着会跑出什么东西来。
+
+# 消息队列：CreatePod
+
+# 上传 Kubelet
+
+# 注册 API Server
+
+监听消息队列
+

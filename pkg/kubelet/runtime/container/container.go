@@ -106,6 +106,8 @@ func (cs *ContainerService) CreateContainer(
 		Labels: ctr.Labels,
 	}
 
+	log.Printf("Labels: %v", ctr.Labels)
+
 	if hostConfig == nil {
 		hostConfig = &container.HostConfig{
 			NetworkMode: "default", // 可根据需要设置 netNSPath
@@ -379,12 +381,26 @@ func (cs *ContainerService) GetContainersByLabels(
 			return nil, fmt.Errorf("无法获取容器 %s 信息: %v", container.ID, err)
 		}
 
+		log.Printf(
+			"容器 %s 的标签: %v",
+			container.ID,
+			ctrInfo.Config.Labels,
+		)
+
 		// 检查标签是否匹配
 		matches := true
 
 		for key, value := range labels {
 			if ctrInfo.Config.Labels[key] != value {
+				log.Printf(
+					"标签不匹配: %s=%s, 实际为: %s",
+					key,
+					value,
+					ctrInfo.Config.Labels[key],
+				)
+
 				matches = false
+
 				break
 			}
 		}

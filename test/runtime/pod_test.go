@@ -180,3 +180,59 @@ func TestPodContainerCommunication(t *testing.T) {
 		t.Logf("failed to delete pod: %v", err)
 	}
 }
+
+func TestListPods(t *testing.T) {
+	containerService, err := container.NewContainerService()
+	if err != nil {
+		t.Fatalf("failed to create container service: %v", err)
+	}
+
+	podService := pod.NewPodService(containerService)
+
+	// 创建一个测试 Pod
+	testPod := &object.Pod{
+		Kind: "Pod",
+		Metadata: object.Metadata{
+			Name:      "test-pod-list",
+			Namespace: "example-pod-namespace",
+			Labels:    map[string]string{"app": "test"},
+		},
+		Spec: object.PodSpec{
+			Containers: []object.Container{
+				{
+					Name:    "client-container",
+					Image:   "docker.io/library/busybox:latest", // 替换为 busybox
+					Command: []string{"sh", "-c", "sleep 3600"}, // 保持容器运行
+				},
+			},
+		},
+	}
+	err = podService.CreatePod(testPod)
+
+	if err != nil {
+		t.Fatalf("failed to create test pod: %v", err)
+	}
+
+	pods, err := podService.ListPods()
+	if err != nil {
+		t.Fatalf("failed to list pods: %v", err)
+	}
+
+	t.Logf("List of pods: %v", pods)
+
+	for _, p := range pods {
+		t.Logf("Pod: %s/%s", p.Metadata.Namespace, p.Metadata.Name)
+	}
+
+	// 清理测试 Pod
+	err = podService.DeletePod(testPod)
+	if err != nil {
+		t.Logf("failed to delete test pod: %v", err)
+	}
+
+	t.Logf(
+		"Test pod deleted: %s/%s",
+		testPod.Metadata.Namespace,
+		testPod.Metadata.Name,
+	)
+}
