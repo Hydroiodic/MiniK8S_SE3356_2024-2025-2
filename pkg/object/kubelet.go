@@ -24,7 +24,7 @@ type Kubelet struct {
 	LastUpdateTime time.Time `yaml:"lastUpdateTime" json:"lastUpdateTime"`
 
 	// A mutex to protect the kubelet instance.
-	Mu sync.Mutex
+	Mu sync.RWMutex
 }
 
 type KubeletCopy struct {
@@ -50,7 +50,6 @@ func (k *Kubelet) GetKubeletCopyWithoutLock() KubeletCopy {
 		Config:         k.Config,
 		Status:         k.Status,
 		StartTime:      k.StartTime,
-		Runtime:        k.Runtime,
 		Pods:           k.Pods,
 		LastUpdateTime: k.LastUpdateTime,
 	}

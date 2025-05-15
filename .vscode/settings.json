@@ -9,4 +9,7 @@
     ],
     "go.formatTool": "custom",
     "go.lintTool": "golangci-lint-v2",
+    "remote.extensionKind": {
+        "*": "ui"  // 强制所有插件在本地（UI 模式）运行
+    }
 }

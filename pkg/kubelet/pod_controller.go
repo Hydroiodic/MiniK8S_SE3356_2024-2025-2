@@ -1,16 +1,18 @@
 package kubelet
 
 import (
+	"encoding/json"
 	"log"
 	"time"
 
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/pod"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/utils"
+	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/mqtemplate"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
 )
 
 type PodController struct {
-	kubelet    *Kubelet
+	kubelet    *object.Kubelet
 	podService pod.PodServiceInterface
 	apiClient  APIServerClient
 	syncPeriod time.Duration
@@ -21,7 +23,7 @@ type PodController struct {
 // 它还会从 API Server 获取最新的 Pod 配置，并与本地缓存进行比较
 // 以确保本地 Pod 的状态与 API Server 上的 Pod 状态一致
 func NewPodController(
-	kubelet *Kubelet,
+	kubelet *object.Kubelet,
 	podService pod.PodServiceInterface,
 	apiClient APIServerClient,
 	syncPeriod time.Duration,
@@ -34,9 +36,53 @@ func NewPodController(
 	}
 }
 
+func (c *PodController) CreatePodHandler(msg map[string]interface{}) error {
+	// 解析消息体
+	msgBody, err := json.Marshal(msg)
+	if err != nil {
+		log.Printf("Failed to marshal message: %v", err)
+		return err
+	}
+
+	// 解析 JSON 为 Pod 对象
+	var pod object.Pod
+	if err := json.Unmarshal(msgBody, &pod); err != nil {
+		log.Printf("Failed to unmarshal message to Pod: %v", err)
+		return err
+	}
+
+	// 处理解析后的 Pod 对象
+	log.Printf("Successfully parsed Pod: %+v", pod)
+
+	// 将 Pod 对象添加到 Kubelet 的 Pod 列表中
+	c.kubelet.Mu.Lock()
+	c.kubelet.Pods = append(c.kubelet.Pods, pod)
+	c.kubelet.Mu.Unlock()
+	log.Printf("Pod added to Kubelet: %+v", pod)
+
+	// 在这里可以对 Pod 进行进一步处理，比如创建或更新
+	if err := c.podService.CreatePod(&pod); err != nil {
+		log.Printf("Failed to create pod: %v", err)
+	}
+
+	return nil
+}
+
 func (c *PodController) Run(stopCh <-chan struct{}) {
 	ticker := time.NewTicker(c.syncPeriod)
 	defer ticker.Stop()
+
+	// 处理消息队列中的 Pod 创建请求
+	// TODO: 这玩意停不住啊？
+	go func() {
+		err := mqtemplate.ConsumeMessageOnQueue(
+			mqtemplate.KubeletCreatePodQueue,
+			c.CreatePodHandler,
+		)
+		if err != nil {
+			log.Printf("Failed to consume message: %v", err)
+		}
+	}()
 
 	for {
 		select {
@@ -49,30 +95,27 @@ func (c *PodController) Run(stopCh <-chan struct{}) {
 }
 
 func (c *PodController) SyncPods() {
-	// 1. 从运行时获取当前节点上所有 Pod 的运行状态
+	log.Printf("TODO: Syncing pods...")
+
 	currentPods, err := c.podService.ListPods()
 	if err != nil {
 		log.Printf("Failed to list pods: %v", err)
-		return
 	}
+
+	log.Printf("Current pods: %v", currentPods)
+
+	desiredPods, err := c.apiClient.FetchPods(c.kubelet.Config.Name)
 
 	useCache := false
-	// 2. 从API Server 获取完整的 Pod 信息
-	desiredPods, err := c.apiClient.FetchPods(c.kubelet.Config.Name)
 	if err != nil {
-		log.Printf("API Server unavailable, using cached pods: %v", err)
-		c.kubelet.mutex.RLock()
-		desiredPods = c.kubelet.CachedPods
-		c.kubelet.mutex.RUnlock()
-
 		useCache = true
-	} else {
-		c.kubelet.mutex.Lock()
-		c.kubelet.CachedPods = desiredPods
-		c.kubelet.mutex.Unlock()
+		desiredPods = currentPods
+
+		log.Printf("API Server unavailable, using cached pods: %v", err)
 	}
 
-	// 3. 添加缺少，删除多余
+	log.Printf("Desired pods: %v", desiredPods)
+
 	c.Reconcile(desiredPods, currentPods, useCache)
 }
 
@@ -129,7 +172,7 @@ func (c *PodController) Reconcile(
 	}
 
 	// 更新 Kubelet.Pods
-	c.kubelet.mutex.Lock()
+	c.kubelet.Mu.Lock()
 	c.kubelet.Pods = desiredPods
-	c.kubelet.mutex.Unlock()
+	c.kubelet.Mu.Unlock()
 }

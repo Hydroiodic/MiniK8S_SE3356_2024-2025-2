@@ -1,49 +1,31 @@
 package kubelet
 
 import (
-	"sync"
+	"log"
 	"time"
 
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/pod"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
 )
 
-type KubeletConfig struct {
-	ApiServerAddress string `yaml:"apiServerAddress" json:"apiServerAddress"`
-	Name             string `yaml:"name"             json:"name"`
-	Roles            string `yaml:"roles"            json:"roles"`
-	Version          string `yaml:"version"          json:"version"`
-	NodeIP           string `yaml:"nodeIP"           json:"nodeIP"`
-}
-
-type Kubelet struct {
-	Config         KubeletConfig `yaml:"config"         json:"config"`
-	StartTime      time.Time     `yaml:"startTime"      json:"startTime"`
-	LastUpdateTime time.Time     `yaml:"lastUpdateTime" json:"lastUpdateTime"`
-	// Pods 是当前节点上运行的 Pod 列表
-	Pods []object.Pod `yaml:"pods"           json:"pods"`
-	// CachedPods 是从 API Server 获取的 Pod 列表
-	CachedPods []object.Pod `yaml:"cachedPods"     json:"cachedPods"`
-	mutex      sync.RWMutex
-}
-
-func NewKubelet(config KubeletConfig) *Kubelet {
-	return &Kubelet{
+func NewKubelet(config object.KubeletConfig) *object.Kubelet {
+	return &object.Kubelet{
 		Config:         config,
 		StartTime:      time.Now(),
 		LastUpdateTime: time.Now(),
-		CachedPods:     []object.Pod{},
+		// CachedPods:     []object.Pod{},
 	}
 }
 
 type KubeletService struct {
-	kubelet          *Kubelet
+	kubelet          *object.Kubelet
 	podController    *PodController
 	statusController *PodStatusController
+	apiClient        APIServerClient
 }
 
 func NewKubeletService(
-	config KubeletConfig,
+	config object.KubeletConfig,
 	podService pod.PodServiceInterface,
 	apiClient APIServerClient,
 ) *KubeletService {
@@ -65,10 +47,16 @@ func NewKubeletService(
 		kubelet:          kubelet,
 		podController:    podController,
 		statusController: statusController,
+		apiClient:        apiClient,
 	}
 }
 
 func (s *KubeletService) Run(stopCh <-chan struct{}) {
+	err := s.apiClient.RegisterKubelet(s.kubelet)
+	if err != nil {
+		log.Printf("Failed to register kubelet: %v", err)
+	}
+
 	go s.podController.Run(stopCh)
 	go s.statusController.Run(stopCh)
 	<-stopCh

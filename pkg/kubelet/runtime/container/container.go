@@ -35,7 +35,7 @@ type ContainerServiceInterface interface {
 	ExecCommand(containerID string, cmd []string) (string, error)
 	DeleteContainer(containerID string) error
 
-	GetContainerInfo(containerID string) (*container.InspectResponse, error)
+	GetContainerInfo(containerID string) (container.InspectResponse, error)
 	// String representation of the container state.
 	// Can be one of "created", "running", "paused", "restarting", "removing", "exited", or "dead"
 	GetContainerStatus(containerID string) (string, error)
@@ -111,8 +111,6 @@ func (cs *ContainerService) CreateContainer(
 		Labels:       ctr.Labels,
 		ExposedPorts: ctr.ExposedPorts,
 	}
-
-	log.Printf("Labels: %v", ctr.Labels)
 
 	if hostConfig == nil {
 		hostConfig = &container.HostConfig{
@@ -222,15 +220,15 @@ func (cs *ContainerService) DeleteContainer(containerID string) error {
 
 func (cs *ContainerService) GetContainerInfo(
 	containerID string,
-) (*container.InspectResponse, error) {
+) (container.InspectResponse, error) {
 	ctx := context.Background()
 	ctrInfo, err := cs.client.ContainerInspect(ctx, containerID)
 
 	if err != nil {
-		return nil, fmt.Errorf("无法获取容器 %s 信息: %v", containerID, err)
+		return ctrInfo, fmt.Errorf("无法获取容器 %s 信息: %v", containerID, err)
 	}
 
-	return &ctrInfo, nil
+	return ctrInfo, nil
 }
 
 func (cs *ContainerService) GetContainerStatus(
@@ -396,7 +394,9 @@ func (cs *ContainerService) GetContainerIdByName(name string) (string, error) {
 	// 获取所有容器
 	containers, err := cs.client.ContainerList(
 		ctx,
-		container.ListOptions{},
+		container.ListOptions{
+			All: true,
+		},
 	)
 	if err != nil {
 		return "", fmt.Errorf("无法获取容器列表: %v", err)
@@ -433,7 +433,9 @@ func (cs *ContainerService) ListContainerIds() ([]string, error) {
 	// 获取所有容器
 	containers, err := cs.client.ContainerList(
 		ctx,
-		container.ListOptions{},
+		container.ListOptions{
+			All: true,
+		},
 	)
 	if err != nil {
 		return nil, fmt.Errorf("无法获取容器列表: %v", err)
@@ -473,26 +475,12 @@ func (cs *ContainerService) GetContainersByLabels(
 			return nil, fmt.Errorf("无法获取容器 %s 信息: %v", container.ID, err)
 		}
 
-		log.Printf(
-			"容器 %s 的标签: %v",
-			container.ID,
-			ctrInfo.Config.Labels,
-		)
-
 		// 检查标签是否匹配
 		matches := true
 
 		for key, value := range labels {
 			if ctrInfo.Config.Labels[key] != value {
-				log.Printf(
-					"标签不匹配: %s=%s, 实际为: %s",
-					key,
-					value,
-					ctrInfo.Config.Labels[key],
-				)
-
 				matches = false
-
 				break
 			}
 		}
@@ -518,7 +506,9 @@ func (cs *ContainerService) GetContainerInspectsByLabels(
 	// 获取所有容器
 	containers, err := cs.client.ContainerList(
 		ctx,
-		container.ListOptions{},
+		container.ListOptions{
+			All: true,
+		},
 	)
 	if err != nil {
 		return nil, fmt.Errorf("无法获取容器列表: %v", err)

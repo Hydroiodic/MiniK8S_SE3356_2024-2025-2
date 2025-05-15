@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/json"
 	"fmt"
+	"log"
 	"math/big"
 
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/apiserver"
@@ -53,6 +54,7 @@ func handleCreateNewPod(msg map[string]interface{}) error {
 	// Assign the pod to a node.
 	err = client.AssignPodToNode(&pod, node.Config.Name)
 	if err != nil {
+		log.Printf("Failed to assign pod to node %s: %v", node.Config.Name, err)
 		return err
 	}
 
