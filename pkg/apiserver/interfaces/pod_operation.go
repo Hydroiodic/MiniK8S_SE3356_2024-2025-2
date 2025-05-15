@@ -12,6 +12,9 @@ import (
 )
 
 func AssignPodToNode(c *gin.Context) {
+	// Get query parameters from the request url.
+	nodeName := c.Query("nodeName")
+
 	// NOTE: Pods should be created here and saved to etcd.
 	var pod object.Pod
 	if err := c.BindJSON(&pod); err != nil {
@@ -35,10 +38,26 @@ func AssignPodToNode(c *gin.Context) {
 		return
 	}
 
-	// Ensure the PodStore is closed after use.
+	// Create kubelet store and check for errors.
+	ks, err := object.NewKubeletStore([]string{})
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			"Failed to create kubelet store: "+err.Error(),
+		)
+
+		return
+	}
+
+	// Ensure the PodStore and KubeletStore is closed after use.
 	defer func() {
+		// Close PodStore.
 		if closeErr := st.Close(); closeErr != nil {
 			fmt.Printf("Failed to close pod store: %v\n", closeErr)
+		}
+		// Close KubeletStore.
+		if closeErr := ks.Close(); closeErr != nil {
+			fmt.Printf("Failed to close kubelet store: %v\n", closeErr)
 		}
 	}()
 
@@ -68,13 +87,53 @@ func AssignPodToNode(c *gin.Context) {
 		return
 	}
 
+	// Get the kubelet object from etcd.
+	kubelet, err := ks.GetKubelet(
+		c.Request.Context(),
+		nodeName,
+	)
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			"Failed to get kubelet from etcd: "+err.Error(),
+		)
+
+		return
+	}
+
+	// If the kubelet does not exist, return an error.
+	if kubelet == nil {
+		c.JSON(
+			http.StatusNotFound,
+			"Failed to get kubelet from etcd: "+nodeName+" not found",
+		)
+
+		return
+	}
+
 	// TODO: update the status of the pod to "Creating".
+
+	// Update the kubelet object with the pod information.
+	kubelet.Pods = append(kubelet.Pods, pod)
+
+	// TODO: ensure the two operations below
+	// (adding pod and updating kubelet) are atomic.
 
 	// Add the pod to etcd.
 	if err := st.AddPod(c.Request.Context(), &pod); err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
 			"Failed to add pod to etcd: "+err.Error(),
+		)
+
+		return
+	}
+
+	// Update the kubelet object in etcd.
+	if err := ks.UpdateKubelet(c.Request.Context(), kubelet); err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			"Failed to update kubelet in etcd: "+err.Error(),
 		)
 
 		return

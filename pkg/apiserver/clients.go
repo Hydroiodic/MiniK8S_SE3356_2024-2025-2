@@ -252,7 +252,7 @@ func (c *APIClient) GetPods() ([]object.Pod, error) {
 	return pods, nil
 }
 
-func (c *APIClient) AssignPodToNode(pod *object.Pod) error {
+func (c *APIClient) AssignPodToNode(pod *object.Pod, nodeName string) error {
 	// Construct the URL for the Pod assignment endpoint.
 	url := c.BaseURL + PodAssignURL
 
@@ -263,7 +263,12 @@ func (c *APIClient) AssignPodToNode(pod *object.Pod) error {
 	}
 
 	// Create a new HTTP POST request with the pod as the body.
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(podJSON))
+	// `nodeName` is passed as a query parameter.
+	req, err := http.NewRequest(
+		"POST",
+		url+"?nodeName="+nodeName,
+		bytes.NewBuffer(podJSON),
+	)
 	if err != nil {
 		return err
 	}
