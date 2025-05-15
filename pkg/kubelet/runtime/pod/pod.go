@@ -316,8 +316,7 @@ func (p *PodService) ListPods() ([]object.Pod, error) {
 				Containers:       ctrConfigs,
 			},
 			Status: object.PodStatus{
-				StartTime:  time.Now(), // 这个东西是应该Kubelet一直存着的？？
-				Conditions: []string{},
+				StartTime: time.Now(), // 这个东西是应该Kubelet一直存着的？？
 			},
 		}
 

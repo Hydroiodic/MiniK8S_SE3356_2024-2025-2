@@ -1,6 +1,11 @@
 package kubelet
 
-import "github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
+import (
+	"fmt"
+
+	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/apiserver"
+	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
+)
 
 type APIServerClient interface {
 	// 发送心跳
@@ -8,5 +13,37 @@ type APIServerClient interface {
 	// 获取最新的 Pod 配置
 	FetchPods(nodeName string) ([]object.Pod, error)
 	// 发送 Kubelet 的状态
-	UpdateNodeStatus(kubelet *object.Kubelet) error
+	// UpdateNodeStatus(kubelet *object.Kubelet) error
+}
+
+type APIServerClientImpl struct {
+	c *apiserver.APIClient
+}
+
+func NewAPIServerClient(c *apiserver.APIClient) APIServerClient {
+	return &APIServerClientImpl{
+		c: c,
+	}
+}
+
+func (a *APIServerClientImpl) SendHeartbeat(kubelet *object.Kubelet) error {
+	// 发送心跳到 API Server
+	return a.c.HeartbeatKubelet(kubelet)
+}
+
+func (a *APIServerClientImpl) FetchPods(nodeName string) ([]object.Pod, error) {
+	// 获取最新的 Pod 配置
+	nodes, err := a.c.GetNodes()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, node := range nodes {
+		// 选出属于本节点的 Pod
+		if node.Config.Name == nodeName {
+			return node.Pods, nil
+		}
+	}
+
+	return nil, fmt.Errorf("node %s not found", nodeName)
 }

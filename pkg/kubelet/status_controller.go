@@ -96,7 +96,8 @@ func (c *PodStatusController) updatePodStatus() {
 	}
 	c.kubelet.Mu.RUnlock()
 
-	if err := c.apiClient.UpdateNodeStatus(kubeletCopy); err != nil {
+	// TODO: 发送心跳可行吗
+	if err := c.apiClient.SendHeartbeat(kubeletCopy); err != nil {
 		log.Printf("Failed to update node status to API Server: %v", err)
 	}
 }

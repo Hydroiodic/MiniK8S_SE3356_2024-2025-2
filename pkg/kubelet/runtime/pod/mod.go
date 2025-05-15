@@ -10,7 +10,7 @@ type PodServiceInterface interface {
 	StartPod(pod *object.Pod) error
 	StopPod(pod *object.Pod) error
 	DeletePod(pod *object.Pod) error
-	GetPodInfo(podName string) (*object.Pod, error)
+	// GetPodInfo(podName string) (*object.Pod, error)
 	GetPodStatus(pod *object.Pod) (string, error)
 	ListPods() ([]object.Pod, error) // 根据节点上的 Container 倒推出 Pod
 
