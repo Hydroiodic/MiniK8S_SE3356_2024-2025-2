@@ -1,6 +1,7 @@
 package apiserver
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -33,8 +34,14 @@ func (c *APIClient) RegisterKubelet(kubelet *object.Kubelet) error {
 	// Construct the URL for the Kubelet registration endpoint.
 	url := c.BaseURL + KubeletRegisterURL
 
-	// Create a new HTTP POST request with the node name as the body.
-	req, err := http.NewRequest("POST", url, nil)
+	// Convert the Kubelet object to JSON to be sent in the request body.
+	kubeletJSON, err := json.Marshal(kubelet)
+	if err != nil {
+		return err
+	}
+
+	// Create a new HTTP POST request with the Kubelet JSON as the body.
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(kubeletJSON))
 	if err != nil {
 		return err
 	}
@@ -67,8 +74,14 @@ func (c *APIClient) HeartbeatKubelet(kubelet *object.Kubelet) error {
 	// Construct the URL for the Kubelet heartbeat endpoint.
 	url := c.BaseURL + KubeletHeartbeatURL
 
-	// Create a new HTTP POST request with the node name as the body.
-	req, err := http.NewRequest("POST", url, nil)
+	// Convert the Kubelet object to JSON to be sent in the request body.
+	kubeletJSON, err := json.Marshal(kubelet)
+	if err != nil {
+		return err
+	}
+
+	// Create a new HTTP POST request with the Kubelet JSON as the body.
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(kubeletJSON))
 	if err != nil {
 		return err
 	}
@@ -143,8 +156,14 @@ func (c *APIClient) CreatePod(pod *object.Pod) error {
 	// Construct the URL for the Pod creation endpoint.
 	url := c.BaseURL + PodCreationURL
 
+	// Convert the Pod object to JSON to be sent in the request body.
+	podJSON, err := json.Marshal(pod)
+	if err != nil {
+		return err
+	}
+
 	// Create a new HTTP POST request with the pod as the body.
-	req, err := http.NewRequest("POST", url, nil)
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(podJSON))
 	if err != nil {
 		return err
 	}
@@ -219,8 +238,14 @@ func (c *APIClient) AssignPodToNode(pod *object.Pod) error {
 	// Construct the URL for the Pod assignment endpoint.
 	url := c.BaseURL + PodAssignURL
 
+	// Convert the Pod object to JSON to be sent in the request body.
+	podJSON, err := json.Marshal(pod)
+	if err != nil {
+		return err
+	}
+
 	// Create a new HTTP POST request with the pod as the body.
-	req, err := http.NewRequest("POST", url, nil)
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(podJSON))
 	if err != nil {
 		return err
 	}

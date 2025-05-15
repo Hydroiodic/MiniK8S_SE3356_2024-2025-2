@@ -1,9 +1,7 @@
 package main
 
 import (
-	"bytes"
 	"encoding/json"
-	"net/http"
 
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/apiserver"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/mqtemplate"
@@ -25,18 +23,12 @@ func handleCreateNewPod(msg map[string]interface{}) error {
 
 	// TODO: Get all nodes and choose one randomly.
 
-	// Assign the pod to a node by sending a POST request to APIServer.
-	resp, err := http.Post(
-		apiserver.APIServerUrl+"/pod/assignNodetoPod",
-		"application/json",
-		bytes.NewBuffer(podjson),
-	)
-	if err != nil {
-		return err
-	}
+	// Create a new API client to interact with the API server.
+	client := apiserver.NewAPIClient("")
 
-	// Check the response status code.
-	if err := resp.Body.Close(); err != nil {
+	// Assign the pod to a node.
+	err = client.AssignPodToNode(&pod)
+	if err != nil {
 		return err
 	}
 
