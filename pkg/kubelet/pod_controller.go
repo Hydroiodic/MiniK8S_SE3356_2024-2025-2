@@ -97,24 +97,22 @@ func (c *PodController) Run(stopCh <-chan struct{}) {
 func (c *PodController) SyncPods() {
 
 	log.Printf("TODO: Syncing pods...")
-	// // 1. 从运行时获取当前节点上所有 Pod 的运行状态
-	// currentPods, err := c.podService.ListPods()
-	// if err != nil {
-	// 	log.Printf("Failed to list pods: %v", err)
-	// 	return
-	// }
+	currentPods, err := c.podService.ListPods()
+	if err != nil {
+		log.Printf("Failed to list pods: %v", err)
+	}
+	log.Printf("Current pods: %v", currentPods)
 
-	// // TODO：修改这边的逻辑
-	// useCache := false
-	// // 2. 从API Server 获取完整的 Pod 信息
+	useCache := false
 	desiredPods, err := c.apiClient.FetchPods(c.kubelet.Config.Name)
 	if err != nil {
+		useCache = true
+		desiredPods = currentPods
 		log.Printf("API Server unavailable, using cached pods: %v", err)
 	}
 	log.Printf("Desired pods: %v", desiredPods)
 
-	// // 3. 添加缺少，删除多余
-	// c.Reconcile(desiredPods, currentPods, useCache)
+	c.Reconcile(desiredPods, currentPods, useCache)
 }
 
 func (c *PodController) Reconcile(
