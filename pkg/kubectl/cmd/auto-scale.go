@@ -39,7 +39,7 @@ var autoscaleCmd = &cobra.Command{
 func init() {
 	autoscaleCmd.Flags().
 		Int("cpu-percent", CPUPercent, "Target CPU utilization percentage")
-	kubectlCmd.AddCommand(autoscaleCmd)
+	rootCmd.AddCommand(autoscaleCmd)
 }
 
 func triggerAutoscale(

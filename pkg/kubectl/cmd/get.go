@@ -68,7 +68,7 @@ var getCmd = &cobra.Command{
 }
 
 func init() {
-	kubectlCmd.AddCommand(getCmd)
+	rootCmd.AddCommand(getCmd)
 }
 
 // Pod 相关操作.

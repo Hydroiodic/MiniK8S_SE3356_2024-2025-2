@@ -39,7 +39,7 @@ var deleteCmd = &cobra.Command{
 
 // 在 init() 里注册 delete 命令.
 func init() {
-	kubectlCmd.AddCommand(deleteCmd)
+	rootCmd.AddCommand(deleteCmd)
 }
 
 // 删除 Pod.
