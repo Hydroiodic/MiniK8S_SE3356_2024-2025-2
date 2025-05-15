@@ -20,6 +20,7 @@ type KubeletService struct {
 	kubelet          *object.Kubelet
 	podController    *PodController
 	statusController *PodStatusController
+	apiClient        APIServerClient
 }
 
 func NewKubeletService(
@@ -45,10 +46,12 @@ func NewKubeletService(
 		kubelet:          kubelet,
 		podController:    podController,
 		statusController: statusController,
+		apiClient:        apiClient,
 	}
 }
 
 func (s *KubeletService) Run(stopCh <-chan struct{}) {
+	s.apiClient.RegisterKubelet(s.kubelet)
 	go s.podController.Run(stopCh)
 	go s.statusController.Run(stopCh)
 	<-stopCh

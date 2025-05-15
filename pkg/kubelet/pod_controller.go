@@ -107,10 +107,11 @@ func (c *PodController) SyncPods() {
 	// // TODO：修改这边的逻辑
 	// useCache := false
 	// // 2. 从API Server 获取完整的 Pod 信息
-	// desiredPods, err := c.apiClient.FetchPods(c.kubelet.Config.Name)
-	// if err != nil {
-	// 	log.Printf("API Server unavailable, using cached pods: %v", err)
-	// }
+	desiredPods, err := c.apiClient.FetchPods(c.kubelet.Config.Name)
+	if err != nil {
+		log.Printf("API Server unavailable, using cached pods: %v", err)
+	}
+	log.Printf("Desired pods: %v", desiredPods)
 
 	// // 3. 添加缺少，删除多余
 	// c.Reconcile(desiredPods, currentPods, useCache)

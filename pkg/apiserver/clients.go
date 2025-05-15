@@ -1,6 +1,7 @@
 package apiserver
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -67,11 +68,18 @@ func (c *APIClient) HeartbeatKubelet(kubelet *object.Kubelet) error {
 	// Construct the URL for the Kubelet heartbeat endpoint.
 	url := c.BaseURL + KubeletHeartbeatURL
 
-	// Create a new HTTP POST request with the node name as the body.
-	req, err := http.NewRequest("POST", url, nil)
+	kubletBytes, err := json.Marshal(kubelet)
 	if err != nil {
 		return err
 	}
+
+	// Create a new HTTP POST request with the node name as the body.
+	req, err := http.NewRequest("POST", url, bytes.NewReader(kubletBytes))
+	if err != nil {
+		return err
+	}
+	// Set the content type to JSON.
+	req.Header.Set("Content-Type", "application/json")
 
 	// Send the request and return the response.
 	resp, err := c.Client.Do(req)
@@ -128,11 +136,28 @@ func (c *APIClient) GetNodes() ([]object.Kubelet, error) {
 		return nil, fmt.Errorf("%s", string(bodyBytes))
 	}
 
-	// Parse the response body as a list of Kubelet objects.
-	var nodes []object.Kubelet
-	if err := json.NewDecoder(resp.Body).Decode(&nodes); err != nil {
-		// If parsing fails, return an error.
+	// 先完整读取响应体
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
 		return nil, err
+	}
+
+	// 打印日志
+	fmt.Println("Received bytes: ", string(bodyBytes))
+
+	// 先解析外层字符串
+	var raw string
+	if err := json.Unmarshal(bodyBytes, &raw); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal as string: %v", err)
+	}
+
+	// 再解析内部的 JSON 数组
+	var nodes []object.Kubelet
+	if err := json.Unmarshal([]byte(raw), &nodes); err != nil {
+		return nil, fmt.Errorf(
+			"failed to unmarshal as []object.Kubelet: %v",
+			err,
+		)
 	}
 
 	// Return the list of Kubelet objects.

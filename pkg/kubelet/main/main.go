@@ -6,6 +6,7 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/apiserver"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/container"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/pod"
@@ -28,7 +29,8 @@ func main() {
 	podService := pod.NewPodService(containerService)
 
 	// 初始化 APIServerClient 的实际实现
-	var apiClient kubelet.APIServerClient
+	var client *apiserver.APIClient = apiserver.NewAPIClient("http://localhost:8080")
+	apiClient := kubelet.NewAPIServerClient(client)
 
 	// 创建 KubeletService
 	kubeletService := kubelet.NewKubeletService(config, podService, apiClient)

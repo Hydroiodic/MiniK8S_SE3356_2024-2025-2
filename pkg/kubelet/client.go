@@ -12,8 +12,7 @@ type APIServerClient interface {
 	SendHeartbeat(kubelet *object.Kubelet) error
 	// 获取最新的 Pod 配置
 	FetchPods(nodeName string) ([]object.Pod, error)
-	// 发送 Kubelet 的状态
-	// UpdateNodeStatus(kubelet *object.Kubelet) error
+	RegisterKubelet(kubelet *object.Kubelet) error
 }
 
 type APIServerClientImpl struct {
@@ -46,4 +45,8 @@ func (a *APIServerClientImpl) FetchPods(nodeName string) ([]object.Pod, error) {
 	}
 
 	return nil, fmt.Errorf("node %s not found", nodeName)
+}
+
+func (a *APIServerClientImpl) RegisterKubelet(kubelet *object.Kubelet) error {
+	return a.c.RegisterKubelet(kubelet)
 }
