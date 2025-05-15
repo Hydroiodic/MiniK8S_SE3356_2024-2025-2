@@ -134,12 +134,14 @@ func handlePodRaw(rawData []byte) error {
 	if err != nil {
 		panic(err)
 	}
+
 	var pod object.Pod
-	err = yaml.Unmarshal([]byte(newYAML), &pod)
-	if err != nil {
+	if err = yaml.Unmarshal(newYAML, &pod); err != nil {
 		log.Fatalf("error unmarshaling YAML: %v", err)
 	}
+
 	ci := client.NewAPIClient("http://localhost:8080")
+
 	fmt.Println(pod)
 	err = ci.CreatePod(&pod)
 	// resp, err := http.Post( //nolint:gosec
