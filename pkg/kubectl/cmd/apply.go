@@ -1,17 +1,15 @@
 package cmd
 
 import (
-	"bytes"
 	"fmt"
-	"io"
-	"net/http"
+	"log"
 	"os"
 	"time"
 
+	client "github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/apiserver"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
-	yaml2 "sigs.k8s.io/yaml"
 )
 
 // PodResource 代表 Pod 资源类型.
@@ -136,26 +134,23 @@ func handlePodRaw(rawData []byte) error {
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(string(newYAML))
-	jsonData, err := yaml2.YAMLToJSON([]byte(newYAML))
-	resp, err := http.Post( //nolint:gosec
-		"http://localhost:8080/pod/createPod",
-		"application/json",
-		bytes.NewBuffer(jsonData),
-	)
+	var pod object.Pod
+	err = yaml.Unmarshal([]byte(newYAML), &pod)
 	if err != nil {
-		return fmt.Errorf("HTTP request failed: %v", err)
+		log.Fatalf("error unmarshaling YAML: %v", err)
 	}
-	defer resp.Body.Close()
+	ci := client.NewAPIClient("http://localhost:8080")
+	fmt.Println(pod)
+	err = ci.CreatePod(&pod)
+	// resp, err := http.Post( //nolint:gosec
+	// 	"http://localhost:8080/pod/createPod",
+	// 	"application/json",
+	// 	bytes.NewBuffer(jsonData),
+	// )
+	if err != nil {
+		fmt.Println(err)
+	}
 
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body) // 读取错误响应体
-		return fmt.Errorf(
-			"server returned %d: %s",
-			resp.StatusCode,
-			string(body),
-		)
-	}
 	return nil
 }
 
