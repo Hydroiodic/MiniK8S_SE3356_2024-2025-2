@@ -1,6 +1,7 @@
 package kubelet
 
 import (
+	"log"
 	"time"
 
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/pod"
@@ -51,7 +52,11 @@ func NewKubeletService(
 }
 
 func (s *KubeletService) Run(stopCh <-chan struct{}) {
-	s.apiClient.RegisterKubelet(s.kubelet)
+	err := s.apiClient.RegisterKubelet(s.kubelet)
+	if err != nil {
+		log.Printf("Failed to register kubelet: %v", err)
+	}
+
 	go s.podController.Run(stopCh)
 	go s.statusController.Run(stopCh)
 	<-stopCh

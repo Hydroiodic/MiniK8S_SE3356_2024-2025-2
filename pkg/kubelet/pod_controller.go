@@ -95,21 +95,25 @@ func (c *PodController) Run(stopCh <-chan struct{}) {
 }
 
 func (c *PodController) SyncPods() {
-
 	log.Printf("TODO: Syncing pods...")
+
 	currentPods, err := c.podService.ListPods()
 	if err != nil {
 		log.Printf("Failed to list pods: %v", err)
 	}
+
 	log.Printf("Current pods: %v", currentPods)
 
-	useCache := false
 	desiredPods, err := c.apiClient.FetchPods(c.kubelet.Config.Name)
+
+	useCache := false
 	if err != nil {
 		useCache = true
 		desiredPods = currentPods
+
 		log.Printf("API Server unavailable, using cached pods: %v", err)
 	}
+
 	log.Printf("Desired pods: %v", desiredPods)
 
 	c.Reconcile(desiredPods, currentPods, useCache)

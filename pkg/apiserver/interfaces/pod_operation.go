@@ -116,7 +116,9 @@ func CreatePod(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, "Invalid JSON: "+err.Error())
 		return
 	}
+
 	fmt.Println(pod)
+
 	// Check for the namespace and name in the pod configuration.
 	if pod.Metadata.Namespace == "" {
 		pod.Metadata.Namespace = "default"

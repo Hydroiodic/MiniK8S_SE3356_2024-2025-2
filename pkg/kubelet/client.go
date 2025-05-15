@@ -37,8 +37,8 @@ func (a *APIServerClientImpl) FetchPods(nodeName string) ([]object.Pod, error) {
 		return nil, err
 	}
 
-	for _, node := range nodes {
-		// 选出属于本节点的 Pod
+	for i := range nodes {
+		node := &nodes[i]
 		if node.Config.Name == nodeName {
 			return node.Pods, nil
 		}
