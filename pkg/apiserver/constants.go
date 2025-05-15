@@ -6,9 +6,11 @@ const (
 	KubeletRegisterURL  = "/kubelet/register"
 	KubeletHeartbeatURL = "/kubelet/heartbeat"
 	KubeletGetNodesURL  = "/kubelet/getNodes"
+	KubeletDeletePodURL = "/kubelet/deletePod"
 
 	// Pod operations.
-	PodCreationURL = "/pod/createPod"
-	PodGetURL      = "/pod/getPods"
-	PodAssignURL   = "/pod/assignPodToNode"
+	PodCreateURL = "/pod/createPod"
+	PodGetURL    = "/pod/getPods"
+	PodAssignURL = "/pod/assignPodToNode"
+	PodDeleteURL = "/pod/deletePod"
 )

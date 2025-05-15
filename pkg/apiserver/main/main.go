@@ -15,13 +15,14 @@ func main() {
 	r.POST(apiserver.KubeletRegisterURL, interfaces.KubeletRegister)
 	r.POST(apiserver.KubeletHeartbeatURL, interfaces.KubeletHeartbeat)
 	r.GET(apiserver.KubeletGetNodesURL, interfaces.GetNodes)
+	r.GET(apiserver.KubeletDeletePodURL, interfaces.DeletePod)
 
 	// Pod operations.
-	r.POST(apiserver.PodCreationURL, interfaces.CreatePod)
+	r.POST(apiserver.PodCreateURL, interfaces.CreatePod)
 	r.GET(apiserver.PodGetURL, interfaces.GetPods)
 	r.POST(apiserver.PodAssignURL, interfaces.AssignPodToNode)
+	r.POST(apiserver.PodDeleteURL, interfaces.DeletePod)
 
-	// r.POST("/deletePodFromFile", interfaces.DeletePod)
 	// r.POST("/getOnePod", interfaces.GetOnePod)
 
 	// r.POST("/updateHost", interfaces.HandleUpdateHost)
