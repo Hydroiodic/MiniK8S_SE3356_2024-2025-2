@@ -1,7 +1,10 @@
 package main
 
 import (
+	"crypto/rand"
 	"encoding/json"
+	"fmt"
+	"math/big"
 
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/apiserver"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/mqtemplate"
@@ -21,13 +24,34 @@ func handleCreateNewPod(msg map[string]interface{}) error {
 		return err
 	}
 
-	// TODO: Get all nodes and choose one randomly.
-
 	// Create a new API client to interact with the API server.
 	client := apiserver.NewAPIClient("")
 
+	// Get the list of nodes from the API server.
+	nodes, err := client.GetNodes()
+	if err != nil {
+		return err
+	}
+
+	// There should be at least one node available to assign the pod.
+	if len(nodes) == 0 {
+		return fmt.Errorf("no nodes available to assign the pod")
+	}
+
+	// Use crypto/rand to securely select a random node index
+	max := big.NewInt(int64(len(nodes)))
+	nBig, err := rand.Int(rand.Reader, max)
+
+	// Check for errors in generating the random number.
+	if err != nil {
+		return fmt.Errorf("failed to generate secure random index: %v", err)
+	}
+
+	// Select a random node from the list of nodes.
+	node := &nodes[nBig.Int64()]
+
 	// Assign the pod to a node.
-	err = client.AssignPodToNode(&pod)
+	err = client.AssignPodToNode(&pod, node.Config.Name)
 	if err != nil {
 		return err
 	}
