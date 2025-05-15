@@ -3,7 +3,10 @@ package cmd
 import (
 	"fmt"
 	"strings"
+	"time"
 
+	client "github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/apiserver"
+	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
 	"github.com/spf13/cobra"
 )
 
@@ -75,10 +78,37 @@ func getPod(name string) string {
 	return emptyReply
 }
 
-func getAllPods() string {
-	_, _ = fmt.Println("Listing all Pods")
-	// 这里添加实际获取所有 Pod 的逻辑
-	return emptyReply
+func printPods(pods []object.Pod) {
+	// 打印表头
+	fmt.Printf("%-30s %-10s %-10s %-5s\n", "NAME", "READY", "STATUS", "AGE")
+
+	for _, pod := range pods {
+		ready := fmt.Sprintf(
+			"%d/%d",
+			len(pod.Spec.Containers),
+			len(pod.Spec.Containers),
+		)
+		age := time.Since(pod.Status.StartTime).Truncate(time.Second)
+		fmt.Printf(
+			"%-30s %-10s %-10s %-5s\n",
+			pod.Metadata.Name,
+			ready,
+			pod.Status.Phase,
+			age,
+		)
+	}
+}
+
+func getAllPods() {
+	ci := client.NewAPIClient("http://localhost:8080")
+	results, err := ci.GetPods()
+
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	printPods(results)
 }
 
 // Service 相关操作.
