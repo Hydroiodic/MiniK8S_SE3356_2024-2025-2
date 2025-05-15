@@ -167,6 +167,12 @@ func (p *PodService) DeletePod(pod *object.Pod) error {
  * TODO: 改用Label进行筛选
  */
 func (p *PodService) GetPodStatus(pod *object.Pod) (string, error) {
+	log.Printf(
+		"Getting status for pod %s/%s",
+		pod.Metadata.Name,
+		pod.Metadata.Namespace,
+	)
+	log.Printf("Pod :%v", pod)
 	pauseCtrName := utils.FormatContainerName(
 		pod.Metadata.Namespace,
 		pod.Metadata.Name,
@@ -183,7 +189,7 @@ func (p *PodService) GetPodStatus(pod *object.Pod) (string, error) {
 
 	// 收集所有容器的状态
 	containerInfos := make(
-		[]*container.InspectResponse,
+		[]container.InspectResponse,
 		len(pod.Spec.Containers),
 	)
 

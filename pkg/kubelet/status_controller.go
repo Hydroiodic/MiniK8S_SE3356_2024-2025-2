@@ -51,6 +51,8 @@ func (c *PodStatusController) updatePodStatus() {
 	pods := c.kubelet.Pods
 	c.kubelet.Mu.RUnlock()
 
+	log.Printf("Updating pod status for pods: %v", pods)
+
 	for i, pod := range pods {
 		status, err := c.podService.GetPodStatus(&pod)
 		if err != nil {

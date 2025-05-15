@@ -29,7 +29,7 @@ func main() {
 	podService := pod.NewPodService(containerService)
 
 	// 初始化 APIServerClient 的实际实现
-	var client = apiserver.NewAPIClient("http://localhost:8080")
+	var client = apiserver.NewAPIClient("")
 	apiClient := kubelet.NewAPIServerClient(client)
 
 	// 创建 KubeletService

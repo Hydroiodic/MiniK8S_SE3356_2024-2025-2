@@ -35,7 +35,7 @@ type ContainerServiceInterface interface {
 	ExecCommand(containerID string, cmd []string) (string, error)
 	DeleteContainer(containerID string) error
 
-	GetContainerInfo(containerID string) (*container.InspectResponse, error)
+	GetContainerInfo(containerID string) (container.InspectResponse, error)
 	// String representation of the container state.
 	// Can be one of "created", "running", "paused", "restarting", "removing", "exited", or "dead"
 	GetContainerStatus(containerID string) (string, error)
@@ -220,15 +220,15 @@ func (cs *ContainerService) DeleteContainer(containerID string) error {
 
 func (cs *ContainerService) GetContainerInfo(
 	containerID string,
-) (*container.InspectResponse, error) {
+) (container.InspectResponse, error) {
 	ctx := context.Background()
 	ctrInfo, err := cs.client.ContainerInspect(ctx, containerID)
 
 	if err != nil {
-		return nil, fmt.Errorf("无法获取容器 %s 信息: %v", containerID, err)
+		return ctrInfo, fmt.Errorf("无法获取容器 %s 信息: %v", containerID, err)
 	}
 
-	return &ctrInfo, nil
+	return ctrInfo, nil
 }
 
 func (cs *ContainerService) GetContainerStatus(
