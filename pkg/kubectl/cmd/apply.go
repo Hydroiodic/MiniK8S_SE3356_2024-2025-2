@@ -37,7 +37,7 @@ var execCmd = &cobra.Command{
 // 在 `init()` 里添加 `-f` flag.
 func init() {
 	execCmd.Flags().StringP("file", "f", "", "Specify the configuration file")
-	kubectlCmd.AddCommand(execCmd)
+	rootCmd.AddCommand(execCmd)
 }
 
 // 统一解析并处理 YAML 资源的通用函数.
@@ -134,12 +134,14 @@ func handlePodRaw(rawData []byte) error {
 	if err != nil {
 		panic(err)
 	}
+
 	var pod object.Pod
-	err = yaml.Unmarshal([]byte(newYAML), &pod)
-	if err != nil {
+	if err = yaml.Unmarshal(newYAML, &pod); err != nil {
 		log.Fatalf("error unmarshaling YAML: %v", err)
 	}
+
 	ci := client.NewAPIClient("http://localhost:8080")
+
 	fmt.Println(pod)
 	err = ci.CreatePod(&pod)
 	// resp, err := http.Post( //nolint:gosec
