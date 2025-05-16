@@ -80,10 +80,10 @@ func (c *PodStatusController) updatePodStatus() {
 			continue
 		}
 
-		c.kubelet.Mu.Lock()
-		// 填写Pod的状态
+		// c.kubelet.Mu.Lock()
+		// // 填写Pod的状态
 		// c.kubelet.Pods[i].Status.Phase = status
-		c.kubelet.Mu.Unlock()
+		// c.kubelet.Mu.Unlock()
 	}
 
 	// TODO：上报状态到 API Server

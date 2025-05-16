@@ -65,7 +65,9 @@ func (s *KubeletService) Run(stopCh <-chan struct{}) {
 	}
 
 	log.Printf("Restoring local pods: %v", utils.ExtractPodNames(localPods))
+	s.kubelet.Mu.Lock()
 	s.kubelet.Pods = localPods
+	s.kubelet.Mu.Unlock()
 
 	go s.podController.Run(stopCh)
 	go s.statusController.Run(stopCh)
