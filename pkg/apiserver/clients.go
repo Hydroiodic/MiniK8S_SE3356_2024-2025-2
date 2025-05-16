@@ -148,9 +148,6 @@ func (c *APIClient) GetNodes() ([]object.Kubelet, error) {
 		return nil, err
 	}
 
-	// 打印日志
-	fmt.Println("Received bytes: ", string(bodyBytes))
-
 	// 先解析外层字符串
 	var raw string
 	if err := json.Unmarshal(bodyBytes, &raw); err != nil {

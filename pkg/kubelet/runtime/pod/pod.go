@@ -294,7 +294,7 @@ func (p *PodService) ListPods() ([]object.Pod, error) {
 		},
 	)
 
-	log.Printf("Pause containers: %v", pauseCtrs)
+	log.Printf("Pause containers: %v", utils.ExtractContainerNames(pauseCtrs))
 
 	if err != nil {
 		log.Printf("Failed to get pause containers: %v", err)

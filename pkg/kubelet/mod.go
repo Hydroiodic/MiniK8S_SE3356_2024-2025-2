@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/pod"
+	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/utils"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
 )
 
@@ -63,7 +64,7 @@ func (s *KubeletService) Run(stopCh <-chan struct{}) {
 		log.Printf("Failed to fetch pods: %v", err)
 	}
 
-	log.Printf("Restoring local pods: %v", localPods)
+	log.Printf("Restoring local pods: %v", utils.ExtractPodNames(localPods))
 	s.kubelet.Pods = localPods
 
 	go s.podController.Run(stopCh)

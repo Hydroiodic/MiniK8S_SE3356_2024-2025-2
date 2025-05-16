@@ -115,7 +115,7 @@ func (c *PodController) SyncPods() {
 		log.Printf("API Server unavailable, using cached pods: %v", err)
 	}
 
-	log.Printf("Desired pods: %v", desiredPods)
+	log.Printf("Desired pods: %v", utils.ExtractPodNames(desiredPods))
 
 	c.Reconcile(desiredPods, currentPods, useCache)
 }

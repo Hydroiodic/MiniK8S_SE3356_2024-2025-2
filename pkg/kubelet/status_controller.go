@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/pod"
+	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/utils"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
 )
 
@@ -51,7 +52,7 @@ func (c *PodStatusController) updatePodStatus() {
 	pods := c.kubelet.Pods
 	c.kubelet.Mu.RUnlock()
 
-	log.Printf("Updating pod status for pods: %v", pods)
+	log.Printf("Updating pod status for pods: %v", utils.ExtractPodNames(pods))
 
 	for _, pod := range pods {
 		// status, err := c.podService.GetPodStatus(&pod)
