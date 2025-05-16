@@ -36,7 +36,7 @@ var topCmd = &cobra.Command{
 }
 
 func init() {
-	kubectlCmd.AddCommand(topCmd)
+	rootCmd.AddCommand(topCmd)
 }
 
 // 获取单个 Pod 的资源指标.
