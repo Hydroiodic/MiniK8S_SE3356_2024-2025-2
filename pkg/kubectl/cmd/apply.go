@@ -40,17 +40,17 @@ func init() {
 	rootCmd.AddCommand(execCmd)
 }
 
-// 统一解析并处理 YAML 资源的通用函数.
-func parseAndHandle[T any](data []byte, handler func(*T)) error {
-	var obj T
-	if err := yaml.Unmarshal(data, &obj); err != nil {
-		return fmt.Errorf("解析 YAML 失败: %w", err)
-	}
+// // 统一解析并处理 YAML 资源的通用函数.
+// func parseAndHandle[T any](data []byte, handler func(*T)) error {
+// 	var obj T
+// 	if err := yaml.Unmarshal(data, &obj); err != nil {
+// 		return fmt.Errorf("解析 YAML 失败: %w", err)
+// 	}
 
-	handler(&obj)
+// 	handler(&obj)
 
-	return nil
-}
+// 	return nil
+// }
 
 func parseYaml(fileAddr string) {
 	data, err := os.ReadFile(fileAddr) // #nosec G304
@@ -176,21 +176,21 @@ func handleHPARaw(rawData []byte) error {
 	return nil
 }
 
-func handlePod(pod *object.Pod) {
-	_, _ = fmt.Println("pod apply" + pod.Kind)
-}
+// func handlePod(pod *object.Pod) {
+// 	_, _ = fmt.Println("pod apply" + pod.Kind)
+// }
 
-func handleService(pod *object.Service) {
-	_, _ = fmt.Println("service apply" + pod.Kind)
-}
+// func handleService(pod *object.Service) {
+// 	_, _ = fmt.Println("service apply" + pod.Kind)
+// }
 
-func handleReplicaSet(pod *object.ReplicaSet) {
-	_, _ = fmt.Println("replicaset apply" + pod.Kind)
-}
+// func handleReplicaSet(pod *object.ReplicaSet) {
+// 	_, _ = fmt.Println("replicaset apply" + pod.Kind)
+// }
 
-func handleDNSConfig(pod *object.DNS) {
-	_, _ = fmt.Println("dns apply" + pod.Kind)
-}
-func handleHPA(pod *object.HorizontalPodAutoscaler) {
-	_, _ = fmt.Println("hpa apply" + pod.Kind)
-}
+// func handleDNSConfig(pod *object.DNS) {
+// 	_, _ = fmt.Println("dns apply" + pod.Kind)
+// }
+// func handleHPA(pod *object.HorizontalPodAutoscaler) {
+// 	_, _ = fmt.Println("hpa apply" + pod.Kind)
+// }
