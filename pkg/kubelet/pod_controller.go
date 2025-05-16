@@ -65,6 +65,13 @@ func (c *PodController) CreatePodHandler(msg map[string]interface{}) error {
 		log.Printf("Failed to create pod: %v", err)
 	}
 
+	err = c.podService.StartPod(&pod)
+	if err != nil {
+		log.Printf("Failed to start pod: %v", err)
+	}
+
+	log.Printf("Pod started: %s", pod.Metadata.Name)
+
 	return nil
 }
 
