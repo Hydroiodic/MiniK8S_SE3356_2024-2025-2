@@ -51,14 +51,10 @@ func (c *PodController) CreatePodHandler(msg map[string]interface{}) error {
 		return err
 	}
 
-	// 处理解析后的 Pod 对象
-	log.Printf("Successfully parsed Pod: %+v", pod)
-
 	// 将 Pod 对象添加到 Kubelet 的 Pod 列表中
 	c.kubelet.Mu.Lock()
 	c.kubelet.Pods = append(c.kubelet.Pods, pod)
 	c.kubelet.Mu.Unlock()
-	log.Printf("Pod added to Kubelet: %+v", pod)
 
 	// 在这里可以对 Pod 进行进一步处理，比如创建或更新
 	if err := c.podService.CreatePod(&pod); err != nil {
@@ -102,14 +98,12 @@ func (c *PodController) Run(stopCh <-chan struct{}) {
 }
 
 func (c *PodController) SyncPods() {
-	log.Printf("TODO: Syncing pods...")
-
 	currentPods, err := c.podService.ListPods()
 	if err != nil {
 		log.Printf("Failed to list pods: %v", err)
 	}
 
-	log.Printf("Current pods: %v", currentPods)
+	log.Printf("Current pods: %v", len(currentPods))
 
 	desiredPods, err := c.apiClient.FetchPods(c.kubelet.Config.Name)
 
@@ -160,6 +154,17 @@ func (c *PodController) Reconcile(
 
 				if err := c.podService.DeletePod(&pod); err != nil {
 					log.Printf("Failed to delete pod %s: %v", key, err)
+					continue
+				}
+
+				// Notice API Server
+				if err := c.apiClient.DeletePodFromEtcd(&pod); err != nil {
+					log.Printf(
+						"Failed to notify API Server about pod deletion %s: %v",
+						key,
+						err,
+					)
+
 					continue
 				}
 			}

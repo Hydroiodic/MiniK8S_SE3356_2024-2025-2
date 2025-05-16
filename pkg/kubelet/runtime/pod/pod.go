@@ -149,8 +149,22 @@ func (p *PodService) DeletePod(pod *object.Pod) error {
 		}
 	}
 
+	// FIXME: 这里不一定获取得到 Pause Container 的 ID？
+	// Get Pause Container ID
+	pauseCtrName := utils.FormatContainerName(
+		pod.Metadata.Namespace,
+		pod.Metadata.Name,
+		"pause",
+	)
+
+	pauseCtrId, err := p.CtrService.GetContainerIdByName(pauseCtrName)
+	if err != nil {
+		log.Printf("Failed to get pause container ID: %v", err)
+		return err
+	}
+
 	// Delete Pause Container
-	err = p.CtrService.DeleteContainer(pod.Spec.PauseContainerID)
+	err = p.CtrService.DeleteContainer(pauseCtrId)
 	if err != nil {
 		log.Printf("Failed to delete pause container: %v", err)
 		return err

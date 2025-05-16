@@ -57,6 +57,15 @@ func (s *KubeletService) Run(stopCh <-chan struct{}) {
 		log.Printf("Failed to register kubelet: %v", err)
 	}
 
+	// 先恢复本地状态
+	localPods, err := s.podController.podService.ListPods()
+	if err != nil {
+		log.Printf("Failed to fetch pods: %v", err)
+	}
+
+	log.Printf("Restoring local pods: %v", localPods)
+	s.kubelet.Pods = localPods
+
 	go s.podController.Run(stopCh)
 	go s.statusController.Run(stopCh)
 	<-stopCh

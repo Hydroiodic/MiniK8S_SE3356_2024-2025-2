@@ -13,6 +13,7 @@ type APIServerClient interface {
 	// 获取最新的 Pod 配置
 	FetchPods(nodeName string) ([]object.Pod, error)
 	RegisterKubelet(kubelet *object.Kubelet) error
+	DeletePodFromEtcd(pod *object.Pod) error
 }
 
 type APIServerClientImpl struct {
@@ -49,4 +50,9 @@ func (a *APIServerClientImpl) FetchPods(nodeName string) ([]object.Pod, error) {
 
 func (a *APIServerClientImpl) RegisterKubelet(kubelet *object.Kubelet) error {
 	return a.c.RegisterKubelet(kubelet)
+}
+
+func (a *APIServerClientImpl) DeletePodFromEtcd(pod *object.Pod) error {
+	// 删除 Pod
+	return a.c.DeletePodFromEtcd(pod)
 }
