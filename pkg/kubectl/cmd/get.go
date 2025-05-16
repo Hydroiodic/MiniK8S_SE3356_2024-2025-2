@@ -79,8 +79,9 @@ func getPod(name string) string {
 }
 
 func printPods(pods []object.Pod) {
-	// 打印表头
-	fmt.Printf("%-30s %-10s %-10s %-5s\n", "NAME", "READY", "STATUS", "AGE")
+	// 打印表头，增加了NAMESPACE和LABELS列
+	fmt.Printf("%-30s %-15s %-10s %-10s %-10s %-30s\n",
+		"NAME", "NAMESPACE", "READY", "STATUS", "AGE", "LABELS")
 
 	for _, pod := range pods {
 		ready := fmt.Sprintf(
@@ -89,12 +90,24 @@ func printPods(pods []object.Pod) {
 			len(pod.Spec.Containers),
 		)
 		age := time.Since(pod.Status.StartTime).Truncate(time.Second)
+
+		// 将labels map转换为字符串
+		labels := ""
+		for k, v := range pod.Metadata.Labels {
+			if labels != "" {
+				labels += ","
+			}
+			labels += fmt.Sprintf("%s=%s", k, v)
+		}
+
 		fmt.Printf(
-			"%-30s %-10s %-10s %-5s\n",
+			"%-30s %-15s %-10s %-10s %-10s %-30s\n",
 			pod.Metadata.Name,
+			pod.Metadata.Namespace, // 添加namespace
 			ready,
 			pod.Status.Phase,
 			age,
+			labels, // 添加labels
 		)
 	}
 }
