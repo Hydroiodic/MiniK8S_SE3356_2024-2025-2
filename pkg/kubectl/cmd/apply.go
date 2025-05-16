@@ -143,12 +143,8 @@ func handlePodRaw(rawData []byte) error {
 	ci := client.NewAPIClient("http://localhost:8080")
 
 	fmt.Println(pod)
+
 	err = ci.CreatePod(&pod)
-	// resp, err := http.Post( //nolint:gosec
-	// 	"http://localhost:8080/pod/createPod",
-	// 	"application/json",
-	// 	bytes.NewBuffer(jsonData),
-	// )
 	if err != nil {
 		fmt.Println(err)
 	}
