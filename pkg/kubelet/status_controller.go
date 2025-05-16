@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/pod"
+	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/utils"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
 )
 
@@ -51,23 +52,23 @@ func (c *PodStatusController) updatePodStatus() {
 	pods := c.kubelet.Pods
 	c.kubelet.Mu.RUnlock()
 
-	log.Printf("Updating pod status for pods: %v", pods)
+	log.Printf("Updating pod status for pods: %v", utils.ExtractPodNames(pods))
 
-	for i, pod := range pods {
-		status, err := c.podService.GetPodStatus(&pod)
-		if err != nil {
-			log.Printf(
-				"Failed to get status for pod %s/%s: %v",
-				pod.Metadata.Name,
-				pod.Metadata.Namespace,
-				err,
-			)
+	for _, pod := range pods {
+		// status, err := c.podService.GetPodStatus(&pod)
+		// if err != nil {
+		// 	log.Printf(
+		// 		"Failed to get status for pod %s/%s: %v",
+		// 		pod.Metadata.Name,
+		// 		pod.Metadata.Namespace,
+		// 		err,
+		// 	)
 
-			continue
-		}
+		// 	continue
+		// }
 
 		// 尝试重启
-		err = c.podService.AutoRestartPod(&pod)
+		err := c.podService.AutoRestartPod(&pod)
 		if err != nil {
 			log.Printf(
 				"Failed to restart pod %s/%s: %v",
@@ -79,10 +80,10 @@ func (c *PodStatusController) updatePodStatus() {
 			continue
 		}
 
-		c.kubelet.Mu.Lock()
-		// 填写Pod的状态
-		c.kubelet.Pods[i].Status.Phase = status
-		c.kubelet.Mu.Unlock()
+		// c.kubelet.Mu.Lock()
+		// // 填写Pod的状态
+		// c.kubelet.Pods[i].Status.Phase = status
+		// c.kubelet.Mu.Unlock()
 	}
 
 	// TODO：上报状态到 API Server

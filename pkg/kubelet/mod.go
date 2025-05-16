@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/pod"
+	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/utils"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
 )
 
@@ -56,6 +57,17 @@ func (s *KubeletService) Run(stopCh <-chan struct{}) {
 	if err != nil {
 		log.Printf("Failed to register kubelet: %v", err)
 	}
+
+	// 先恢复本地状态
+	localPods, err := s.podController.podService.ListPods()
+	if err != nil {
+		log.Printf("Failed to fetch pods: %v", err)
+	}
+
+	log.Printf("Restoring local pods: %v", utils.ExtractPodNames(localPods))
+	s.kubelet.Mu.Lock()
+	s.kubelet.Pods = localPods
+	s.kubelet.Mu.Unlock()
 
 	go s.podController.Run(stopCh)
 	go s.statusController.Run(stopCh)

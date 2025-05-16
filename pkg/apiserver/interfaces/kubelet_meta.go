@@ -95,6 +95,17 @@ func KubeletHeartbeat(c *gin.Context) {
 		}
 	}()
 
+	// TODO: check if the kubelet exists in etcd.
+	// Get the kubelet object from etcd.
+	oldKubelet, err := st.GetKubelet(
+		c.Request.Context(),
+		kubelet.Config.Name,
+	)
+	if err == nil && oldKubelet != nil && oldKubelet.Pods != nil {
+		// If the kubelet exists, update its pods.
+		kubelet.Pods = oldKubelet.Pods
+	}
+
 	if err := st.UpdateKubelet(c.Request.Context(), &kubelet); err != nil {
 		c.JSON(
 			http.StatusInternalServerError,

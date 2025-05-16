@@ -97,6 +97,7 @@ func printPods(pods []object.Pod) {
 			if labels != "" {
 				labels += ","
 			}
+
 			labels += fmt.Sprintf("%s=%s", k, v)
 		}
 

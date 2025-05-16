@@ -1,6 +1,10 @@
 package utils
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
+)
 
 // TODO: 更换分隔符？
 func FormatContainerName(
@@ -57,4 +61,22 @@ func ChunkImageName(imageName string) (string, string, string) {
 	}
 
 	return repo, image, tag
+}
+
+func ExtractPodNames(pods []object.Pod) []string {
+	names := make([]string, len(pods))
+	for i, pod := range pods {
+		names[i] = pod.Metadata.Name
+	}
+
+	return names
+}
+
+func ExtractContainerNames(ctrs []object.Container) []string {
+	names := make([]string, len(ctrs))
+	for i, ctr := range ctrs {
+		names[i] = ctr.Name
+	}
+
+	return names
 }
