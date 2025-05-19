@@ -1,35 +1,12 @@
 #!/bin/bash
 
 # 这个脚本用于安装flannel网络插件，需要合适地配置etcd服务的地址，master节点和worker节点的行为也不同
-ETCD_ENDPOINTS="127.0.0.1:2379"
+ETCD_ENDPOINTS="192.168.1.6:2379"
 
 if systemctl is-active --quiet flanneld; then
     echo "Flannel is already running. No need to install."
 else
     echo "Flannel is not running. Starting installation..."
-    
-    # master节点的etcd服务需要监听所有网卡，否则其他机器的flannel启动后连不上etcd服务
-    # 因为etcd被systemd管理成了一个服务，所以需要修改/etc/systemd/system/etcd.service的内容为如下；请注意缩进问题，第二个EOF必须在shell脚本的最左侧
-    sudo tee /etc/systemd/system/etcd.service << EOF
-    [Unit]
-    Description=etcd
-    After=network.target
-
-    [Service]
-    ExecStart=/usr/local/bin/etcd --listen-client-urls="http://0.0.0.0:2379" --advertise-client-urls="http://0.0.0.0:2379"
-    Restart=on-failure
-    Type=notify
-
-    [Install]
-    WantedBy=default.target
-EOF
-
-    # 修改后，从磁盘重新加载systemctl配置，重启etcd服务
-    systemctl daemon-reload
-    systemctl restart etcd
-
-    # 存放网络配置，flanneld运行后读取
-    etcdctl put /coreos.com/network/config '{"Network": "10.5.0.0/16", "SubnetLen": 24, "SubnetMin": "10.5.1.0","SubnetMax": "10.5.20.0", "Backend": {"Type": "vxlan"}}'
 
     # 下载flannel安装包，解压并复制到 /usr/local/bin/目录下（这个目录已经在PATH里，方便在任何地方启动可执行文件），添加脚本执行权限
     wget https://github.com/flannel-io/flannel/releases/download/v0.26.7/flannel-v0.26.7-linux-amd64.tar.gz
