@@ -20,7 +20,7 @@ else
 
     sudo cp ./flanneld /usr/local/bin/
     sudo cp ./mk-docker-opts.sh /usr/local/bin/
-    sudo chmod 777 /usr/local/bin/mk-docker-opts.sh
+    sudo chmod 755 /usr/local/bin/mk-docker-opts.sh
 
     # 创建flanneld的systemd服务文件，用于开机启动
     sudo tee /etc/systemd/system/flanneld.service << EOF
