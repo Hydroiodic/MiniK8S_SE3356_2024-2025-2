@@ -36,7 +36,8 @@ func CreatePauseContainer(
 
 	// 让容器共享 IPC 资源，允许使用共享内存、信号量等机制
 	hostConfig := &container.HostConfig{
-		IpcMode: container.IPCModeShareable,
+		IpcMode:     container.IPCModeShareable,
+		NetworkMode: container.NetworkMode("flannel"),
 	}
 
 	// 创建Pause容器
