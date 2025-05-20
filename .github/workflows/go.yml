@@ -35,7 +35,11 @@ jobs:
       
       - name: Set up Docker
         uses: docker/setup-buildx-action@v2
-
+      
+      - name: Set up Network
+        run: |
+          docker network create --driver bridge flannel || true
+          
       - name: Test with Coverage
         run: |
           go test -v -coverprofile=coverage.out ./...
