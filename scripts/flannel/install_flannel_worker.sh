@@ -8,8 +8,12 @@ if systemctl is-active --quiet flanneld; then
 else
     echo "Flannel is not running. Starting installation..."
 
+    # br_netfilter 模块是 Flannel 的关键依赖，必须加载以支持桥接网络的 iptables 规则。
+    sudo modprobe br_netfilter
+    echo "br_netfilter" | sudo tee /etc/modules-load.d/br_netfilter.conf
+
     # 下载flannel安装包，解压并复制到 /usr/local/bin/目录下（这个目录已经在PATH里，方便在任何地方启动可执行文件），添加脚本执行权限
-    wget https://github.com/flannel-io/flannel/releases/download/v0.26.7/flannel-v0.26.7-linux-amd64.tar.gz
+    # wget https://github.com/flannel-io/flannel/releases/download/v0.26.7/flannel-v0.26.7-linux-amd64.tar.gz
     mkdir ./flannel_install
     tar -xzvf flannel-v0.26.7-linux-amd64.tar.gz -C "./flannel_install"
     cd ./flannel_install
@@ -70,6 +74,6 @@ EOF
     sudo systemctl daemon-reload
     sudo systemctl restart docker
 
-    ip addr show flannel
+    ip addr show mini-cni0 # 查看flannel网络的网桥设备
 fi
 systemctl status flanneld
