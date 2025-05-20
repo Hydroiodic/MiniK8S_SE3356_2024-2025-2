@@ -2,6 +2,23 @@ package object
 
 import "slices"
 
+// NOTE: we use gcr.io/cadvisor/cadvisor:latest as the default cAdvisor image.
+/**
+ * Reference command:
+ * ```bash
+ * docker run \
+ *   --volume=/:/rootfs:ro \
+ *   --volume=/var/run:/var/run:rw \
+ *   --volume=/sys:/sys:ro \
+ *   --volume=/var/lib/docker/:/var/lib/docker:ro \
+ *   --volume=/dev/disk/:/dev/disk:ro \
+ *   --publish=4194:8080 \
+ *   --detach=true \
+ *   --name=cadvisor \
+ *   gcr.io/cadvisor/cadvisor:latest
+ * ```
+ */
+
 type ContainerStats struct {
 	Spec  ContainerSpec   `json:"spec"`
 	Stats []ContainerStat `json:"stats"`

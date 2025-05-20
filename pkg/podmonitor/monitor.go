@@ -33,10 +33,7 @@ func NewPodMonitor(
 	}, nil
 }
 
-func (m *PodMonitor) StartMonitoring(
-	namespace, podName string,
-	containerIDs []string,
-) {
+func (m *PodMonitor) StartMonitoring(containerIDs []string) {
 	// Start a timer to periodically check the pod's resource usage.
 	ticker := time.NewTicker(m.interval)
 	defer ticker.Stop()

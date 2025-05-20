@@ -53,12 +53,33 @@ func (c *CAdvisorClient) ContainerStats(
 		return nil, fmt.Errorf("failed to get pod metrics: %s", resp.Status)
 	}
 
-	// Decode the JSON response into a ContainerStat struct.
-	var stats object.ContainerStats
-	if err := json.NewDecoder(resp.Body).Decode(&stats); err != nil {
+	// Parse as a map of strings to interface{}.
+	var result map[string]any
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %v", err)
 	}
 
-	// Return the status of the pod.
-	return &stats, nil
+	// Get the first value from the map (that is what we expect).
+	var containerStats object.ContainerStats
+
+	for _, v := range result {
+		// Marshal the data to JSON.
+		dataBytes, err := json.Marshal(v)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal container data: %v", err)
+		}
+
+		// Unmarshal the JSON data into the ContainerStats struct.
+		if err := json.Unmarshal(dataBytes, &containerStats); err != nil {
+			return nil, fmt.Errorf(
+				"failed to unmarshal container data: %v",
+				err,
+			)
+		}
+
+		break
+	}
+
+	// Return the status of the container.
+	return &containerStats, nil
 }
