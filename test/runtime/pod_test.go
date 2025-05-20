@@ -329,9 +329,11 @@ func TestPodNetwork(t *testing.T) {
 		pod2.Spec.Containers[0].ID,
 		testCommand,
 	)
+
 	if err != nil {
 		t.Fatalf("failed to execute wget command in client container: %v", err)
 	}
+
 	// 验证通信结果
 	t.Logf("Wget command output: %s", output)
 	assert.Contains(
@@ -345,10 +347,12 @@ func TestPodNetwork(t *testing.T) {
 	if err != nil {
 		t.Logf("failed to delete pod1: %v", err)
 	}
+
 	err = podService.DeletePod(pod2)
 	if err != nil {
 		t.Logf("failed to delete pod2: %v", err)
 	}
+
 	t.Logf(
 		"Test pods deleted: %s/%s and %s/%s",
 		pod1.Metadata.Namespace,
@@ -356,5 +360,4 @@ func TestPodNetwork(t *testing.T) {
 		pod2.Metadata.Namespace,
 		pod2.Metadata.Name,
 	)
-
 }

@@ -149,24 +149,26 @@ func (c *PodController) Reconcile(
 	// 删除多余的 Pod（仅在非缓存模式下执行）
 	if !useCache {
 		for key, pod := range currentMap {
-			if _, exists := desiredMap[key]; !exists {
-				log.Printf("Deleting pod %s (cache=%v)", key, useCache)
+			if _, exists := desiredMap[key]; exists {
+				continue
+			}
+			// Pod 不在 desiredPods 中，删除它
+			log.Printf("Deleting pod %s (cache=%v)", key, useCache)
 
-				if err := c.podService.DeletePod(&pod); err != nil {
-					log.Printf("Failed to delete pod %s: %v", key, err)
-					continue
-				}
+			if err := c.podService.DeletePod(&pod); err != nil {
+				log.Printf("Failed to delete pod %s: %v", key, err)
+				continue
+			}
 
-				// Notice API Server
-				if err := c.apiClient.DeletePodFromEtcd(&pod); err != nil {
-					log.Printf(
-						"Failed to notify API Server about pod deletion %s: %v",
-						key,
-						err,
-					)
+			// Notice API Server
+			if err := c.apiClient.DeletePodFromEtcd(&pod); err != nil {
+				log.Printf(
+					"Failed to notify API Server about pod deletion %s: %v",
+					key,
+					err,
+				)
 
-					continue
-				}
+				continue
 			}
 		}
 	}
