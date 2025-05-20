@@ -57,4 +57,5 @@ type PodStatus struct {
 	Phase      string    `yaml:"phase"`      // 运行状态：Pending, Running, Failed 等
 	StartTime  time.Time `yaml:"startTime"`  // 启动时间
 	Conditions []string  `yaml:"conditions"` // 状态条件
+	IP         string    `yaml:"ip"`         // Pod IP 地址
 }

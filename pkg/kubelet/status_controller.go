@@ -54,7 +54,7 @@ func (c *PodStatusController) updatePodStatus() {
 
 	log.Printf("Updating pod status for pods: %v", utils.ExtractPodNames(pods))
 
-	for _, pod := range pods {
+	for _, pod := range pods { //nolint
 		// status, err := c.podService.GetPodStatus(&pod)
 		// if err != nil {
 		// 	log.Printf(
@@ -66,7 +66,6 @@ func (c *PodStatusController) updatePodStatus() {
 
 		// 	continue
 		// }
-
 		// 尝试重启
 		err := c.podService.AutoRestartPod(&pod)
 		if err != nil {
@@ -84,7 +83,7 @@ func (c *PodStatusController) updatePodStatus() {
 		// // 填写Pod的状态
 		// c.kubelet.Pods[i].Status.Phase = status
 		// c.kubelet.Mu.Unlock()
-	}
+	} //nolint
 
 	// TODO：上报状态到 API Server
 	// 上报 kubelet 状态
