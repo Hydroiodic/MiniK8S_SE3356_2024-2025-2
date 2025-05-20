@@ -63,9 +63,7 @@ func (s *PodStore) GetPod(
 	}
 
 	var pod Pod
-
-	err = json.Unmarshal([]byte(data), &pod)
-	if err != nil {
+	if err = json.Unmarshal([]byte(data), &pod); err != nil {
 		return nil, err
 	}
 
