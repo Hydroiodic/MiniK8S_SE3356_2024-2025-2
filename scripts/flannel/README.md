@@ -6,7 +6,7 @@ Flannel的安装包内包含一个`flanneld`可执行文件和一个脚本。
 
 1. 向`etcd`中储存基础配置
 2. 运行`flanneld`服务，自动生成`/run/flannel/subnet.env`
-3. 运行`mk-docker-opts.sh`脚本可以生成`Docker`启动所需的选项，位于`/run/docker_opts`。
+3. 运行`mk-docker-opts.sh`脚本可以生成`Docker`启动所需的选项，位于`/run/docker_opts.env`。
 
 ```sh
 DOCKER_OPT_BIP="--bip=10.5.20.1/24"

@@ -93,6 +93,6 @@ EOF
     sudo systemctl daemon-reload
     sudo systemctl restart docker
 
-    ip addr show flannel
+    ip addr show mini-cni0 # 查看flannel网络的网桥设备
 fi
 systemctl status flanneld
