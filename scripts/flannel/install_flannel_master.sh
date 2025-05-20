@@ -29,7 +29,7 @@ EOF
     systemctl restart etcd
 
     # 存放网络配置，flanneld运行后读取
-    etcdctl put /coreos.com/network/config '{"Network": "10.5.0.0/16", "SubnetLen": 24, "SubnetMin": "10.5.1.0","SubnetMax": "10.5.19.0", "Backend": {"Type": "vxlan"}}'
+    etcdctl put /coreos.com/network/config '{"Network": "10.5.0.0/16", "SubnetLen": 24, "SubnetMin": "10.5.11.0","SubnetMax": "10.5.19.0", "Backend": {"Type": "vxlan"}}'
 
     # 下载flannel安装包，解压并复制到 /usr/local/bin/目录下（这个目录已经在PATH里，方便在任何地方启动可执行文件），添加脚本执行权限
     wget https://github.com/flannel-io/flannel/releases/download/v0.26.7/flannel-v0.26.7-linux-amd64.tar.gz
