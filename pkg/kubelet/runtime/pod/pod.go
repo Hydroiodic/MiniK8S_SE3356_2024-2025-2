@@ -108,6 +108,20 @@ func (p *PodService) StartPod(pod *object.Pod) error {
 	pod.Status.StartTime = time.Now()
 	pod.Status.Phase = "Running"
 
+	// 写入 Pod 的 IP
+	info, err := p.CtrService.GetContainerInfo(pod.Spec.PauseContainerID)
+	if err != nil {
+		log.Printf("Failed to get pause container info: %v", err)
+	}
+
+	// 获取 Pause Container 的 IP 地址
+	(*pod).Status.IP = info.NetworkSettings.Networks["flannel"].IPAddress
+	log.Printf(
+		"Pause Container Info: %v",
+		info.NetworkSettings.Networks["flannel"],
+	)
+	log.Printf("Pod IP: %s", (*pod).Status.IP)
+
 	return nil
 }
 

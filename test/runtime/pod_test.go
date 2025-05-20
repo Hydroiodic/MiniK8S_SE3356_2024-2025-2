@@ -236,3 +236,125 @@ func TestListPods(t *testing.T) {
 		testPod.Metadata.Name,
 	)
 }
+
+// 测试两个Pod间的通信
+func TestPodNetwork(t *testing.T) {
+	// 初始化容器服务
+	containerService, err := container.NewContainerService()
+	if err != nil {
+		t.Fatalf("failed to create container service: %v", err)
+	}
+
+	// 初始化 Pod 服务
+	podService := pod.NewPodService(containerService)
+
+	// 定义两个 Pod
+	pod1 := &object.Pod{
+		Kind: "Pod",
+		Metadata: object.Metadata{
+			Name:      "pod1",
+			Namespace: "example-pod-namespace",
+			Labels:    map[string]string{"app": "test"},
+		},
+		Spec: object.PodSpec{
+			Containers: []object.Container{
+				{
+					Name:    "server-container",
+					Image:   "docker.io/library/nginx:latest",
+					Command: []string{"nginx", "-g", "daemon off;"},
+					Ports: []object.ContainerPort{
+						{ContainerPort: 80}, // 服务端监听 80 端口
+					},
+				},
+			},
+		},
+	}
+
+	pod2 := &object.Pod{
+		Kind: "Pod",
+		Metadata: object.Metadata{
+			Name:      "pod2",
+			Namespace: "example-pod-namespace",
+			Labels:    map[string]string{"app": "test"},
+		},
+		Spec: object.PodSpec{
+			PauseContainerID: pod1.Spec.PauseContainerID,
+			Containers: []object.Container{
+				{
+					Name:    "client-container",
+					Image:   "docker.io/library/busybox:latest", // 替换为 busybox
+					Command: []string{"sh", "-c", "sleep 3600"}, // 保持容器运行
+				},
+			},
+		},
+	}
+
+	err = podService.CreatePod(pod1)
+	if err != nil {
+		t.Fatalf("failed to create pod1: %v", err)
+	}
+
+	err = podService.CreatePod(pod2)
+	if err != nil {
+		t.Fatalf("failed to create pod2: %v", err)
+	}
+
+	t.Logf("Pods created for network test")
+
+	err = podService.StartPod(pod1)
+	if err != nil {
+		t.Fatalf("failed to start pod1: %v", err)
+	}
+
+	err = podService.StartPod(pod2)
+	if err != nil {
+		t.Fatalf("failed to start pod2: %v", err)
+	}
+
+	// 获取Pod的IP地址
+	// 验证IP不为空
+	assert.NotEmpty(t, pod1.Status.IP, "Pod1 IP should not be empty")
+	assert.NotEmpty(t, pod2.Status.IP, "Pod2 IP should not be empty")
+	t.Logf("Pod1 IP: %s", pod1.Status.IP)
+	t.Logf("Pod2 IP: %s", pod2.Status.IP)
+	// 测试容器间通信：从客户端容器向服务端容器发起 HTTP 请求
+	testCommand := []string{
+		"wget",
+		"-q",
+		"-O",
+		"-",
+		"http://" + pod1.Status.IP + ":80", // 使用 wget 访问服务端
+	}
+	output, err := containerService.ExecCommand(
+		pod2.Spec.Containers[0].ID,
+		testCommand,
+	)
+	if err != nil {
+		t.Fatalf("failed to execute wget command in client container: %v", err)
+	}
+	// 验证通信结果
+	t.Logf("Wget command output: %s", output)
+	assert.Contains(
+		t,
+		output,
+		"Welcome to nginx",
+		"Expected nginx welcome page in response",
+	)
+	// 清理 Pod
+	err = podService.DeletePod(pod1)
+	if err != nil {
+		t.Logf("failed to delete pod1: %v", err)
+	}
+	err = podService.DeletePod(pod2)
+	if err != nil {
+		t.Logf("failed to delete pod2: %v", err)
+	}
+	t.Logf(
+		"Test pods deleted: %s/%s and %s/%s",
+		pod1.Metadata.Namespace,
+		pod1.Metadata.Name,
+		pod2.Metadata.Namespace,
+		pod2.Metadata.Name,
+	)
+
+}
