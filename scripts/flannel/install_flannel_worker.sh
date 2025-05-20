@@ -56,20 +56,20 @@ EOF
     docker network rm flannel
 
     source /run/flannel/subnet.env # 加载这个环境变量文件到当前shell
-    # 可以直接替换`docker0`网桥，不必创建新的网桥
-    sudo mkdir -p /etc/systemd/system/docker.service.d
-    sudo tee /etc/systemd/system/docker.service.d/flannel.conf << EOF
-    [Service]
-    EnvironmentFile=/run/flannel/subnet.env
-    ExecStart=
-    ExecStart=/usr/bin/dockerd --bip=\${FLANNEL_SUBNET} --mtu=\${FLANNEL_MTU}
-EOF
+    # 将FLANNEL_SUBNET=10.5.x.1/24 改为 FLANNEL_SUBNET=10.5.x.0/24
+    FLANNEL_SUBNET=$(echo "$FLANNEL_SUBNET" | sed 's|\(\([0-9]\+\.\)\{3\}\)[0-9]\+/24|\10/24|')
+    export FLANNEL_SUBNET
+    
+    # 创建新的网络：flannel
+    # 网桥名称为mini-cni0
+    docker network create --attachable=true --subnet=${FLANNEL_SUBNET} -o "com.docker.network.driver.mtu"=${FLANNEL_MTU} -o "com.docker.network.bridge.name"="mini-cni0" flannel # 为docker创建一个flannel网络，它使用了这个flannel分配的子网；让这个网络在主机上的设备名称为mini-cni0
+
+    # 查看本节点持有的flannel网段，默认一个节点上可分配256个IP；
+    docker network inspect flannel | grep Subnet | awk -F '\"' '{print $4}'
+
     sudo systemctl daemon-reload
     sudo systemctl restart docker
 
-    # 这里的docker0网桥会被flannel的vxlan网络覆盖，所以docker0网桥的IP地址会被flannel的vxlan网络覆盖
-    ip addr show docker0
-    # 查看本节点持有的flannel网段，默认一个节点上可分配256个IP；
-    docker network inspect bridge | grep Subnet | awk -F '\"' '{print $4}'
+    ip addr show flannel
 fi
 systemctl status flanneld
