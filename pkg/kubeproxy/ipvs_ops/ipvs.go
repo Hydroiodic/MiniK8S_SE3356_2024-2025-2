@@ -321,7 +321,7 @@ func (ops *IpvsOps) Clear() { // 只删除必要的部分！
 // 添加一个新的Service、配置相关的iptables, ipvs, ipset
 func (ops *IpvsOps) AddService(svc *object.Service) {
 	data, _ := yaml.Marshal(&svc)
-	fmt.Printf("Add Service %s\n\n", string(data))
+	fmt.Printf("Add Service \n%s\n\n", string(data))
 
 	// 将clusterIP绑定到dummy网卡
 	bindClusterIPToDummyInterface(
@@ -819,7 +819,7 @@ func (ops *IpvsOps) RestoreFromFile(
 	return nil
 }
 
-// 创建ipvs模式需要的dummy网卡设备
+// 创建ipvs模式需要的dummy网卡设备，需要root权限
 func createDummyInterface(name string) error {
 	if name == "" {
 		return nil
