@@ -71,6 +71,7 @@ func TestClusterIP(t *testing.T) {
 	if podIP == "" {
 		t.Fatalf("failed to get pod IP")
 	}
+
 	t.Logf("Pod IP: %s", podIP)
 
 	// 2. 创建一个ClusterIP类型的Service

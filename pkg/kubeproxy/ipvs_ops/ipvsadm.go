@@ -53,7 +53,7 @@ func IPVSADMDelVirtualServer(
 	endpointIP string,
 	endpointPort int,
 ) error {
-	output, err := exec.Command("ipvsadm", "-d", "-t", ip+":"+fmt.Sprint(port), "-r", endpointIP+":"+string(endpointPort)).
+	output, err := exec.Command("ipvsadm", "-d", "-t", ip+":"+fmt.Sprint(port), "-r", endpointIP+":"+fmt.Sprint(endpointPort)).
 		Output()
 	if err != nil {
 		return err
