@@ -131,4 +131,11 @@ func TestClusterIP(t *testing.T) {
 			string(output),
 		)
 	}
+
+	// 7. 删除 Pod
+	err = podService.DeletePod(pod)
+	if err != nil {
+		t.Fatalf("failed to delete pod: %v", err)
+	}
+	t.Logf("Pod deleted: %s", pod.Metadata.Name)
 }
