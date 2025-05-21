@@ -8,6 +8,11 @@ type Service struct {
 	Status   ServiceStatus `yaml:"status"`   // 状态（IP、Endpoints）
 }
 
+const (
+	SERVICE_TYPE_CLUSTERIP_STR = "ClusterIP"
+	SERVICE_TYPE_NODEPORT_STR  = "NodePort"
+)
+
 type ServiceSpec struct {
 	Selector map[string]string `yaml:"selector"` // 匹配 Pod 的标签
 	Ports    []ServicePort     `yaml:"ports"`    // 端口配置
