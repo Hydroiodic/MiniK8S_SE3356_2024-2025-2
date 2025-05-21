@@ -16,8 +16,8 @@ rm -f /tmp/etcd-${ETCD_VER}-linux-amd64.tar.gz
 /tmp/etcd-download-test/etcdctl version
 /tmp/etcd-download-test/etcdutl version
 
-# start a local etcd server
-/tmp/etcd-download-test/etcd
+# start a local etcd server in the background
+/tmp/etcd-download-test/etcd &
 
 # write,read to etcd
 /tmp/etcd-download-test/etcdctl --endpoints=localhost:2379 put foo bar
