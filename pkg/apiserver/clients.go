@@ -651,6 +651,49 @@ func (c *APIClient) DeletePod(pod *object.Pod) error {
 		bodyBytes, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("%s", string(bodyBytes))
 	}
+	c.DeletePodFromEtcd(pod)
+	return nil
+}
+
+func (c *APIClient) DeletePodByName(name string, namespace string) error {
+	// Construct the URL for the Pod deletion endpoint.
+	url := c.BaseURL + PodDeleteURL
+	pod, err := c.GetPodByName(name, namespace)
+	if err != nil {
+		return err
+	}
+	// Convert the Pod object to JSON to be sent in the request body.
+	podJSON, err := json.Marshal(pod)
+	if err != nil {
+		return err
+	}
+
+	// Create a new HTTP POST request with the pod as the body.
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(podJSON))
+	if err != nil {
+		return err
+	}
+
+	// Send the request and return the response.
+	resp, err := c.Client.Do(req)
+	if err != nil {
+		return err
+	}
+
+	// Ensure the response body is closed after use.
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			// Log the error if closing the response body fails.
+			fmt.Println("Failed to close response body: ", cerr)
+		}
+	}()
+
+	// Check if the response status code is OK (200).
+	if resp.StatusCode != http.StatusOK {
+		// If not, read the response body and return an error.
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("%s", string(bodyBytes))
+	}
 
 	return nil
 }
