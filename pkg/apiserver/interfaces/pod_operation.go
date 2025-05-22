@@ -151,8 +151,12 @@ func AssignPodToNode(c *gin.Context) {
 	}
 
 	// Send the message to the queue.
-	err = mqtemplate.SendMessageToQueue(mqtemplate.KubeletCreatePodQueue, msg)
-	if err != nil {
+	// NOTE: the name of the queue is `KubeletCreatePodQueue/nodeName`.
+	queueName := path.Join(
+		mqtemplate.KubeletCreatePodQueue,
+		nodeName,
+	)
+	if err = mqtemplate.SendMessageToQueue(queueName, msg); err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
 			"Failed to send message to queue: "+err.Error(),
