@@ -8,8 +8,6 @@ import (
 
 // 描述本文件实现的接口
 type IpvsOpsInterface interface {
-	NewIpvsOps(clusterIPCIDR string)
-
 	// 以下是IpvsOps的成员方法
 	Init()
 	Clear()
