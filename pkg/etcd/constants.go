@@ -7,6 +7,7 @@ import "time"
 const (
 	PodPrefix           = "/minik8s/pods/"
 	KubeletPrefix       = "/minik8s/kubelets/"
+	ResourcePrefix      = "/minik8s/resources/"
 	defaultEtcdEndpoint = "localhost:2379"
 	defaultTimeout      = 5 * time.Second
 	emptyLength         = 0

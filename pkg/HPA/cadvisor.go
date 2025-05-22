@@ -1,49 +1,85 @@
-// pkg/cadvisor.go
 package hpa
 
 import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+
+	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
 )
 
-type MetricsClient struct {
-	Endpoint string // cAdvisor 地址（如 http://localhost:8080）
+type CAdvisorClient struct {
+	BaseURL string
+	Client  *http.Client
 }
 
-func NewClient() *MetricsClient {
-	return &MetricsClient{Endpoint: "http://localhost:8080"}
-}
-
-// 获取 Pod 的 CPU/Memory 使用率
-func (c *MetricsClient) GetPodMetric(podName, resource string) float64 {
-	resp, err := http.Get(
-		fmt.Sprintf("%s/api/v1.3/subcontainers/%s", c.Endpoint, podName),
-	)
-	if err != nil {
-		return 0
+func NewCAdvisorClient(host string, port int) *CAdvisorClient {
+	// If host or port is not specified, use the default ones
+	if host == "" {
+		host = DefaultCadvisorHost
 	}
 
+	if port <= 0 {
+		port = DefaultCadvisorPort
+	}
+
+	return &CAdvisorClient{
+		BaseURL: fmt.Sprintf("http://%s:%d", host, port),
+		Client:  &http.Client{},
+	}
+}
+
+// Get the CPU/Memory usage of a specific pod
+func (c *CAdvisorClient) ContainerStats(
+	podName string,
+) (*object.ContainerStats, error) {
+	// Construct the URL for the pod metrics and make the GET request.
+	resp, err := http.Get(
+		fmt.Sprintf("%s%s%s", c.BaseURL, CadvisorEndpoint, podName),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get pod stats: %v", err)
+	}
+
+	// Ensure the response body is closed after reading.
 	defer func() {
 		if err := resp.Body.Close(); err != nil {
-			fmt.Println("关闭响应体失败:", err)
+			fmt.Println("Error closing response body: ", err)
 		}
 	}()
 
-	var data map[string]interface{}
-	if err := json.NewDecoder(resp.Body).Decode(&data); err != nil {
-		return 0
+	// Check if the response status code is OK (200).
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("failed to get pod metrics: %s", resp.Status)
 	}
 
-	// 解析 CPU 使用率（单位：核）
-	if resource == "cpu" {
-		return data["cpu"].(map[string]interface{})["usage"].(float64) / 1e9 // 转换为秒
+	// Parse as a map of strings to interface{}.
+	var result map[string]any
+	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("failed to decode response: %v", err)
 	}
 
-	// 解析 Memory 使用量（单位：字节）
-	if resource == "memory" {
-		return data["memory"].(map[string]interface{})["usage"].(float64)
+	// Get the first value from the map (that is what we expect).
+	var containerStats object.ContainerStats
+
+	for _, v := range result {
+		// Marshal the data to JSON.
+		dataBytes, err := json.Marshal(v)
+		if err != nil {
+			return nil, fmt.Errorf("failed to marshal container data: %v", err)
+		}
+
+		// Unmarshal the JSON data into the ContainerStats struct.
+		if err := json.Unmarshal(dataBytes, &containerStats); err != nil {
+			return nil, fmt.Errorf(
+				"failed to unmarshal container data: %v",
+				err,
+			)
+		}
+
+		break
 	}
 
-	return 0
+	// Return the status of the container.
+	return &containerStats, nil
 }
