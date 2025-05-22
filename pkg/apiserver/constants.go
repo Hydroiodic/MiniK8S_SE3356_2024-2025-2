@@ -13,4 +13,9 @@ const (
 	PodGetURL    = "/pod/getPods"
 	PodAssignURL = "/pod/assignPodToNode"
 	PodDeleteURL = "/pod/deletePod"
+
+	// TODO: Service operations.
+	ServiceCreateURL = "/service/createService"
+	ServiceGetURL    = "/service/getServices"
+	ServiceDeleteURL = "/service/deleteService"
 )

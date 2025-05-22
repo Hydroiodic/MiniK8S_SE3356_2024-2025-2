@@ -11,7 +11,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-go@v5
@@ -36,13 +36,21 @@ jobs:
       - name: Set up Docker
         uses: docker/setup-buildx-action@v2
       
+      # - name: Set up etcd
+      #   run: |
+      #       bash scripts/etcd/etcd.sh
+      
       - name: Set up Network
         run: |
-          docker network create --driver bridge flannel || true
-          
+            docker network create --attachable=true --subnet=10.5.20.0/24  -o "com.docker.network.bridge.name"="mini-cni0" flannel 
+
+      - name: Setup IPVS
+        run: |
+          bash scripts/ipvs/ipvs.sh
+
       - name: Test with Coverage
         run: |
-          go test -v -coverprofile=coverage.out ./...
+          sudo go test -v -coverprofile=coverage.out ./...
           go tool cover -html=coverage.out -o coverage.html
       - name: Upload Coverage Report
         uses: actions/upload-artifact@v4

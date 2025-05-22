@@ -373,3 +373,124 @@ func (c *APIClient) DeletePodFromEtcd(pod *object.Pod) error {
 
 	return nil
 }
+
+// TODO: CRUD on Service
+func (c *APIClient) CreateService(svc *object.Service) error {
+	// Construct the URL for the Service creation endpoint.
+	url := c.BaseURL + ServiceCreateURL
+
+	// Convert the Service object to JSON to be sent in the request body.
+	svcJSON, err := json.Marshal(svc)
+	if err != nil {
+		return err
+	}
+
+	// Create a new HTTP POST request with the service as the body.
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(svcJSON))
+	if err != nil {
+		return err
+	}
+
+	// Send the request and return the response.
+	resp, err := c.Client.Do(req)
+	if err != nil {
+		return err
+	}
+
+	// Ensure the response body is closed after use.
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			// Log the error if closing the response body fails.
+			fmt.Println("Failed to close response body: ", cerr)
+		}
+	}()
+
+	// Check if the response status code is OK (200).
+	if resp.StatusCode != http.StatusOK {
+		// If not, read the response body and return an error.
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("%s", string(bodyBytes))
+	}
+
+	return nil
+}
+
+func (c *APIClient) GetServices() ([]object.Service, error) {
+	// Construct the URL for the Service get endpoint.
+	url := c.BaseURL + ServiceGetURL
+
+	// Create a new HTTP GET request.
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// Send the request and return the response.
+	resp, err := c.Client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	// Ensure the response body is closed after use.
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			// Log the error if closing the response body fails.
+			fmt.Println("Failed to close response body: ", cerr)
+		}
+	}()
+
+	// Check if the response status code is OK (200).
+	if resp.StatusCode != http.StatusOK {
+		// If not, read the response body and return an error.
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("%s", string(bodyBytes))
+	}
+
+	// Parse the response body as a list of Service objects.
+	var svcs []object.Service
+	if err := json.NewDecoder(resp.Body).Decode(&svcs); err != nil {
+		return nil, err
+	}
+
+	return svcs, nil
+}
+
+func (c *APIClient) DeleteService(svc *object.Service) error {
+	// Construct the URL for the Service deletion endpoint.
+	url := c.BaseURL + ServiceDeleteURL
+
+	// Convert the Service object to JSON to be sent in the request body.
+	svcJSON, err := json.Marshal(svc)
+	if err != nil {
+		return err
+	}
+
+	// Create a new HTTP POST request with the service as the body.
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(svcJSON))
+	if err != nil {
+		return err
+	}
+
+	// Send the request and return the response.
+	resp, err := c.Client.Do(req)
+	if err != nil {
+		return err
+	}
+
+	// Ensure the response body is closed after use.
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			// Log the error if closing the response body fails.
+			fmt.Println("Failed to close response body: ", cerr)
+		}
+	}()
+
+	// Check if the response status code is OK (200).
+	if resp.StatusCode != http.StatusOK {
+		// If not, read the response body and return an error.
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("%s", string(bodyBytes))
+	}
+
+	return nil
+}
