@@ -32,8 +32,8 @@ func main() {
 	// r.POST("/createDnsFromFile", interfaces.HandleDnsCreate)
 	// r.POST("/deleteDnsFromFile", interfaces.HandleDnsDelete)
 
-	// r.POST("/createServiceFromFile", interfaces.CreateService)
-	// r.POST("/deleteServiceFromFile", interfaces.DeleteService)
+	// r.POST(apiserver.ServiceCreateURL, interfaces.CreateService)
+	// r.POST(apiserver.ServiceDeleteURL, interfaces.DeleteService)
 	// r.POST("/serviceCheckNow", interfaces.ServiceCheckNow)
 
 	// r.POST("/createReplicasetFromFile", interfaces.CreateReplicaset)
