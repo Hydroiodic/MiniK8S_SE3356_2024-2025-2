@@ -3,7 +3,6 @@ package kubelet
 import (
 	"encoding/json"
 	"log"
-	"path"
 	"time"
 
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/pod"
@@ -72,6 +71,38 @@ func (c *PodController) CreatePodHandler(msg map[string]interface{}) error {
 	return nil
 }
 
+func (c *PodController) DeletePodHandler(msg map[string]interface{}) error {
+	// 解析消息体
+	msgBody, err := json.Marshal(msg)
+	if err != nil {
+		log.Printf("Failed to marshal message: %v", err)
+		return err
+	}
+
+	// 解析 JSON 为 Pod 对象
+	var pod object.Pod
+	if err := json.Unmarshal(msgBody, &pod); err != nil {
+		log.Printf("Failed to unmarshal message to Pod: %v", err)
+		return err
+	}
+
+	// 删除 Pod 对象
+	if err := c.podService.DeletePod(&pod); err != nil {
+		log.Printf("Failed to delete pod: %v", err)
+		return err
+	}
+
+	// Notice API Server
+	if err := c.apiClient.DeletePodFromEtcd(&pod); err != nil {
+		log.Printf(
+			"Failed to notify API Server about pod deletion %v",
+			err,
+		)
+	}
+
+	return nil
+}
+
 func (c *PodController) Run(stopCh <-chan struct{}) {
 	ticker := time.NewTicker(c.syncPeriod)
 	defer ticker.Stop()
@@ -79,12 +110,21 @@ func (c *PodController) Run(stopCh <-chan struct{}) {
 	// 处理消息队列中的 Pod 创建请求
 	// TODO: 这玩意停不住啊？
 	go func() {
-		// The name of the queue listening to is `KubeletCreatePodQueue/nodeName`.
-		queueName := path.Join(
+		err := mqtemplate.ConsumeMessageOnQueue(
 			mqtemplate.KubeletCreatePodQueue,
-			c.kubelet.Config.Name,
+			c.CreatePodHandler,
 		)
-		if err := mqtemplate.ConsumeMessageOnQueue(queueName, c.CreatePodHandler); err != nil {
+		if err != nil {
+			log.Printf("Failed to consume message: %v", err)
+		}
+	}()
+
+	go func() {
+		err := mqtemplate.ConsumeMessageOnQueue(
+			mqtemplate.KubeletDeletePodQueue,
+			c.DeletePodHandler,
+		)
+		if err != nil {
 			log.Printf("Failed to consume message: %v", err)
 		}
 	}()
