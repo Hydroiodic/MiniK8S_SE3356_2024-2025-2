@@ -3,6 +3,7 @@ package kubelet
 import (
 	"encoding/json"
 	"log"
+	"path"
 	"time"
 
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/pod"
@@ -78,11 +79,12 @@ func (c *PodController) Run(stopCh <-chan struct{}) {
 	// 处理消息队列中的 Pod 创建请求
 	// TODO: 这玩意停不住啊？
 	go func() {
-		err := mqtemplate.ConsumeMessageOnQueue(
+		// The name of the queue listening to is `KubeletCreatePodQueue/nodeName`.
+		queueName := path.Join(
 			mqtemplate.KubeletCreatePodQueue,
-			c.CreatePodHandler,
+			c.kubelet.Config.Name,
 		)
-		if err != nil {
+		if err := mqtemplate.ConsumeMessageOnQueue(queueName, c.CreatePodHandler); err != nil {
 			log.Printf("Failed to consume message: %v", err)
 		}
 	}()
