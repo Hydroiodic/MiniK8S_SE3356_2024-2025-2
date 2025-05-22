@@ -1,12 +1,15 @@
 package main
 
 import (
+	"fmt"
+	"time"
+
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/apiserver"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/apiserver/interfaces"
 	"github.com/gin-gonic/gin"
 )
 
-func main() {
+func declareGinServer() *gin.Engine {
 	// Create a new Gin router.
 	r := gin.Default()
 
@@ -61,12 +64,35 @@ func main() {
 
 	// r.POST("/uploadJobOutputResult", interfaces.UploadJobOutputResult)
 	// r.POST("/uploadJobErrorResult", interfaces.UploadJobErrorResult)
-	// // r.POST("/applyFromFile", interfaces.ApplyFromFile)
 
-	// go interfaces.CheckNodesHealthy()
+	return r
+}
+
+func checkTimeout() {
+	// An infinite loop to check for kubelet timeouts.
+	for {
+		// Check if the kubelet has timed out.
+		if err := interfaces.CheckKubeletTimeout(); err != nil {
+			// If there is an error, print it.
+			fmt.Println(err)
+		}
+
+		// Sleep for 10 seconds before checking again.
+		// NOTE: In `kubelet/runtime/status_controller.go`, the interval of heartbeat is 10s.
+		//	     Here we use the same as the interval.
+		time.Sleep(10 * time.Second)
+	}
+}
+
+func main() {
+	// Create a new Gin router.
+	r := declareGinServer()
+
+	// Go routine to check for some status.
+	go checkTimeout()
 	// go interfaces.CalculateServiceAndEps()
 
-	// Start the server on port 8080.
+	// Start the Gin server on port 8080.
 	if err := r.Run(":8080"); err != nil {
 		panic(err)
 	}
