@@ -12,19 +12,20 @@ var deleteCmd = &cobra.Command{
 	Use:   "delete",
 	Short: "Delete a Kubernetes resource",
 	Run: func(_ *cobra.Command, args []string) {
-		if len(args) < 2 {
+		if len(args) < 3 {
 			_, _ = fmt.Println(
-				"Usage: minik8s kubectl delete <resource-type> <resource-name>",
+				"Usage: minik8s kubectl delete <resource-type> <resource-name> <resource-namespace>",
 			)
 			return
 		}
 
 		resourceType := args[0]
 		resourceName := args[1]
+		resourceNamespace := args[2]
 
 		switch resourceType {
 		case PodResource:
-			deletePod(resourceName)
+			deletePod(resourceName, resourceNamespace)
 		case "service":
 			deleteService(resourceName)
 		case "replicaset":
@@ -47,9 +48,12 @@ func init() {
 }
 
 // 删除 Pod.
-func deletePod(name string) {
+func deletePod(name string, namespace string) {
 	// 这里添加实际删除 Pod 的逻辑
-	_, _ = fmt.Printf("Deleting Pod: %s\n", name)
+	err := ci.DeletePodByName(name, namespace)
+	if err != nil {
+		fmt.Println(err)
+	}
 }
 
 // 删除 Service.
