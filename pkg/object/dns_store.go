@@ -48,7 +48,7 @@ func (s *DNSStore) AddDNS(ctx context.Context, dns *DNS) error {
 
 func (s *DNSStore) CombineDNS(ctx context.Context, dns *DNS) error {
 	// Get the DNS object.
-	dnsOld, err := s.GetDNS(ctx, s.key(dns.Spec.Host))
+	dnsOld, err := s.GetDNS(ctx, dns.Spec.Host)
 	if err != nil {
 		return err
 	}
@@ -88,7 +88,7 @@ func (s *DNSStore) CombineDNS(ctx context.Context, dns *DNS) error {
 	}
 
 	// Update the DNS object in etcd.
-	return s.AddDNS(ctx, dns)
+	return s.AddDNS(ctx, dnsOld)
 }
 
 // GetDNS retrieves a DNS object from etcd.

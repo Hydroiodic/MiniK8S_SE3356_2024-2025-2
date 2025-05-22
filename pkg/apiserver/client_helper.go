@@ -43,14 +43,8 @@ func (c *APIClient) getAndUnmarshalList(urlSuffix string, out any) error {
 		return fmt.Errorf("%s", string(bodyBytes))
 	}
 
-	// Parse the response body as a string.
-	var raw string
-	if err := json.Unmarshal(bodyBytes, &raw); err != nil {
-		return fmt.Errorf("failed to unmarshal as string: %v", err)
-	}
-
 	// Parse the response body as a list of objects.
-	if err := json.Unmarshal([]byte(raw), out); err != nil {
+	if err := json.Unmarshal(bodyBytes, out); err != nil {
 		return fmt.Errorf("failed to unmarshal as list: %v", err)
 	}
 

@@ -299,17 +299,6 @@ func GetDNSResolve(c *gin.Context) {
 		)
 	}
 
-	// Marshal the DNSResolveInfo list to JSON.
-	dnsResolveInfoJSON, err := json.Marshal(dnsResolveInfoList)
-	if err != nil {
-		c.JSON(
-			http.StatusInternalServerError,
-			"Failed to marshal DNSResolveInfo: "+err.Error(),
-		)
-
-		return
-	}
-
 	// Send the DNS resolve information as a JSON response.
-	c.JSON(http.StatusOK, string(dnsResolveInfoJSON))
+	c.JSON(http.StatusOK, dnsResolveInfoList)
 }
