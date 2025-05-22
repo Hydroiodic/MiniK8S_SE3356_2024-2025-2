@@ -65,6 +65,56 @@ func TestCreatePod(t *testing.T) {
 	t.Logf("Pause container info: %v", res)
 }
 
+func TestDeletePod(t *testing.T) {
+	containerService, err := container.NewContainerService()
+	if err != nil {
+		t.Fatalf("failed to create container service: %v", err)
+	}
+
+	podService := pod.NewPodService(containerService)
+
+	pod := &object.Pod{
+		Kind: "Pod",
+		Metadata: object.Metadata{
+			Name:      "test-pod-delete",
+			Namespace: "example-pod-namespace",
+			Labels:    map[string]string{"app": "test"},
+		},
+		Spec: object.PodSpec{
+			Containers: []object.Container{
+				{
+					Name:    "test-container",
+					Image:   "docker.io/library/nginx:latest",
+					Command: []string{"nginx", "-g", "daemon off;"},
+					Ports: []object.ContainerPort{
+						{ContainerPort: 80},
+					},
+				},
+			},
+		},
+	}
+
+	err = podService.CreatePod(pod)
+	if err != nil {
+		t.Fatalf("failed to create pod: %v", err)
+	}
+
+	t.Logf("Pod created for deletion test: %v", pod)
+
+	err = podService.StartPod(pod)
+	if err != nil {
+		t.Fatalf("failed to start pod: %v", err)
+	}
+	t.Logf("Pod started for deletion test: %v", pod)
+
+	err = podService.DeletePod(pod)
+	if err != nil {
+		t.Fatalf("failed to delete pod: %v", err)
+	}
+
+	t.Logf("Pod deleted successfully")
+}
+
 // TestPodContainerCommunication 测试 Pod 内部容器间的网络通信
 func TestPodContainerCommunication(t *testing.T) {
 	// 初始化容器服务
