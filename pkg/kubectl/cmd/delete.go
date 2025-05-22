@@ -3,9 +3,11 @@ package cmd
 import (
 	"fmt"
 
+	client "github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/apiserver"
 	"github.com/spf13/cobra"
 )
 
+var ci *client.APIClient
 var deleteCmd = &cobra.Command{
 	Use:   "delete",
 	Short: "Delete a Kubernetes resource",
@@ -40,6 +42,8 @@ var deleteCmd = &cobra.Command{
 // 在 init() 里注册 delete 命令.
 func init() {
 	rootCmd.AddCommand(deleteCmd)
+
+	ci = client.NewAPIClient("http://localhost:8080")
 }
 
 // 删除 Pod.
@@ -57,7 +61,11 @@ func deleteService(name string) {
 // 删除 ReplicaSet.
 func deleteReplicaSet(name string) {
 	// 这里添加实际删除 ReplicaSet 的逻辑
-	_, _ = fmt.Printf("Deleting ReplicaSet: %s\n", name)
+	err := ci.DeleteReplicaset(name)
+
+	if err != nil {
+		fmt.Println(err)
+	}
 }
 
 // 删除 DNS 配置.

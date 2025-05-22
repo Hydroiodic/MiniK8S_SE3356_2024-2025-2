@@ -10,6 +10,8 @@ const (
 	KubeletDeletePodQueue    = "kubeletDeletePodQueue"
 	KubeletCheckNowQueueName = "kubeletCheckNowQueue"
 
+	DnsCreatePod        = "DnsCreatePodQueue"
+	DnsDeletePod        = "DnsDeletePodQueue"
 	CreateDnsQueueName  = "createDns"
 	UpdateDnsQueueName  = "updateDns"
 	DeleteDnsQueueName  = "deleteDns"

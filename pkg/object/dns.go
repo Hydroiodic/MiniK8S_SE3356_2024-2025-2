@@ -25,3 +25,8 @@ type DNSResolveInfo struct {
 	Host string // 域名
 	IP   string // IP 地址
 }
+
+type DnsMsg struct {
+	Dns        DNS
+	HostConfig []string
+}

@@ -112,6 +112,293 @@ func (c *APIClient) HeartbeatKubelet(kubelet *object.Kubelet) error {
 	return nil
 }
 
+func (c *APIClient) GetServiceByName(
+	serviceName string,
+) (object.Service, error) {
+	services, err := c.GetServices()
+	if err != nil {
+		return object.Service{}, err
+	}
+
+	for _, service := range services {
+		if service.Metadata.Name == serviceName {
+			return service, err
+		}
+	}
+
+	return object.Service{}, fmt.Errorf(
+		"not service named" + serviceName + "found",
+	)
+}
+
+func (c *APIClient) GetPodByName(
+	podName string,
+	namespace string,
+) (object.Pod, error) {
+	pods, err := c.GetPods()
+	if err != nil {
+		return object.Pod{}, err
+	}
+	for _, pod := range pods {
+		if pod.Metadata.Name == podName && pod.Metadata.Namespace == namespace {
+			return pod, err
+		}
+	}
+
+	return object.Pod{}, fmt.Errorf("not pod named" + podName + "found")
+}
+
+func (c *APIClient) GeHpayName(
+	hpaName string,
+	namespace string,
+) (object.HorizontalPodAutoscaler, error) {
+	hpas, err := c.GetHpas()
+	if err != nil {
+		return object.HorizontalPodAutoscaler{}, err
+	}
+
+	for _, hpa := range hpas {
+		if hpa.Metadata.Name == hpaName &&
+			hpa.Metadata.Namespace == namespace {
+			return hpa, err
+		}
+	}
+
+	return object.HorizontalPodAutoscaler{}, fmt.Errorf(
+		"not HPA named" + hpaName + "found",
+	)
+}
+
+func (c *APIClient) UpdateReplicaset(r object.ReplicaSet) error {
+
+	err := c.DeleteReplicaset(r.Metadata.Name)
+	if err != nil {
+		return err
+	}
+	err = c.CreateReplicaset(&r)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func (c *APIClient) GetReplicasetyName(
+	replicasetName string,
+) (object.ReplicaSet, error) {
+	replicasets, err := c.GetReplicasets()
+	if err != nil {
+		return object.ReplicaSet{}, err
+	}
+
+	for _, replicaset := range replicasets {
+		if replicaset.Metadata.Name == replicasetName {
+			return replicaset, err
+		}
+	}
+
+	return object.ReplicaSet{}, fmt.Errorf(
+		"not HPA named" + replicasetName + "found",
+	)
+}
+func (c *APIClient) GetReplicasets() ([]object.ReplicaSet, error) {
+	// Construct the URL for the Kubelet get nodes endpoint.
+	url := c.BaseURL + ReplicasetGetURL
+
+	// Create a new HTTP GET request.
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// Send the request and return the response.
+	resp, err := c.Client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	// Ensure the response body is closed after use.
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			// Log the error if closing the response body fails.
+			fmt.Println("Failed to close response body: ", cerr)
+		}
+	}()
+	// Check if the response status code is OK (200).
+	if resp.StatusCode != http.StatusOK {
+		// If not, read the response body and return an error.
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("%s", string(bodyBytes))
+	}
+
+	// Parse the response body as a list of Replicaset objects.
+	var replicasets []object.ReplicaSet
+	if err := json.NewDecoder(resp.Body).Decode(&replicasets); err != nil {
+		// If parsing fails, return an error.
+		return nil, err
+	}
+
+	return replicasets, nil
+}
+
+func (c *APIClient) GetHpas() ([]object.HorizontalPodAutoscaler, error) {
+	// Construct the URL for the Kubelet get nodes endpoint.
+	url := c.BaseURL + HpaGetURL
+
+	// Create a new HTTP GET request.
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// Send the request and return the response.
+	resp, err := c.Client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	// Ensure the response body is closed after use.
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			// Log the error if closing the response body fails.
+			fmt.Println("Failed to close response body: ", cerr)
+		}
+	}()
+	// Check if the response status code is OK (200).
+	if resp.StatusCode != http.StatusOK {
+		// If not, read the response body and return an error.
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("%s", string(bodyBytes))
+	}
+
+	// Parse the response body as a list of Replicaset objects.
+	var hpas []object.HorizontalPodAutoscaler
+	if err := json.NewDecoder(resp.Body).Decode(&hpas); err != nil {
+		// If parsing fails, return an error.
+		return nil, err
+	}
+
+	return hpas, nil
+}
+
+func (c *APIClient) DeleteDns(dns *object.DNS) error {
+	// Construct the URL for the Pod deletion endpoint.
+	url := c.BaseURL + DnsDeleteURL
+
+	// Convert the Pod object to JSON to be sent in the request body.
+	dnsJSON, err := json.Marshal(dns)
+	if err != nil {
+		return err
+	}
+
+	// Create a new HTTP POST request with the pod as the body.
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(dnsJSON))
+	if err != nil {
+		return err
+	}
+
+	// Send the request and return the response.
+	resp, err := c.Client.Do(req)
+	if err != nil {
+		return err
+	}
+
+	// Ensure the response body is closed after use.
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			// Log the error if closing the response body fails.
+			fmt.Println("Failed to close response body: ", cerr)
+		}
+	}()
+
+	// Check if the response status code is OK (200).
+	if resp.StatusCode != http.StatusOK {
+		// If not, read the response body and return an error.
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("%s", string(bodyBytes))
+	}
+
+	return nil
+}
+func (c *APIClient) CreateHpa(hpa *object.HorizontalPodAutoscaler) error {
+	// Construct the URL for the Pod creation endpoint.
+	url := c.BaseURL + HpaCreateURL
+
+	// Convert the Pod object to JSON to be sent in the request body.
+	hpaJSON, err := json.Marshal(hpa)
+	if err != nil {
+		return err
+	}
+
+	// Create a new HTTP POST request with the pod as the body.
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(hpaJSON))
+	if err != nil {
+		return err
+	}
+
+	// Send the request and return the response.
+	resp, err := c.Client.Do(req)
+	if err != nil {
+		return err
+	}
+
+	// Ensure the response body is closed after use.
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			// Log the error if closing the response body fails.
+			fmt.Println("Failed to close response body: ", cerr)
+		}
+	}()
+
+	// Check if the response status code is OK (200).
+	if resp.StatusCode != http.StatusOK {
+		// If not, read the response body and return an error.
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("%s", string(bodyBytes))
+	}
+
+	return nil
+}
+
+func (c *APIClient) CreateDns(dns *object.DNS) error {
+	// Construct the URL for the Pod creation endpoint.
+	url := c.BaseURL + DnsCreateURL
+
+	// Convert the Pod object to JSON to be sent in the request body.
+	dnsJSON, err := json.Marshal(dns)
+	if err != nil {
+		return err
+	}
+
+	// Create a new HTTP POST request with the pod as the body.
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(dnsJSON))
+	if err != nil {
+		return err
+	}
+
+	// Send the request and return the response.
+	resp, err := c.Client.Do(req)
+	if err != nil {
+		return err
+	}
+
+	// Ensure the response body is closed after use.
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			// Log the error if closing the response body fails.
+			fmt.Println("Failed to close response body: ", cerr)
+		}
+	}()
+
+	// Check if the response status code is OK (200).
+	if resp.StatusCode != http.StatusOK {
+		// If not, read the response body and return an error.
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("%s", string(bodyBytes))
+	}
+
+	return nil
+}
+
 func (c *APIClient) GetNodes() ([]object.Kubelet, error) {
 	var nodes []object.Kubelet
 	err := c.getAndUnmarshalList(KubeletGetNodesURL, &nodes)
@@ -146,6 +433,46 @@ func (c *APIClient) CreatePod(pod *object.Pod) error {
 		if cerr := resp.Body.Close(); cerr != nil {
 			// Log the error if closing the response body fails.
 			log.Println("Failed to close response body: ", cerr)
+		}
+	}()
+
+	// Check if the response status code is OK (200).
+	if resp.StatusCode != http.StatusOK {
+		// If not, read the response body and return an error.
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("%s", string(bodyBytes))
+	}
+
+	return nil
+}
+
+func (c *APIClient) CreateReplicaset(replicaset *object.ReplicaSet) error {
+	// Construct the URL for the Pod creation endpoint.
+	url := c.BaseURL + ReplicasetCreateURL
+
+	// Convert the Pod object to JSON to be sent in the request body.
+	replicasetJSON, err := json.Marshal(replicaset)
+	if err != nil {
+		return err
+	}
+
+	// Create a new HTTP POST request with the pod as the body.
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(replicasetJSON))
+	if err != nil {
+		return err
+	}
+
+	// Send the request and return the response.
+	resp, err := c.Client.Do(req)
+	if err != nil {
+		return err
+	}
+
+	// Ensure the response body is closed after use.
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			// Log the error if closing the response body fails.
+			fmt.Println("Failed to close response body: ", cerr)
 		}
 	}()
 
@@ -198,6 +525,83 @@ func (c *APIClient) AssignPodToNode(pod *object.Pod, nodeName string) error {
 		if cerr := resp.Body.Close(); cerr != nil {
 			// Log the error if closing the response body fails.
 			log.Println("Failed to close response body: ", cerr)
+		}
+	}()
+
+	// Check if the response status code is OK (200).
+	if resp.StatusCode != http.StatusOK {
+		// If not, read the response body and return an error.
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("%s", string(bodyBytes))
+	}
+
+	return nil
+}
+
+func HasMatchingLabels(
+	rsLabels, podLabels map[string]string,
+) bool {
+	for key, value := range rsLabels {
+		if podValue, exists := podLabels[key]; exists && podValue == value {
+			return true
+		}
+	}
+	return false
+}
+
+func (c *APIClient) DeleteReplicaset(rsName string) error {
+	rs, err := c.GetReplicasetyName(rsName)
+	if err != nil {
+		return err
+	}
+
+	url := c.BaseURL + ReplicasetDeleteURL
+	pods, err := c.GetPods()
+
+	if err != nil {
+		return err
+	}
+
+	var matchPods []object.Pod
+
+	for _, p := range pods {
+		if HasMatchingLabels(
+			rs.Spec.Template.Metadata.Labels,
+			p.Metadata.Labels,
+		) {
+			matchPods = append(matchPods, p)
+		}
+	}
+
+	for _, p := range matchPods {
+		err = c.DeletePod(&p)
+		if err != nil {
+			return err
+		}
+	}
+
+	rsJSON, err := json.Marshal(rs)
+	if err != nil {
+		return err
+	}
+
+	// Create a new HTTP POST request with the pod as the body.
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(rsJSON))
+	if err != nil {
+		return err
+	}
+
+	// Send the request and return the response.
+	resp, err := c.Client.Do(req)
+	if err != nil {
+		return err
+	}
+
+	// Ensure the response body is closed after use.
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			// Log the error if closing the response body fails.
+			fmt.Println("Failed to close response body: ", cerr)
 		}
 	}()
 
