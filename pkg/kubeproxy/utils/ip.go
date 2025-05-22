@@ -14,7 +14,12 @@ func GetNodeIP() (string, error) {
 		fmt.Println(err)
 		return "", err
 	}
-	defer conn.Close()
+
+	defer func() {
+		if cerr := conn.Close(); cerr != nil {
+			fmt.Println("error closing connection:", cerr)
+		}
+	}()
 
 	// 获取连接的本地地址
 	localAddr := conn.LocalAddr().(*net.UDPAddr)
