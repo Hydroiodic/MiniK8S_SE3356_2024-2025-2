@@ -42,8 +42,8 @@ jobs:
       
       - name: Set up Network
         run: |
-          bash scripts/flannel/install_flannel_master.sh
-      
+            docker network create --attachable=true --subnet=10.5.20.0/24  -o "com.docker.network.bridge.name"="mini-cni0" flannel 
+
       - name: Setup IPVS
         run: |
           bash scripts/ipvs/ipvs.sh
