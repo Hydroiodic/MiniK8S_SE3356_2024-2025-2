@@ -135,8 +135,25 @@ func (p *PodService) StopPod(pod *object.Pod) error {
 		}
 	}
 
+	if pod.Spec.PauseContainerID == "" {
+		// TODO: 会发生吗？
+		log.Printf("Pause container ID is empty")
+	}
+
+	pauseCtrName := utils.FormatContainerName(
+		pod.Metadata.Namespace,
+		pod.Metadata.Name,
+		"pause",
+	)
+
+	pauseCtrId, err := p.CtrService.GetContainerIdByName(pauseCtrName)
+	if err != nil {
+		log.Printf("Failed to get pause container ID: %v", err)
+		return err
+	}
+
 	// Stop Pause Container
-	err := p.CtrService.StopContainer(pod.Spec.PauseContainerID)
+	err = p.CtrService.StopContainer(pauseCtrId)
 	if err != nil {
 		log.Printf("Failed to stop pause container: %v", err)
 		return err
