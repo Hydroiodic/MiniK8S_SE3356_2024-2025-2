@@ -2,19 +2,40 @@ package kubeproxy
 
 import (
 	"encoding/json"
+	"log"
 	"sync"
+	"time"
 
+	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/apiserver"
 	ctr_pod "github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/pod"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubeproxy/ipvs_ops"
+	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/mqtemplate"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
 )
 
 type KubeProxy struct {
-	IpvsOps    ipvs_ops.IpvsOpsInterface
+	IpvsOps   ipvs_ops.IpvsOpsInterface
+	apiClient apiserver.APIClient
+
 	ServiceMap map[string]*object.Service // FIXME: 服务名称到服务对象的映射（不管命名空间了，懒了）
 	PodMap     map[string]*object.Pod
+	syncPeriod time.Duration
 	// 建议加一个锁
 	Mu sync.Mutex
+}
+
+func NewKubeProxy(
+	ipvsOps ipvs_ops.IpvsOpsInterface,
+	apiClient apiserver.APIClient,
+	syncPeriod time.Duration,
+) *KubeProxy {
+	return &KubeProxy{
+		IpvsOps:    ipvsOps,
+		apiClient:  apiClient,
+		ServiceMap: make(map[string]*object.Service),
+		PodMap:     make(map[string]*object.Pod),
+		syncPeriod: syncPeriod,
+	}
 }
 
 func getEndpointsFromPods(pods []*object.Pod) []object.Endpoint {
@@ -104,8 +125,8 @@ func (kp *KubeProxy) DeleteServiceHandler(svc *object.Service) error {
 }
 
 func (kp *KubeProxy) SyncPodsAndServices(
-	pods []*object.Pod,
-	svcs []*object.Service,
+	pods []object.Pod,
+	svcs []object.Service,
 ) {
 	kp.Mu.Lock()
 	defer kp.Mu.Unlock()
@@ -113,7 +134,7 @@ func (kp *KubeProxy) SyncPodsAndServices(
 	// 清空 PodMap，重新填充
 	kp.PodMap = make(map[string]*object.Pod)
 	for _, pod := range pods {
-		kp.PodMap[pod.Metadata.Name] = pod
+		kp.PodMap[pod.Metadata.Name] = &pod
 	}
 
 	// 创建一个新的服务映射，用于增量更新
@@ -169,5 +190,86 @@ func (kp *KubeProxy) SyncPodsAndServices(
 		}
 		// 更新服务映射
 		kp.ServiceMap[name] = svc
+	}
+}
+
+func (kp *KubeProxy) Run(stopCh <-chan struct{}) {
+	// 处理消息队列中的 Service 创建请求
+	go func() {
+		err := mqtemplate.ConsumeMessageOnQueue(
+			mqtemplate.CreateServiceQueueName,
+			func(msg map[string]interface{}) error {
+				// 解析消息体
+				msgBody, _ := json.Marshal(msg)
+
+				var svc object.Service
+				_ = json.Unmarshal(msgBody, &svc)
+
+				// 调用处理函数
+				if err := kp.CreateServiceHandler(&svc); err != nil {
+					log.Printf("Failed to create service: %v", err)
+				}
+
+				log.Printf("Service created: %s", svc.Metadata.Name)
+
+				return nil
+			},
+		)
+		if err != nil {
+			log.Printf("Failed to consume message: %v", err)
+		}
+	}()
+
+	go func() {
+		err := mqtemplate.ConsumeMessageOnQueue(
+			mqtemplate.DeleteServiceQueueName,
+			func(msg map[string]interface{}) error {
+				// 解析消息体
+				msgBody, _ := json.Marshal(msg)
+
+				var svc object.Service
+				_ = json.Unmarshal(msgBody, &svc)
+
+				// 调用处理函数
+				if err := kp.DeleteServiceHandler(&svc); err != nil {
+					log.Printf("Failed to delete service: %v", err)
+				}
+
+				log.Printf("Service deleted: %s", svc.Metadata.Name)
+
+				return nil
+			},
+		)
+		if err != nil {
+			log.Printf("Failed to consume message: %v", err)
+		}
+	}()
+
+	// TODO: 奇怪的立即更新队列
+
+	// 定时拉取最新的 Pod 和 Service 列表
+	ticker := time.NewTicker(kp.syncPeriod)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			// TODO
+			pods, err := kp.apiClient.GetPods()
+			if err != nil {
+				log.Printf("Failed to get pods: %v", err)
+				continue
+			}
+			svcs, err := kp.apiClient.GetServices()
+			if err != nil {
+				log.Printf("Failed to get services: %v", err)
+				continue
+			}
+			// 同步 Pod 和 Service
+			kp.SyncPodsAndServices(pods, svcs)
+		case <-stopCh:
+			log.Println("Stopping KubeProxy...")
+			return
+		}
 	}
 }
