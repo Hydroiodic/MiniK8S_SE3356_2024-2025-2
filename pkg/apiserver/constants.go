@@ -18,4 +18,9 @@ const (
 	ServiceCreateURL = "/service/createService"
 	ServiceGetURL    = "/service/getServices"
 	ServiceDeleteURL = "/service/deleteService"
+
+	// DNS operations.
+	DNSAddURL        = "/dns/addDNS"
+	DNSDeleteURL     = "/dns/deleteDNS"
+	DNSGetResolveURL = "/dns/getDNSResolve"
 )

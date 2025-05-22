@@ -17,5 +17,11 @@ type DNSSpec struct {
 type DNSPath struct {
 	Path        string `yaml:"path"`        // 子路径地址
 	ServiceName string `yaml:"serviceName"` // 对应的 Service 名称
-	ServicePort int    `yaml:"servicePort"` // 对应的 Service 端口
+	ServiceIP   string `yaml:"serviceIP"`   // 对应的 Service IP
+}
+
+// DNSResolveInfo 用于消息队列传递消息
+type DNSResolveInfo struct {
+	Host string // 域名
+	IP   string // IP 地址
 }

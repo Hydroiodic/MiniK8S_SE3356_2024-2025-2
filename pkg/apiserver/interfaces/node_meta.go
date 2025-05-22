@@ -1,7 +1,6 @@
 package interfaces
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 
@@ -41,18 +40,6 @@ func GetNodes(c *gin.Context) {
 		return
 	}
 
-	// Serialize the nodes to JSON.
-	jsonData, err := json.Marshal(nodes)
-	if err != nil {
-		// Failed to serialize nodes, report error.
-		c.JSON(
-			http.StatusInternalServerError,
-			"Failed to serialize nodes: "+err.Error(),
-		)
-
-		return
-	}
-
 	// Send the serialized nodes as a JSON response.
-	c.JSON(http.StatusOK, string(jsonData))
+	c.JSON(http.StatusOK, nodes)
 }
