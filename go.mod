@@ -7,6 +7,7 @@ require (
 	github.com/docker/docker v28.1.1+incompatible
 	github.com/docker/go-connections v0.5.0
 	github.com/google/cadvisor v0.52.1
+	github.com/miekg/dns v1.1.66
 	github.com/moby/ipvs v1.1.0
 	github.com/rabbitmq/amqp091-go v1.10.0
 	github.com/shirou/gopsutil v2.21.11+incompatible
@@ -41,6 +42,9 @@ require (
 	github.com/vishvananda/netns v0.0.2 // indirect
 	golang.org/x/arch v0.8.0 // indirect
 	golang.org/x/crypto v0.37.0 // indirect
+	golang.org/x/mod v0.24.0 // indirect
+	golang.org/x/sync v0.13.0 // indirect
+	golang.org/x/tools v0.32.0 // indirect
 )
 
 require (

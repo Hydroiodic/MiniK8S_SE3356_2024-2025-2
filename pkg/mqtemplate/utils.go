@@ -65,7 +65,7 @@ func SendMessageToQueue(queueName string, body string) error {
 
 func ConsumeMessageOnQueue(
 	queueName string,
-	handler func(msg map[string]interface{}) error,
+	handler func(msg map[string]any) error,
 ) error {
 	// Create connection to RabbitMQ server.
 	conn, err := Connect(RabbitMQUrl)
