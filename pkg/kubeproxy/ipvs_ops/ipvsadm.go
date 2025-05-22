@@ -24,7 +24,15 @@ func IPVSADMAddRealServer(
 	endpointIP string,
 	endpointPort int,
 ) error {
-	output, err := exec.Command("ipvsadm", "-a", "-t", ip+":"+fmt.Sprint(port), "-r", endpointIP+":"+fmt.Sprint(endpointPort), "-m").
+	output, err := exec.Command(
+		"ipvsadm",
+		"-a",
+		"-t",
+		ip+":"+fmt.Sprint(port),
+		"-r",
+		endpointIP+":"+fmt.Sprint(endpointPort),
+		"-m",
+	).
 		Output()
 	if err != nil {
 		return err
@@ -53,7 +61,14 @@ func IPVSADMDelVirtualServer(
 	endpointIP string,
 	endpointPort int,
 ) error {
-	output, err := exec.Command("ipvsadm", "-d", "-t", ip+":"+fmt.Sprint(port), "-r", endpointIP+":"+fmt.Sprint(endpointPort)).
+	output, err := exec.Command(
+		"ipvsadm",
+		"-d",
+		"-t",
+		ip+":"+fmt.Sprint(port),
+		"-r",
+		endpointIP+":"+fmt.Sprint(endpointPort),
+	).
 		Output()
 	if err != nil {
 		return err

@@ -111,6 +111,7 @@ func TestClusterIP(t *testing.T) {
 	clusterIPAddr := fmt.Sprintf("%s:%d", svc.Status.ClusterIP, 8080)
 	output, err := exec.Command("curl", "--max-time", "3", clusterIPAddr).
 		Output()
+
 	if err != nil || !strings.Contains(string(output), "Welcome") {
 		t.Fatalf(
 			"Failed to curl ClusterIP Service: %v, output: %s",
@@ -137,5 +138,6 @@ func TestClusterIP(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to delete pod: %v", err)
 	}
+
 	t.Logf("Pod deleted: %s", pod.Metadata.Name)
 }

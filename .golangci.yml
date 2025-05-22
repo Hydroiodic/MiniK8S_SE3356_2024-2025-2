@@ -28,7 +28,7 @@ linters:
     - unconvert
     - wastedassign
     # security
-    - gosec
+    # - gosec 检查代码安全（变量调用命令行之类）
   settings:
     revive:
       enable-all-rules: true

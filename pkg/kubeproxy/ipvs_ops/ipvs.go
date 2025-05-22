@@ -54,7 +54,7 @@ func (ops *IpvsOps) Close() {
 
 func (ops *IpvsOps) Init() {
 	// 创建ipvs模式需要的dummy网卡
-	createDummyInterface(KUBE_DUMMY_INTERFACE_NAME)
+	_ = createDummyInterface(KUBE_DUMMY_INTERFACE_NAME)
 
 	// 创建表与链名的添加关系
 	iptTable2Chains := map[string][]string{}
@@ -116,7 +116,7 @@ func (ops *IpvsOps) Init() {
 	}
 
 	/** 请求到达宿主机的网络栈（外部客户端访问ClusterIP:Port或者本机通过OUTPUT访问Service） */
-	ops.IptablesClient.AppendUnique(
+	_ = ops.IptablesClient.AppendUnique(
 		"nat",
 		"PREROUTING",
 		"-j",
@@ -126,7 +126,7 @@ func (ops *IpvsOps) Init() {
 		"--comment",
 		"mini-k8s service portals",
 	)
-	ops.IptablesClient.AppendUnique(
+	_ = ops.IptablesClient.AppendUnique(
 		"nat",
 		"OUTPUT",
 		"-j",
@@ -141,7 +141,7 @@ func (ops *IpvsOps) Init() {
 	// 非 ClusterIP 来源的 ClusterIP 流量，标记 SNAT
 	// 跳转到 KUBE-MARK-MASQ 打标记
 	// 保证数据返回时能正确从ClusterIP而不是PodIP回到客户端
-	ops.IptablesClient.AppendUnique(
+	_ = ops.IptablesClient.AppendUnique(
 		"nat",
 		KUBE_SERVICE_CHAIN_NAME,
 		"!",
@@ -163,7 +163,7 @@ func (ops *IpvsOps) Init() {
 	// 目标IP是本节点IP
 	// 如本机Node（Port）访问
 	// 跳转到 KUBE-NODEPORT
-	ops.IptablesClient.AppendUnique(
+	_ = ops.IptablesClient.AppendUnique(
 		"nat",
 		KUBE_SERVICE_CHAIN_NAME,
 		"-m",
@@ -175,7 +175,7 @@ func (ops *IpvsOps) Init() {
 	)
 
 	// ClusterIP下的流量进入IPVS
-	ops.IptablesClient.AppendUnique(
+	_ = ops.IptablesClient.AppendUnique(
 		"nat",
 		KUBE_SERVICE_CHAIN_NAME,
 		"-m",
@@ -190,7 +190,7 @@ func (ops *IpvsOps) Init() {
 	/** KUBE-NODE-PORT */
 	// 如果符合dstPort也符合（Node）Port的访问
 	// 那么跳转到KUBE_MARK_MASQ打上0x10000标记
-	ops.IptablesClient.AppendUnique(
+	_ = ops.IptablesClient.AppendUnique(
 		"nat",
 		KUBE_NODEPORT_CHAIN_NAME,
 		"-m",
@@ -208,7 +208,7 @@ func (ops *IpvsOps) Init() {
 
 	/** MARK-MASQ */
 	// 添加KUBE-MARK-MASQ链的规则，只需要打上0x10000标记
-	ops.IptablesClient.AppendUnique(
+	_ = ops.IptablesClient.AppendUnique(
 		"nat",
 		KUBE_MARK_MASQ_CHAIN_NAME,
 		"-j",
@@ -218,7 +218,7 @@ func (ops *IpvsOps) Init() {
 	)
 
 	// 添加POSTROUTING主链的规则，无条件跳转到KUBE-POSTROUTING链
-	ops.IptablesClient.AppendUnique(
+	_ = ops.IptablesClient.AppendUnique(
 		"nat",
 		"POSTROUTING",
 		"-j",
@@ -237,7 +237,7 @@ func (ops *IpvsOps) Init() {
 	// 准备发往EndPoint
 
 	// 1. Hairpin 流量 属于回环，采取MASQUERADE进行SNAT
-	ops.IptablesClient.AppendUnique(
+	_ = ops.IptablesClient.AppendUnique(
 		"nat",
 		KUBE_POSTROUTING_CHAIN_NAME,
 		"-m",
@@ -254,7 +254,7 @@ func (ops *IpvsOps) Init() {
 	)
 
 	// 2. 无标记，返回主链进行下一条匹配
-	ops.IptablesClient.AppendUnique(
+	_ = ops.IptablesClient.AppendUnique(
 		"nat",
 		KUBE_POSTROUTING_CHAIN_NAME,
 		"-m",
@@ -269,7 +269,7 @@ func (ops *IpvsOps) Init() {
 	// 在NodePort方式下，Kubernetes需要在IP包离开宿主机发往目的Pod时，对源IP进行SNAT处理。
 	// 防止拥有Pod的节点直接返回给Client，而不是通过Client访问的NodeIP。
 	// 对发往其他Node的网络包去除Tag，对源IP进行SNAT
-	ops.IptablesClient.AppendUnique(
+	_ = ops.IptablesClient.AppendUnique(
 		"nat",
 		KUBE_POSTROUTING_CHAIN_NAME,
 		"-j",
@@ -277,7 +277,7 @@ func (ops *IpvsOps) Init() {
 		"--xor-mark",
 		KUBE_MARK_MASQ_VALUE,
 	)
-	ops.IptablesClient.AppendUnique(
+	_ = ops.IptablesClient.AppendUnique(
 		"nat",
 		KUBE_POSTROUTING_CHAIN_NAME,
 		"-j",
@@ -290,11 +290,11 @@ func (ops *IpvsOps) Init() {
 }
 
 func (ops *IpvsOps) Clear() { // 只删除必要的部分！
-	ops.IptablesClient.ClearChain("nat", KUBE_SERVICE_CHAIN_NAME)
-	ops.IptablesClient.ClearChain("nat", KUBE_NODEPORT_CHAIN_NAME)
-	ops.IptablesClient.ClearChain("nat", KUBE_MARK_MASQ_CHAIN_NAME)
-	ops.IptablesClient.ClearChain("nat", KUBE_MARK_DROP_CHAIN_NAME)
-	ops.IptablesClient.ClearChain("nat", KUBE_POSTROUTING_CHAIN_NAME)
+	_ = ops.IptablesClient.ClearChain("nat", KUBE_SERVICE_CHAIN_NAME)
+	_ = ops.IptablesClient.ClearChain("nat", KUBE_NODEPORT_CHAIN_NAME)
+	_ = ops.IptablesClient.ClearChain("nat", KUBE_MARK_MASQ_CHAIN_NAME)
+	_ = ops.IptablesClient.ClearChain("nat", KUBE_MARK_DROP_CHAIN_NAME)
+	_ = ops.IptablesClient.ClearChain("nat", KUBE_POSTROUTING_CHAIN_NAME)
 
 	// 清除所有ipset
 	ipsetSets := []string{
@@ -324,7 +324,7 @@ func (ops *IpvsOps) AddService(svc *object.Service) {
 	fmt.Printf("Add Service \n%s\n\n", string(data))
 
 	// 将clusterIP绑定到dummy网卡
-	bindClusterIPToDummyInterface(
+	_ = bindClusterIPToDummyInterface(
 		KUBE_DUMMY_INTERFACE_NAME,
 		svc.Status.ClusterIP,
 	)
@@ -479,7 +479,7 @@ func (ops *IpvsOps) DelService(svc *object.Service) {
 	fmt.Printf("Delete Service %s\n\n", string(data))
 
 	// 解绑ClusterIP
-	unbindClusterIPFromDummyInterface(
+	_ = unbindClusterIPFromDummyInterface(
 		KUBE_DUMMY_INTERFACE_NAME,
 		svc.Status.ClusterIP,
 	)
@@ -651,7 +651,7 @@ func (ops *IpvsOps) UpdateServiceEps(oldSvc, newSvc *object.Service) {
 
 		// 在ipvs删除ClusterIP:port关于这个ep的DNAT规则
 		if servicePort != (object.ServicePort{}) {
-			IPVSADMDelVirtualServer(
+			_ = IPVSADMDelVirtualServer(
 				clusterIP,
 				servicePort.Port,
 				ep.IP,
@@ -660,7 +660,7 @@ func (ops *IpvsOps) UpdateServiceEps(oldSvc, newSvc *object.Service) {
 
 			// 如果它具有NodePort规则，一并删掉
 			if servicePort.NodePort != 0 {
-				IPVSADMDelVirtualServer(
+				_ = IPVSADMDelVirtualServer(
 					nodeIP,
 					servicePort.NodePort,
 					ep.IP,

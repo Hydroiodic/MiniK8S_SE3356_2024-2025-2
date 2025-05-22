@@ -40,6 +40,7 @@ func NewKubeProxy(
 
 func getEndpointsFromPods(pods []*object.Pod) []object.Endpoint {
 	eps := make([]object.Endpoint, 0)
+
 	for _, pod := range pods {
 		// 跳过无效的Pod
 		if pod.Status.IP == "" || pod.Status.Phase != ctr_pod.PodStatusRunning {
@@ -260,6 +261,7 @@ func (kp *KubeProxy) Run(stopCh <-chan struct{}) {
 				log.Printf("Failed to get pods: %v", err)
 				continue
 			}
+
 			svcs, err := kp.apiClient.GetServices()
 			if err != nil {
 				log.Printf("Failed to get services: %v", err)
