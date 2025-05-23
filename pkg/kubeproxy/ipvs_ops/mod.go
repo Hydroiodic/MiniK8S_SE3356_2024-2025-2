@@ -14,7 +14,7 @@ type IpvsOpsInterface interface {
 	Close()
 	AddService(svc *object.Service)
 	DelService(svc *object.Service)
-	UpdateService(oldSvc *object.Service, newSvc *object.Service)
+	UpdateServiceEps(oldSvc *object.Service, newSvc *object.Service)
 
 	// 以下两个是方便DEBUG查看的方法，实际应该不会用到
 	SaveToFile(

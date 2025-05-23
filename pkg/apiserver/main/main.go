@@ -42,7 +42,7 @@ func declareGinServer() *gin.Engine {
 
 	r.POST(apiserver.ServiceCreateURL, interfaces.CreateService)
 	r.POST(apiserver.ServiceDeleteURL, interfaces.DeleteService)
-	r.POST(apiserver.ServiceGetURL, interfaces.GetAllService)
+	r.GET(apiserver.ServiceGetURL, interfaces.GetAllService)
 	// r.POST("/serviceCheckNow", interfaces.ServiceCheckNow)
 
 	// r.POST("/createReplicasetFromFile", interfaces.CreateReplicaset)

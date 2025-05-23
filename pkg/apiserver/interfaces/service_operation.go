@@ -238,7 +238,7 @@ func GetAllService(c *gin.Context) {
 		}
 	}()
 
-	pods, err := st.ListServices(c.Request.Context())
+	svcs, err := st.ListServices(c.Request.Context())
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -248,12 +248,5 @@ func GetAllService(c *gin.Context) {
 		return
 	}
 
-	if pods == nil {
-		c.JSON(
-			http.StatusNotFound,
-			"No services found",
-		)
-
-		return
-	}
+	c.JSON(http.StatusOK, svcs)
 }
