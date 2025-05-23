@@ -2,7 +2,6 @@ package kubeproxy_test
 
 import (
 	"fmt"
-	"log"
 	"os/exec"
 	"strings"
 	"testing"
@@ -11,6 +10,7 @@ import (
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/container"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/pod"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubeproxy/ipvs_ops"
+	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubeproxy/utils"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
 )
 
@@ -243,27 +243,14 @@ func TestNodePort(t *testing.T) {
 	time.Sleep(1 * time.Second) // 等待服务生效
 
 	// 获取本机IP
-	nodeIP := "127.0.0.1" //nolint
-
-	output, err := exec.Command("hostname", "-I").Output()
-	if err == nil {
-		ips := strings.Fields(string(output))
-		for _, ip := range ips {
-			if ip != "127.0.0.1" && !strings.HasPrefix(ip, "172.") &&
-				!strings.HasPrefix(ip, "10.") {
-				nodeIP = ip
-				break
-			}
-		}
-
-		if nodeIP == "127.0.0.1" && len(ips) > 0 {
-			nodeIP = ips[0]
-		}
+	nodeIP, err := utils.GetNodeIP()
+	if err != nil {
+		t.Fatalf("failed to get node IP: %v", err)
 	}
 
 	nodePortAddr := fmt.Sprintf("%s:%d", nodeIP, nodePort)
 
-	log.Printf("NodePort address: %s", nodePortAddr)
+	t.Logf("NodePort address: %s", nodePortAddr)
 
 	time.Sleep(3 * time.Second) // 等待服务生效
 
