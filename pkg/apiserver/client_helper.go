@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 )
 
@@ -28,7 +29,7 @@ func (c *APIClient) getAndUnmarshalList(urlSuffix string, out any) error {
 	// Ensure the response body is closed after use.
 	defer func() {
 		if cerr := resp.Body.Close(); cerr != nil {
-			fmt.Println("Failed to close response body: ", cerr)
+			log.Println("Failed to close response body: ", cerr)
 		}
 	}()
 

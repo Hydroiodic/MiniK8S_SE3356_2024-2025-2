@@ -31,7 +31,7 @@ func main() {
 
 	// Run DNS server
 	server := &dns.Server{
-		Addr:    ":5333",
+		Addr:    ":53",
 		Net:     "udp",
 		UDPSize: 65535,
 	}
