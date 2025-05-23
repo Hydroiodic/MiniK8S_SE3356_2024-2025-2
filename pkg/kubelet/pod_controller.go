@@ -302,6 +302,7 @@ func (c *PodController) Reconcile(
 					ctr.Name,
 					key,
 				)
+
 				continue
 			}
 		}
