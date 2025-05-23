@@ -16,7 +16,7 @@ const (
 
 	// TODO: Service operations.
 	ServiceCreateURL = "/service/createService"
-	ServiceGetURL    = "/service/getServices"
+	ServiceGetURL    = "/service/getServices" // GetAllService
 	ServiceDeleteURL = "/service/deleteService"
 
 	// DNS operations.

@@ -15,7 +15,7 @@ import (
 
 type KubeProxy struct {
 	IpvsOps   ipvs_ops.IpvsOpsInterface
-	apiClient apiserver.APIClient
+	apiClient *apiserver.APIClient
 
 	ServiceMap map[string]*object.Service // FIXME: 服务名称到服务对象的映射（不管命名空间了，懒了）
 	PodMap     map[string]*object.Pod
@@ -26,7 +26,7 @@ type KubeProxy struct {
 
 func NewKubeProxy(
 	ipvsOps ipvs_ops.IpvsOpsInterface,
-	apiClient apiserver.APIClient,
+	apiClient *apiserver.APIClient,
 	syncPeriod time.Duration,
 ) *KubeProxy {
 	return &KubeProxy{
@@ -187,7 +187,7 @@ func (kp *KubeProxy) SyncPodsAndServices(
 			kp.IpvsOps.AddService(svc)
 		} else {
 			// 如果服务已存在，更新其 Endpoints
-			kp.IpvsOps.UpdateService(kp.ServiceMap[name], svc)
+			kp.IpvsOps.UpdateServiceEps(kp.ServiceMap[name], svc)
 		}
 		// 更新服务映射
 		kp.ServiceMap[name] = svc
