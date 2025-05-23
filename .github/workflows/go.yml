@@ -43,6 +43,15 @@ jobs:
       - name: Set up Network
         run: |
             docker network create --attachable=true --subnet=10.5.20.0/24  -o "com.docker.network.bridge.name"="mini-cni0" flannel 
+      
+      - uses: actions/checkout@v4
+      - name: Cache APT packages
+        uses: actions/cache@v4
+        with:
+          path: /var/cache/apt/archives
+          key: ${{ runner.os }}-apt-${{ hashFiles('**/scripts/ipvs/ipvs.sh') }}
+          restore-keys: |
+            ${{ runner.os }}-apt-
 
       - name: Setup IPVS
         run: |
