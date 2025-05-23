@@ -54,20 +54,26 @@ func (c *PodStatusController) updatePodStatus() {
 
 	log.Printf("Updating pod status for pods: %v", utils.ExtractPodNames(pods))
 
-	for _, pod := range pods { //nolint
-		// status, err := c.podService.GetPodStatus(&pod)
-		// if err != nil {
-		// 	log.Printf(
-		// 		"Failed to get status for pod %s/%s: %v",
-		// 		pod.Metadata.Name,
-		// 		pod.Metadata.Namespace,
-		// 		err,
-		// 	)
+	for i, pod := range pods {
+		status, err := c.podService.GetPodStatus(&pod)
+		if err != nil {
+			log.Printf(
+				"Failed to get status for pod %s/%s: %v",
+				pod.Metadata.Name,
+				pod.Metadata.Namespace,
+				err,
+			)
+		}
 
-		// 	continue
-		// }
+		log.Printf(
+			"Pod %s/%s status: %s",
+			pod.Metadata.Name,
+			pod.Metadata.Namespace,
+			status,
+		)
+
 		// 尝试重启
-		err := c.podService.AutoRestartPod(&pod)
+		err = c.podService.AutoRestartPod(&pod)
 		if err != nil {
 			log.Printf(
 				"Failed to restart pod %s/%s: %v",
@@ -79,11 +85,11 @@ func (c *PodStatusController) updatePodStatus() {
 			continue
 		}
 
-		// c.kubelet.Mu.Lock()
-		// // 填写Pod的状态
-		// c.kubelet.Pods[i].Status.Phase = status
-		// c.kubelet.Mu.Unlock()
-	} //nolint
+		c.kubelet.Mu.Lock()
+		// 填写Pod的状态
+		c.kubelet.Pods[i].Status.Phase = status
+		c.kubelet.Mu.Unlock()
+	}
 
 	// TODO：上报状态到 API Server
 	// 上报 kubelet 状态
