@@ -15,10 +15,10 @@ spec:
       port: 80
       targetPort: 80
       nodePort: 30080
-status:
-  clusterIP: 10.96.123.45
-  endpoints:
-    - ip: 172.17.0.2
-      port: 80
-    - ip: 172.17.0.3
-      port: 80
+# status:
+#   clusterIP: 10.96.123.45 # 运行时自动生成
+#   endpoints:
+#     - ip: 172.17.0.2 # 运行时自动生成
+#       port: 80 # 运行时自动生成
+#     - ip: 172.17.0.3 # 运行时自动生成
+#       port: 80 # 运行时自动生成

@@ -128,6 +128,7 @@ func (kp *KubeProxy) SyncPodsAndServices(
 	pods []object.Pod,
 	svcs []object.Service,
 ) {
+	log.Printf("Syncing %d pods and %d services", len(pods), len(svcs))
 	kp.Mu.Lock()
 	defer kp.Mu.Unlock()
 
@@ -161,6 +162,12 @@ func (kp *KubeProxy) SyncPodsAndServices(
 				managedEps = append(managedEps, newEps...)
 			}
 		}
+
+		log.Printf(
+			"Service %s has %d endpoints",
+			svc.Metadata.Name,
+			len(managedEps),
+		)
 
 		// 深拷贝 Service 并更新 Endpoints
 		data, _ := json.Marshal(&svc)

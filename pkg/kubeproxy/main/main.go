@@ -11,6 +11,11 @@ import (
 
 func main() {
 	ipvsOps := ipvs_ops.NewIpvsOps(ipvs_ops.CLUSTER_CIDR_DEFAULT)
+	ipvsOps.Clear()
+	ipvsOps.Init()
+
+	defer ipvsOps.Close()
+
 	apiClient := apiserver.NewAPIClient("")
 
 	kubeProxy := kubeproxy.NewKubeProxy(

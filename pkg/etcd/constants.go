@@ -10,6 +10,7 @@ const (
 	ResourcePrefix      = "/minik8s/resources/"
 	ClusterIPPrefix     = "/minik8s/inner/cluster-ip/"
 	DNSPrefix           = "/minik8s/dns/"
+	ServicePrefix       = "/minik8s/services/"
 	defaultEtcdEndpoint = "localhost:2379"
 	defaultTimeout      = 5 * time.Second
 	emptyLength         = 0

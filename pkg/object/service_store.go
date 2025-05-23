@@ -8,9 +8,6 @@ import (
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/etcd"
 )
 
-// ServicePrefix 是存储 Service 对象的前缀，和 PodPrefix 类似
-const ServicePrefix = "/miniK8s/services"
-
 // ServiceStore 提供对 Service 元数据的增删改查
 type ServiceStore struct {
 	etcdClient *etcd.Client
@@ -33,7 +30,7 @@ func (s *ServiceStore) Close() error {
 
 // key 根据 Service 的 Namespace 和 Name 生成在 Etcd 中的存储路径
 func (s *ServiceStore) key(namespace, name string) string {
-	return path.Join(ServicePrefix, namespace, name)
+	return path.Join(etcd.ServicePrefix, namespace, name)
 }
 
 // AddService 将 Service 元数据存储到 Etcd
@@ -93,7 +90,7 @@ func (s *ServiceStore) DeleteService(
 func (s *ServiceStore) ListServices(
 	ctx context.Context,
 ) ([]*Service, error) {
-	kvs, err := s.etcdClient.List(ctx, ServicePrefix)
+	kvs, err := s.etcdClient.List(ctx, etcd.ServicePrefix)
 	if err != nil {
 		return nil, err
 	}
@@ -117,7 +114,7 @@ func (s *ServiceStore) ListServicesInNamespace(
 	ctx context.Context,
 	namespace string,
 ) ([]*Service, error) {
-	kvs, err := s.etcdClient.List(ctx, path.Join(ServicePrefix, namespace))
+	kvs, err := s.etcdClient.List(ctx, path.Join(etcd.ServicePrefix, namespace))
 	if err != nil {
 		return nil, err
 	}
