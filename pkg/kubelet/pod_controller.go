@@ -177,7 +177,7 @@ func (c *PodController) Reconcile(
 	for _, pod := range desiredPods {
 		key := utils.GeneratePodNsNameLabel(
 			pod.Metadata.Namespace,
-			pod.Metadata.Namespace,
+			pod.Metadata.Name,
 		)
 		desiredMap[key] = pod
 	}
@@ -186,7 +186,7 @@ func (c *PodController) Reconcile(
 	for _, pod := range currentPods {
 		key := utils.GeneratePodNsNameLabel(
 			pod.Metadata.Namespace,
-			pod.Metadata.Namespace,
+			pod.Metadata.Name,
 		)
 		currentMap[key] = pod
 	}
@@ -281,7 +281,11 @@ func (c *PodController) Reconcile(
 		currPod, exists := currentMap[key]
 
 		if !exists {
-			log.Printf("Error: Pod %s not found in current pods after reconcile", key)
+			log.Printf(
+				"Error: Pod %s not found in current pods after reconcile",
+				key,
+			)
+
 			continue
 		}
 
