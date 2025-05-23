@@ -485,10 +485,14 @@ func (cs *ContainerService) GetContainersByLabels(
 			}
 		}
 
+		// TODO: 为了兼容性，这里特事特办，解析一下名称
+		containerName := strings.TrimPrefix(container.Names[0], "/")
+		_, _, containerName = utils.ParseContainerName(containerName)
+
 		if matches {
 			result = append(result, object.Container{
 				ID:      container.ID,
-				Name:    strings.TrimPrefix(container.Names[0], "/"),
+				Name:    containerName,
 				Image:   ctrInfo.Config.Image,
 				Command: ctrInfo.Config.Cmd,
 				// TODO: 如何重建Ports和Limits？
@@ -505,11 +509,18 @@ func (cs *ContainerService) GetContainerInspectsByLabels(
 ) ([]*container.InspectResponse, error) {
 	ctx := context.Background()
 
-	// 获取所有容器
+	// 构建 label 过滤器
+	filterArgs := filters.NewArgs()
+	for key, value := range labels {
+		filterArgs.Add("label", fmt.Sprintf("%s=%s", key, value))
+	}
+
+	// 获取所有匹配标签的容器
 	containers, err := cs.client.ContainerList(
 		ctx,
 		container.ListOptions{
-			All: true,
+			All:     true,
+			Filters: filterArgs,
 		},
 	)
 	if err != nil {
@@ -519,25 +530,12 @@ func (cs *ContainerService) GetContainerInspectsByLabels(
 	var result []*container.InspectResponse
 
 	for _, container := range containers {
-		// 获取容器的标签
 		ctrInfo, err := cs.client.ContainerInspect(ctx, container.ID)
 		if err != nil {
 			return nil, fmt.Errorf("无法获取容器 %s 信息: %v", container.ID, err)
 		}
 
-		// 检查标签是否匹配
-		matches := true
-
-		for key, value := range labels {
-			if ctrInfo.Config.Labels[key] != value {
-				matches = false
-				break
-			}
-		}
-
-		if matches {
-			result = append(result, &ctrInfo)
-		}
+		result = append(result, &ctrInfo)
 	}
 
 	return result, nil

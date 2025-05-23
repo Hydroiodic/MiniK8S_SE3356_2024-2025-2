@@ -197,8 +197,8 @@ func (p *PodService) DeletePod(pod *object.Pod) error {
 func (p *PodService) GetPodStatus(pod *object.Pod) (string, error) {
 	log.Printf(
 		"Getting status for pod %s/%s",
-		pod.Metadata.Name,
 		pod.Metadata.Namespace,
+		pod.Metadata.Name,
 	)
 	log.Printf("Pod :%v", pod)
 	pauseCtrName := utils.FormatContainerName(
@@ -217,7 +217,7 @@ func (p *PodService) GetPodStatus(pod *object.Pod) (string, error) {
 
 	// 收集所有容器的状态
 	containerInfos := make(
-		[]container.InspectResponse,
+		[]string,
 		len(pod.Spec.Containers),
 	)
 
@@ -250,7 +250,7 @@ func (p *PodService) GetPodStatus(pod *object.Pod) (string, error) {
 			return PodStatusUnknown, err
 		}
 
-		containerInfos = append(containerInfos, info)
+		containerInfos = append(containerInfos, info.State.Status)
 	}
 
 	// 通过容器的状态来判断 Pod 的状态
@@ -259,28 +259,30 @@ func (p *PodService) GetPodStatus(pod *object.Pod) (string, error) {
 	abnormalExit := false
 
 	for _, info := range containerInfos {
-		if info.State.Status != ctr_runtime.ContainerStateCreated {
+		log.Printf("INFO: %v", info)
+
+		if info != ctr_runtime.ContainerStateCreated {
 			allCreated = false
 		}
 
-		if info.State.Status != ctr_runtime.ContainerStateExited {
+		if info != ctr_runtime.ContainerStateExited {
 			allStopped = false
 		}
 
-		if info.State.Status == ctr_runtime.ContainerStateExited &&
-			info.State.ExitCode != 0 {
-			log.Printf(
-				"Container %s exited with abnormal code: %d",
-				info.Name,
-				info.State.ExitCode,
-			)
-			// 记录异常退出的容器
-			abnormalExit = true
-		}
+		// if info == ctr_runtime.ContainerStateExited  &&
+		// info.State.ExitCode != 0 {
+		// log.Printf(
+		// 	"Container %s exited with abnormal code: %d",
+		// 	info.Name,
+		// 	info.State.ExitCode,
+		// )
+		// 记录异常退出的容器
+		// 	abnormalExit = true
+		// }
 
 		// 如果至少有一个容器处于 Running 状态
 		// 则 Pod 处于 Running 状态
-		if info.State.Status == ctr_runtime.ContainerStateRunning {
+		if info == ctr_runtime.ContainerStateRunning {
 			return PodStatusRunning, nil
 		}
 	}
@@ -339,6 +341,9 @@ func (p *PodService) ListPods() ([]object.Pod, error) {
 			return nil, err
 		}
 
+		// 去除 pauseCtr.Labels 中的 IsPauseLabelKey
+		delete(pauseCtr.Labels, utils.IsPauseLabelKey)
+
 		pod := object.Pod{
 			Metadata: object.Metadata{
 				Namespace: podNs,
@@ -363,12 +368,15 @@ func (p *PodService) ListPods() ([]object.Pod, error) {
 func (p *PodService) AutoRestartPod(
 	pod *object.Pod,
 ) error {
+	log.Printf("Pod Labels: %v", pod.Metadata.Labels)
 	// 构建 Pod 内容器的标签
 	ctrLabels := utils.NewLabelForOtherContainer(
 		pod.Metadata.Namespace,
 		pod.Metadata.Name,
-		pod.Metadata.Labels,
+		map[string]string{}, // TODO: 从Pause恢复Pod的Labels时可能出错
 	)
+
+	log.Printf("Container Labels: %v", ctrLabels)
 
 	// 获取相应的所有容器
 	ctrInspects, err := p.CtrService.GetContainerInspectsByLabels(
@@ -380,12 +388,32 @@ func (p *PodService) AutoRestartPod(
 		return err
 	}
 
+	// 若Pod中存在尚未创建的容器，删除Pod并重新创建
+	// TODO: 其实挺难发生的
+	for ctr := range pod.Spec.Containers {
+		if pod.Spec.Containers[ctr].ID == "" {
+			log.Printf(
+				"Container %s is not created yet",
+				pod.Spec.Containers[ctr].Name,
+			)
+
+			_ = p.DeletePod(pod)
+			_ = p.CreatePod(pod)
+		}
+	}
+
 	// TODO: 处理重启策略
 	restartPolicy := pod.Spec.RestartPolicy
 	// 遍历所有容器，依据状态进行重启
 	for _, inspect := range ctrInspects {
 		status := inspect.State.Status
 		exitCode := inspect.State.ExitCode
+		log.Printf(
+			"Container %s\n status: %s, exit code: %d",
+			inspect.Name,
+			status,
+			exitCode,
+		)
 
 		switch restartPolicy {
 		case "Always", "":

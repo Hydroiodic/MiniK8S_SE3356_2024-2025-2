@@ -15,13 +15,19 @@ func FormatContainerName(
 	return podNs + "_" + podName + "_" + containerName
 }
 
+/**
+ * @description: 解析容器名称，返回命名空间、Pod 名称和容器名称
+ * @param {string} containerName
+ * @return {string, string, string}
+ * @如果容器名称格式不正确，返回容器名称本身
+ */
 func ParseContainerName(
 	containerName string,
 ) (string, string, string) {
 	// 解析容器名称
 	parts := strings.Split(containerName, "_")
 	if len(parts) < 3 {
-		return "", "", ""
+		return "", "", containerName
 	}
 
 	// 获取命名空间、Pod 名称和容器名称
