@@ -70,7 +70,7 @@ func (rsc *ReplicasetController) DeletePod(
 
 func (rsc *ReplicasetController) CheckAllReplicaset() {
 
-	ci := client.NewAPIClient("http://localhost:8080")
+	ci := client.NewAPIClient("")
 
 	var replicasets []object.ReplicaSet
 
