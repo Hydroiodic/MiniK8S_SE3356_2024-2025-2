@@ -26,10 +26,6 @@ func KubeletRegister(c *gin.Context) {
 		return
 	}
 
-	// Register kubelet to apiserver, write into etcd.
-	log.Println("Kubelet registering: ", kubelet.Config.Name)
-	kubelet.Pods = nil // TODO: is this necessary?
-
 	// Create a new etcd connection for kubelet registration.
 	st, err := object.NewKubeletStore([]string{})
 	if err != nil {
@@ -48,6 +44,41 @@ func KubeletRegister(c *gin.Context) {
 			log.Printf("Failed to close kubelet store: %v\n", closeErr)
 		}
 	}()
+
+	// Try to get the kubelet object from etcd.
+	oldKubelet, err := st.GetKubelet(
+		c.Request.Context(),
+		kubelet.Config.Name,
+	)
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			"Failed to get kubelet: "+err.Error(),
+		)
+
+		return
+	}
+
+	if oldKubelet != nil {
+		// If the kubelet already exists, use the same pod list.
+		kubelet.Pods = oldKubelet.Pods
+		// Register kubelet to apiserver, write into etcd.
+		log.Printf(
+			"Kubelet already exists: %s, use the previous pod list\n",
+			kubelet.Config.Name,
+		)
+	} else {
+		// If the kubelet doesn't exist, create an empty pod list.
+		// NOTE: this operation is for data sync. We cannot use the existing pod list.
+		kubelet.Pods = make([]object.Pod, 0)
+		log.Printf(
+			"Registering kubelet %s with an empty pod list\n",
+			kubelet.Config.Name,
+		)
+	}
+
+	// Update the kubelet's last update time.
+	kubelet.Heartbeat()
 
 	// Write the kubelet object to etcd.
 	if err := st.AddKubelet(c.Request.Context(), &kubelet); err != nil {
