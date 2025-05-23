@@ -281,24 +281,23 @@ func (c *PodController) Reconcile(
 		currPod, exists := currentMap[key]
 
 		if !exists {
-			log.Fatalf("Pod %s not found in current pods after reconcile", key)
+			log.Printf("Error: Pod %s not found in current pods after reconcile", key)
 			continue
 		}
 
 		if currPod.Spec.PauseContainerID == "" {
-			log.Fatalf("Pod %s is not running after reconcile", key)
+			log.Printf("Error: Pod %s is not running after reconcile", key)
 			continue
 		}
 
 		// 检查所有容器的ContainerID 是否存在
 		for _, ctr := range currPod.Spec.Containers {
 			if ctr.ID == "" {
-				log.Fatalf(
-					"Container %s in pod %s is not running after reconcile",
+				log.Printf(
+					"Error: Container %s in pod %s is not running after reconcile",
 					ctr.Name,
 					key,
 				)
-
 				continue
 			}
 		}
