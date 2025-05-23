@@ -1,9 +1,10 @@
 package interfaces
 
 import (
-	"fmt"
+	"log"
 	"net/http"
 	"path"
+	"time"
 
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/etcd"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/mqtemplate"
@@ -53,11 +54,11 @@ func AssignPodToNode(c *gin.Context) {
 	defer func() {
 		// Close PodStore.
 		if closeErr := st.Close(); closeErr != nil {
-			fmt.Printf("Failed to close pod store: %v\n", closeErr)
+			log.Printf("Failed to close pod store: %v\n", closeErr)
 		}
 		// Close KubeletStore.
 		if closeErr := ks.Close(); closeErr != nil {
-			fmt.Printf("Failed to close kubelet store: %v\n", closeErr)
+			log.Printf("Failed to close kubelet store: %v\n", closeErr)
 		}
 	}()
 
@@ -78,7 +79,7 @@ func AssignPodToNode(c *gin.Context) {
 
 	// If the pod already exists, return an error.
 	if reply != nil {
-		fmt.Println("Create pod from file failed: same pod namespace & name")
+		log.Println("Create pod from file failed: same pod namespace & name")
 		c.JSON(
 			http.StatusConflict,
 			"Create pod from file failed: same pod namespace & name",
@@ -111,7 +112,9 @@ func AssignPodToNode(c *gin.Context) {
 		return
 	}
 
-	// TODO: update the status of the pod to "Creating".
+	// Update the status of the pod to "Creating".
+	pod.Status.Phase = object.PodCreating
+	pod.Status.StartTime = time.Now()
 
 	// Update the kubelet object with the pod information.
 	kubelet.Pods = append(kubelet.Pods, pod)
@@ -201,7 +204,7 @@ func CreatePod(c *gin.Context) {
 	// Ensure the PodStore is closed after use.
 	defer func() {
 		if closeErr := st.Close(); closeErr != nil {
-			fmt.Printf("Failed to close pod store: %v\n", closeErr)
+			log.Printf("Failed to close pod store: %v\n", closeErr)
 		}
 	}()
 
@@ -222,7 +225,7 @@ func CreatePod(c *gin.Context) {
 
 	// If the pod already exists, return an error.
 	if reply != nil {
-		fmt.Println("Create pod from file failed: same pod namespace & name")
+		log.Println("Create pod from file failed: same pod namespace & name")
 		c.JSON(
 			http.StatusConflict,
 			"Create pod from file failed: same pod namespace & name",
@@ -278,7 +281,7 @@ func GetPods(c *gin.Context) {
 	// Ensure the PodStore is closed after use.
 	defer func() {
 		if closeErr := st.Close(); closeErr != nil {
-			fmt.Printf("Failed to close pod store: %v\n", closeErr)
+			log.Printf("Failed to close pod store: %v\n", closeErr)
 		}
 	}()
 
@@ -305,8 +308,26 @@ func DeletePod(c *gin.Context) {
 		return
 	}
 
-	// Ensure the pod exists in etcd.
-	st, err := object.NewPodStore([]string{})
+	// Create KubeletStore and check for errors.
+	kubeletStore, err := object.NewKubeletStore([]string{})
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			"Failed to create kubelet store: "+err.Error(),
+		)
+
+		return
+	}
+
+	// Ensure the KubeletStore is closed after use.
+	defer func() {
+		if closeErr := kubeletStore.Close(); closeErr != nil {
+			log.Printf("Failed to close kubelet store: %v\n", closeErr)
+		}
+	}()
+
+	// Create PodStore and check for errors.
+	podStore, err := object.NewPodStore([]string{})
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -318,29 +339,45 @@ func DeletePod(c *gin.Context) {
 
 	// Ensure the PodStore is closed after use.
 	defer func() {
-		if closeErr := st.Close(); closeErr != nil {
-			fmt.Printf("Failed to close pod store: %v\n", closeErr)
+		if closeErr := podStore.Close(); closeErr != nil {
+			log.Printf("Failed to close pod store: %v\n", closeErr)
 		}
 	}()
 
-	// Check if the pod exists in etcd.
-	reply, err := st.GetPod(
-		c.Request.Context(),
-		pod.Metadata.Namespace,
-		pod.Metadata.Name,
-	)
+	// List all kubelets in etcd.
+	kubelets, err := kubeletStore.ListKubelets(c.Request.Context())
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
-			"Failed to get pod from etcd: "+err.Error(),
+			"Failed to list kubelets from etcd: "+err.Error(),
 		)
 
 		return
 	}
 
-	// If the pod does not exist, return an error.
-	if reply == nil {
-		fmt.Println("Delete pod failed: pod not found")
+	// Find the kubelet that contains the pod to be deleted.
+	var (
+		kubelet     *object.Kubelet = nil
+		podToUpdate *object.Pod     = nil
+	)
+
+	for _, k := range kubelets {
+		for i := range k.Pods {
+			if k.Pods[i].Metadata.Name == pod.Metadata.Name &&
+				k.Pods[i].Metadata.Namespace == pod.Metadata.Namespace {
+				// Update the status of the pod to "Deleting".
+				k.Pods[i].Status.Phase = object.PodDeleting
+				// Assign the kubelet to the variable.
+				kubelet = k
+				podToUpdate = &k.Pods[i]
+
+				break
+			}
+		}
+	}
+
+	// If not found, return an error.
+	if kubelet == nil {
 		c.JSON(
 			http.StatusNotFound,
 			"Delete pod failed: pod not found",
@@ -349,10 +386,29 @@ func DeletePod(c *gin.Context) {
 		return
 	}
 
-	// TODO: update the status of the pod to "Deleting".
+	// Update the pod object in etcd.
+	if err := podStore.UpdatePod(c.Request.Context(), podToUpdate); err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			"Failed to update pod in etcd: "+err.Error(),
+		)
+
+		return
+	}
+
+	// Update the kubelet object in etcd.
+	// TODO: data race may happen here.
+	if err := kubeletStore.UpdateKubelet(c.Request.Context(), kubelet); err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			"Failed to update kubelet in etcd: "+err.Error(),
+		)
+
+		return
+	}
 
 	// Create a message for deleting the pod.
-	msg, err := mqtemplate.CreatePodMessage(pod)
+	msg, err := mqtemplate.CreatePodMessage(*podToUpdate)
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -363,11 +419,12 @@ func DeletePod(c *gin.Context) {
 	}
 
 	// Send a message to the queue to delete the pod.
-	err = mqtemplate.SendMessageToQueue(
+	// NOTE: the name of the queue is `KubeletDeletePodQueue/nodeName`.
+	queueName := path.Join(
 		mqtemplate.KubeletDeletePodQueue,
-		msg,
+		kubelet.Config.Name,
 	)
-	if err != nil {
+	if err := mqtemplate.SendMessageToQueue(queueName, msg); err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
 			"Failed to send message to queue: "+err.Error(),
@@ -376,48 +433,5 @@ func DeletePod(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusOK, "Pod deletion requested: "+pod.Metadata.Name)
-}
-
-func DeletePodFromEtcd(c *gin.Context) {
-	// Parse the JSON body into a Pod object.
-	var pod object.Pod
-	if err := c.BindJSON(&pod); err != nil {
-		c.JSON(http.StatusBadRequest, "Invalid JSON: "+err.Error())
-		return
-	}
-
-	// Create PodStore and check for errors.
-	st, err := object.NewPodStore([]string{})
-	if err != nil {
-		c.JSON(
-			http.StatusInternalServerError,
-			"Failed to create pod store: "+err.Error(),
-		)
-
-		return
-	}
-
-	// Ensure the PodStore is closed after use.
-	defer func() {
-		if closeErr := st.Close(); closeErr != nil {
-			fmt.Printf("Failed to close pod store: %v\n", closeErr)
-		}
-	}()
-
-	// Delete the pod from etcd.
-	if err := st.DeletePod(
-		c.Request.Context(),
-		pod.Metadata.Namespace,
-		pod.Metadata.Name,
-	); err != nil {
-		c.JSON(
-			http.StatusInternalServerError,
-			"Failed to delete pod from etcd: "+err.Error(),
-		)
-
-		return
-	}
-
-	c.JSON(http.StatusOK, "Pod deleted: "+pod.Metadata.Name)
+	c.JSON(http.StatusOK, "Pod deletion requested: "+podToUpdate.Metadata.Name)
 }

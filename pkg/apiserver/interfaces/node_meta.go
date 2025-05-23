@@ -1,7 +1,7 @@
 package interfaces
 
 import (
-	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
@@ -24,7 +24,7 @@ func GetNodes(c *gin.Context) {
 	// Ensure the kubelet store is closed after use.
 	defer func() {
 		if closeErr := st.Close(); closeErr != nil {
-			fmt.Printf("Failed to close kubelet store: %v\n", closeErr)
+			log.Printf("Failed to close kubelet store: %v\n", closeErr)
 		}
 	}()
 

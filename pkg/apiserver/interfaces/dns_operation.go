@@ -46,7 +46,7 @@ func AddDNS(c *gin.Context) {
 	// Ensure the DNS store is closed after use.
 	defer func() {
 		if closeErr := st.Close(); closeErr != nil {
-			fmt.Printf("Failed to close DNS store: %v\n", closeErr)
+			log.Printf("Failed to close DNS store: %v\n", closeErr)
 		}
 	}()
 
@@ -157,7 +157,7 @@ func DeleteSingleDNS(c *gin.Context) {
 	// Ensure the DNS store is closed after use.
 	defer func() {
 		if closeErr := st.Close(); closeErr != nil {
-			fmt.Printf("Failed to close DNS store: %v\n", closeErr)
+			log.Printf("Failed to close DNS store: %v\n", closeErr)
 		}
 	}()
 
@@ -254,7 +254,7 @@ func GetDNSResolve(c *gin.Context) {
 	// Ensure the DNS store is closed after use.
 	defer func() {
 		if closeErr := st.Close(); closeErr != nil {
-			fmt.Printf("Failed to close DNS store: %v\n", closeErr)
+			log.Printf("Failed to close DNS store: %v\n", closeErr)
 		}
 	}()
 

@@ -59,3 +59,11 @@ type PodStatus struct {
 	Conditions []string  `yaml:"conditions"` // 状态条件
 	IP         string    `yaml:"ip"`         // Pod IP 地址
 }
+
+const (
+	PodStatusPhase = ""
+	PodCreating    = "Creating"
+	PodRunning     = "Running"
+	PodDeleting    = "Deleting"
+	PodDeleted     = "Deleted"
+)

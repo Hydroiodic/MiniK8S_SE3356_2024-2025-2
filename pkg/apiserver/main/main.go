@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	"log"
 	"time"
 
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/apiserver"
@@ -18,7 +18,6 @@ func declareGinServer() *gin.Engine {
 	r.POST(apiserver.KubeletRegisterURL, interfaces.KubeletRegister)
 	r.POST(apiserver.KubeletHeartbeatURL, interfaces.KubeletHeartbeat)
 	r.GET(apiserver.KubeletGetNodesURL, interfaces.GetNodes)
-	r.POST(apiserver.KubeletDeletePodURL, interfaces.DeletePodFromEtcd)
 
 	// Pod operations.
 	r.POST(apiserver.PodCreateURL, interfaces.CreatePod)
@@ -80,7 +79,7 @@ func checkTimeout() {
 		// Check if the kubelet has timed out.
 		if err := interfaces.CheckKubeletTimeout(); err != nil {
 			// If there is an error, print it.
-			fmt.Println(err)
+			log.Println(err)
 		}
 
 		// Sleep for 10 seconds before checking again.
