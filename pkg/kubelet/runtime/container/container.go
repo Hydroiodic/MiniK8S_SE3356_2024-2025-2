@@ -487,9 +487,11 @@ func (cs *ContainerService) GetContainersByLabels(
 
 		if matches {
 			result = append(result, object.Container{
-				ID:     container.ID,
-				Name:   strings.TrimPrefix(container.Names[0], "/"),
-				Image:  ctrInfo.Config.Image,
+				ID:      container.ID,
+				Name:    strings.TrimPrefix(container.Names[0], "/"),
+				Image:   ctrInfo.Config.Image,
+				Command: ctrInfo.Config.Cmd,
+				// TODO: 如何重建Ports和Limits？
 				Labels: ctrInfo.Config.Labels,
 			})
 		}

@@ -149,6 +149,7 @@ func (c *PodController) SyncPods() {
 
 	log.Printf("Current pods: %v", len(currentPods))
 
+	// TODO: DesiredPods 会缺少字段，不要使用这个直接对 Kubelet 进行更新
 	desiredPods, err := c.apiClient.FetchPods(c.kubelet.Config.Name)
 
 	useCache := false
@@ -176,7 +177,7 @@ func (c *PodController) Reconcile(
 	for _, pod := range desiredPods {
 		key := utils.GeneratePodNsNameLabel(
 			pod.Metadata.Namespace,
-			pod.Metadata.Namespace,
+			pod.Metadata.Name,
 		)
 		desiredMap[key] = pod
 	}
@@ -185,7 +186,7 @@ func (c *PodController) Reconcile(
 	for _, pod := range currentPods {
 		key := utils.GeneratePodNsNameLabel(
 			pod.Metadata.Namespace,
-			pod.Metadata.Namespace,
+			pod.Metadata.Name,
 		)
 		currentMap[key] = pod
 	}
@@ -214,6 +215,22 @@ func (c *PodController) Reconcile(
 
 				continue
 			}
+
+			c.kubelet.Mu.Lock()
+			// 从 Kubelet 的 Pod 列表中删除
+			for i, p := range c.kubelet.Pods {
+				if p.Metadata.Name == pod.Metadata.Name &&
+					p.Metadata.Namespace == pod.Metadata.Namespace {
+					c.kubelet.Pods = append(
+						c.kubelet.Pods[:i],
+						c.kubelet.Pods[i+1:]...,
+					)
+
+					break
+				}
+			}
+			c.kubelet.Mu.Unlock()
+			log.Printf("Pod deleted: %s", pod.Metadata.Name)
 		}
 	}
 
@@ -222,15 +239,72 @@ func (c *PodController) Reconcile(
 		if _, exists := currentMap[key]; !exists {
 			log.Printf("Creating pod %s (cache=%v)", key, useCache)
 
+			// 创建 Pod
 			if err := c.podService.CreatePod(&pod); err != nil {
 				log.Printf("Failed to create pod %s: %v", key, err)
 				continue
 			}
+			// 启动 Pod
+			if err := c.podService.StartPod(&pod); err != nil {
+				log.Printf("Failed to start pod %s: %v", key, err)
+				continue
+			}
+
+			// 记得上锁
+			c.kubelet.Mu.Lock()
+			c.kubelet.Pods = append(c.kubelet.Pods, pod)
+			c.kubelet.Mu.Unlock()
 		}
 	}
 
-	// 更新 Kubelet.Pods
-	c.kubelet.Mu.Lock()
-	c.kubelet.Pods = desiredPods
-	c.kubelet.Mu.Unlock()
+	// TODO: 验证状态，仅作调试用
+	currentMap = make(map[string]object.Pod)
+
+	// 验证已有的 Pod和 期望的 Pod 是否一致
+	currentPods, err := c.podService.ListPods()
+	if err != nil {
+		log.Printf("Failed to list pods: %v", err)
+		return
+	}
+
+	// 构建 currentPods 的 map
+	for _, pod := range currentPods {
+		key := utils.GeneratePodNsNameLabel(
+			pod.Metadata.Namespace,
+			pod.Metadata.Name,
+		)
+		currentMap[key] = pod
+	}
+
+	for key := range desiredMap {
+		// If not in currentPods, panic
+		currPod, exists := currentMap[key]
+
+		if !exists {
+			log.Printf(
+				"Error: Pod %s not found in current pods after reconcile",
+				key,
+			)
+
+			continue
+		}
+
+		if currPod.Spec.PauseContainerID == "" {
+			log.Printf("Error: Pod %s is not running after reconcile", key)
+			continue
+		}
+
+		// 检查所有容器的ContainerID 是否存在
+		for _, ctr := range currPod.Spec.Containers {
+			if ctr.ID == "" {
+				log.Printf(
+					"Error: Container %s in pod %s is not running after reconcile",
+					ctr.Name,
+					key,
+				)
+
+				continue
+			}
+		}
+	}
 }
