@@ -156,7 +156,9 @@ func KubeletHeartbeat(c *gin.Context) {
 					object.PodCreating,
 					object.PodRunning,
 					object.PodFailed:
+					oldPod.Status.Phase = object.PodCreating
 					podsToAddKubelet = append(podsToAddKubelet, oldPod)
+					podsToUpdate = append(podsToUpdate, oldPod)
 				case object.PodDeleting:
 					podsToDelete = append(podsToDelete, oldPod)
 				}
@@ -170,7 +172,7 @@ func KubeletHeartbeat(c *gin.Context) {
 					object.PodFailed:
 					podsToUpdate = append(podsToUpdate, kubelet.Pods[i])
 				case object.PodDeleting:
-					podsToDeleteKubelet = append(podsToDeleteKubelet, kubelet.Pods[i])
+					podsToDeleteKubelet = append(podsToDeleteKubelet, oldPod)
 				}
 			}
 		}
@@ -183,12 +185,13 @@ func KubeletHeartbeat(c *gin.Context) {
 
 			// If the pod is not found, add it to the delete list.
 			if i < 0 {
+				newPod.Status.Phase = object.PodCreating
 				podsToDeleteKubelet = append(podsToDeleteKubelet, newPod)
 			}
 		}
 
-		// Use `podsToAddKubelet` and `podsToUpdate` as the new pods list.
-		kubelet.Pods = append(podsToAddKubelet, podsToUpdate...)
+		// Use `podsToUpdate` and `podsToDeleteKubelet` as the new pods list.
+		kubelet.Pods = append(podsToUpdate, podsToDeleteKubelet...)
 	}
 
 	// Log the details of the heartbeat.
