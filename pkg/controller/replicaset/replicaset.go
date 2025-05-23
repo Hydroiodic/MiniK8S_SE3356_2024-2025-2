@@ -101,19 +101,20 @@ func (rsc *ReplicasetController) CheckAllReplicaset() {
 		rs.Status.AvailableReplicas = len(matchPods)
 
 		if len(matchPods) == rs.Spec.Replicas {
-			rs.Status.AvailableReplicas = len(matchPods)
+			rs.Status.AvailableReplicas = rs.Spec.Replicas
 		} else if len(matchPods) < rs.Spec.Replicas {
 			//创建新的pod
 			log.Printf("数量不够 : %d", rs.Spec.Replicas-len(matchPods))
 			rsc.CreatePod(rs.Spec.Replicas-len(matchPods), rs)
-			rs.Status.AvailableReplicas = len(matchPods)
+			rs.Status.AvailableReplicas = rs.Spec.Replicas
 		} else {
 			log.Printf("数量太多了 : %d", len(matchPods)-rs.Spec.Replicas)
 			rsc.DeletePod(matchPods, len(matchPods)-rs.Spec.Replicas)
-			rs.Status.AvailableReplicas = len(matchPods)
+			rs.Status.AvailableReplicas =rs.Spec.Replicas
 		}
 
-		err = ci.UpdateReplicaset(rs)
+		err = ci.UpdateReplicaset(&rs)
+		log.Printf("更新数量 : %d", rs.Status.AvailableReplicas)
 		if err != nil {
 			fmt.Println(err)
 		}

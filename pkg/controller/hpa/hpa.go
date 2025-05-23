@@ -169,7 +169,7 @@ func (hpaC *HPAController) CheckOneHPA(hpa object.HorizontalPodAutoscaler) {
 		}
 
 		// 发给api-server，为这个replicaSet应用新的副本数；注意这里直接使用create方法，传递相同的静态配置（不需要管UID的问题，重建一份也没事），只是副本数不同
-		err = hpaC.ci.UpdateReplicaset(replicaset)
+		err = hpaC.ci.UpdateReplicaset(&replicaset)
 		if err != nil {
 			fmt.Printf("update replicaset failed : %s\n", err)
 		}

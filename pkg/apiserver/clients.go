@@ -169,12 +169,15 @@ func (c *APIClient) GeHpayName(
 	)
 }
 
-func (c *APIClient) UpdateReplicaset(r object.ReplicaSet) error {
+func (c *APIClient) UpdateReplicaset(r *object.ReplicaSet) error {
 	// Construct the URL for the Kubelet get nodes endpoint.
 	url := c.BaseURL + ReplicasetUpdateURL
-
+	replicasetJSON, err := json.Marshal(r)
+	if err != nil {
+		return err
+	}
 	// Create a new HTTP GET request.
-	req, err := http.NewRequest("POST", url, nil)
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(replicasetJSON))
 	if err != nil {
 		return err
 	}
@@ -591,22 +594,6 @@ func (c *APIClient) DeleteReplicaset(rsName string) error {
 
 	var matchPods []object.Pod
 
-	for _, p := range pods {
-		if HasMatchingLabels(
-			rs.Spec.Template.Metadata.Labels,
-			p.Metadata.Labels,
-		) {
-			matchPods = append(matchPods, p)
-		}
-	}
-
-	for _, p := range matchPods {
-		err = c.DeletePod(&p)
-		if err != nil {
-			return err
-		}
-	}
-
 	rsJSON, err := json.Marshal(rs)
 	if err != nil {
 		return err
@@ -637,6 +624,22 @@ func (c *APIClient) DeleteReplicaset(rsName string) error {
 		// If not, read the response body and return an error.
 		bodyBytes, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("%s", string(bodyBytes))
+	}
+
+	for _, p := range pods {
+		if HasMatchingLabels(
+			rs.Spec.Template.Metadata.Labels,
+			p.Metadata.Labels,
+		) {
+			matchPods = append(matchPods, p)
+		}
+	}
+
+	for _, p := range matchPods {
+		err = c.DeletePod(&p)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -678,7 +681,7 @@ func (c *APIClient) DeletePod(pod *object.Pod) error {
 		bodyBytes, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("%s", string(bodyBytes))
 	}
-	c.DeletePodFromEtcd(pod)
+
 	return nil
 }
 

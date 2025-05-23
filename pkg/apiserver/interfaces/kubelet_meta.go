@@ -136,7 +136,12 @@ func KubeletHeartbeat(c *gin.Context) {
 		c.Request.Context(),
 		kubelet.Config.Name,
 	)
-
+	log.Printf(
+		"Received heartbeat from kubelet %s with pods: %v\n",
+		kubelet.Config.Name,
+		retrievePodsName(kubelet.Pods),
+	)
+	log.Printf("Old kubelet pods: %v\n", retrievePodsName(oldKubelet.Pods))
 	// Two arrays of pods are compared.
 	podsToUpdate := make([]object.Pod, 0)
 	podsToDelete := make([]object.Pod, 0)
