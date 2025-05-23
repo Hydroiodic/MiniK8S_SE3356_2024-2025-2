@@ -152,7 +152,10 @@ func KubeletHeartbeat(c *gin.Context) {
 			if i < 0 {
 				// If the pod is not found, sync status with Kubelet.
 				switch oldPod.Status.Phase {
-				case object.PodCreating, object.PodRunning:
+				case object.PodUnknown,
+					object.PodCreating,
+					object.PodRunning,
+					object.PodFailed:
 					podsToAddKubelet = append(podsToAddKubelet, oldPod)
 				case object.PodDeleting:
 					podsToDelete = append(podsToDelete, oldPod)
@@ -161,7 +164,10 @@ func KubeletHeartbeat(c *gin.Context) {
 				// If the pod is found, update it in the new kubelet.
 				// TODO: some containers may not need to be updated.
 				switch oldPod.Status.Phase {
-				case object.PodCreating, object.PodRunning:
+				case object.PodUnknown,
+					object.PodCreating,
+					object.PodRunning,
+					object.PodFailed:
 					podsToUpdate = append(podsToUpdate, kubelet.Pods[i])
 				case object.PodDeleting:
 					podsToDeleteKubelet = append(podsToDeleteKubelet, kubelet.Pods[i])

@@ -229,7 +229,7 @@ func (p *PodService) GetPodStatus(pod *object.Pod) (string, error) {
 		log.Printf("Failed to get pause container ID: %v", err)
 
 		// Pause 容器尚未创建
-		return PodStatusPending, err
+		return object.PodCreating, err
 	}
 
 	// 收集所有容器的状态
@@ -253,7 +253,7 @@ func (p *PodService) GetPodStatus(pod *object.Pod) (string, error) {
 				err,
 			)
 			// 容器尚未创建
-			return PodStatusPending, err
+			return object.PodCreating, err
 		}
 		// 获取容器的状态
 		info, err := p.CtrService.GetContainerInfo(ctrName)
@@ -264,7 +264,7 @@ func (p *PodService) GetPodStatus(pod *object.Pod) (string, error) {
 				err,
 			)
 
-			return PodStatusUnknown, err
+			return object.PodUnknown, err
 		}
 
 		containerInfos = append(containerInfos, info.State.Status)
@@ -300,21 +300,21 @@ func (p *PodService) GetPodStatus(pod *object.Pod) (string, error) {
 		// 如果至少有一个容器处于 Running 状态
 		// 则 Pod 处于 Running 状态
 		if info == ctr_runtime.ContainerStateRunning {
-			return PodStatusRunning, nil
+			return object.PodRunning, nil
 		}
 	}
 
 	// 如果所有容器都是 Created 状态，则 Pod 处于 Pending 状态
 	if allCreated {
-		return PodStatusPending, nil
+		return object.PodCreating, nil
 	}
 
 	// Pod 中的所有容器都已终止，且至少有一个容器以非零退出码失败终止。表示 Pod 执行失败，通常不会重启。
 	if allStopped && abnormalExit {
-		return PodStatusFailed, nil
+		return object.PodFailed, nil
 	}
 
-	return PodStatusPending, nil
+	return object.PodCreating, nil
 }
 
 // 获取当前节点正在运行的 Pod （包含一些状态字段）

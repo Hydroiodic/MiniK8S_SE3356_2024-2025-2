@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/apiserver"
-	ctr_pod "github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/pod"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubeproxy/ipvs_ops"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/mqtemplate"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
@@ -43,7 +42,7 @@ func getEndpointsFromPods(pods []*object.Pod) []object.Endpoint {
 
 	for _, pod := range pods {
 		// 跳过无效的Pod
-		if pod.Status.IP == "" || pod.Status.Phase != ctr_pod.PodStatusRunning {
+		if pod.Status.IP == "" || pod.Status.Phase != object.PodRunning {
 			continue
 		}
 
@@ -152,7 +151,7 @@ func (kp *KubeProxy) SyncPodsAndServices(
 		for _, pod := range kp.PodMap {
 			// 跳过无效的 Pod
 			if pod.Status.IP == "" ||
-				pod.Status.Phase != ctr_pod.PodStatusRunning {
+				pod.Status.Phase != object.PodRunning {
 				continue
 			}
 
