@@ -270,7 +270,7 @@ func (c *PodController) Reconcile(
 	for _, pod := range currentPods {
 		key := utils.GeneratePodNsNameLabel(
 			pod.Metadata.Namespace,
-			pod.Metadata.Namespace,
+			pod.Metadata.Name,
 		)
 		currentMap[key] = pod
 	}
