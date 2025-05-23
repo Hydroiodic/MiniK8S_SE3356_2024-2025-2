@@ -4,13 +4,16 @@ package interfaces
 
 import (
 	"context"
-	"fmt"
+	"log"
 	"time"
 
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
 )
 
 func CheckKubeletTimeout() error {
+	// Create a context used for the etcd connection.
+	ctx := context.Background()
+
 	// Create a new etcd connection for status checking.
 	st, err := object.NewKubeletStore([]string{})
 	if err != nil {
@@ -21,12 +24,12 @@ func CheckKubeletTimeout() error {
 	// Ensure the kubelet store is closed after use.
 	defer func() {
 		if closeErr := st.Close(); closeErr != nil {
-			fmt.Printf("Failed to close kubelet store: %v\n", closeErr)
+			log.Printf("Failed to close kubelet store: %v\n", closeErr)
 		}
 	}()
 
 	// Get all kubelet objects from etcd.
-	kubelets, err := st.ListKubelets(context.Background())
+	kubelets, err := st.ListKubelets(ctx)
 	if err != nil {
 		// Failed to list kubelets, report error.
 		return err
@@ -43,23 +46,38 @@ func CheckKubeletTimeout() error {
 	for _, kubelet := range kubelets {
 		if kubelet.LastUpdateTime.Add(timeout).Before(time.Now()) {
 			// Kubelet has timed out, report error.
-			fmt.Printf("Kubelet %s has timed out\n", kubelet.Config.Name)
+			log.Printf("Kubelet %s has timed out\n", kubelet.Config.Name)
 			timeout_kubelets = append(timeout_kubelets, kubelet)
 		}
 	}
 
 	// Remove timed out kubelets from etcd.
 	for _, kubelet := range timeout_kubelets {
-		if err := st.DeleteKubelet(context.Background(), kubelet.Config.Name); err != nil {
+		// First let's remove all pods in this kubelet.
+		// TODO: Shall we assign the pods to other nodes?
+		if err := internalDeletePods(ctx, kubelet.Pods); err != nil {
+			log.Printf(
+				"Failed to delete pods for kubelet %s: %v\n",
+				kubelet.Config.Name,
+				err,
+			)
+
+			continue
+		}
+
+		// TODO: ensure transaction is atomic.
+		if err := st.DeleteKubelet(ctx, kubelet.Config.Name); err != nil {
 			// Failed to delete timed out kubelet, report error.
-			fmt.Printf(
+			log.Printf(
 				"Failed to delete timed out kubelet %s: %v\n",
 				kubelet.Config.Name,
 				err,
 			)
-		} else {
-			fmt.Printf("Deleted timed out kubelet %s\n", kubelet.Config.Name)
+
+			continue
 		}
+
+		log.Printf("Deleted timed out kubelet %s\n", kubelet.Config.Name)
 	}
 
 	return nil

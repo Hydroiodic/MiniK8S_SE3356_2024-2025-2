@@ -48,6 +48,7 @@ func (c *PodStatusController) Run(stopCh <-chan struct{}) {
 }
 
 func (c *PodStatusController) updatePodStatus() {
+	// Get a copy of the pods to avoid holding the lock for too long.
 	c.kubelet.Mu.RLock()
 	pods := c.kubelet.Pods
 	c.kubelet.Mu.RUnlock()
@@ -94,12 +95,11 @@ func (c *PodStatusController) updatePodStatus() {
 	// TODO：上报状态到 API Server
 	// 上报 kubelet 状态
 	c.kubelet.Mu.RLock()
-	lastUpdateTime := time.Now()
 	kubeletCopy := &object.Kubelet{
 		Config:         c.kubelet.Config,
 		Pods:           c.kubelet.Pods,
 		StartTime:      c.kubelet.StartTime,
-		LastUpdateTime: lastUpdateTime,
+		LastUpdateTime: time.Now(),
 		// Copy other fields as needed, excluding the Mu
 	}
 	c.kubelet.Mu.RUnlock()
