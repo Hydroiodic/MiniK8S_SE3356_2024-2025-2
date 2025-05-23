@@ -61,9 +61,10 @@ type PodStatus struct {
 }
 
 const (
-	PodStatusPhase = ""
-	PodCreating    = "Creating"
-	PodRunning     = "Running"
-	PodDeleting    = "Deleting"
-	PodDeleted     = "Deleted"
+	PodUnknown  = "Unknown"
+	PodCreating = "Creating"
+	PodRunning  = "Running"
+	PodDeleting = "Deleting"
+	PodDeleted  = "Deleted"
+	PodFailed   = "Failed"
 )

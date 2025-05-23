@@ -25,7 +25,7 @@ func AssignPodToNode(c *gin.Context) {
 
 	// Check for the namespace and name in the pod configuration.
 	if pod.Metadata.Namespace == "" {
-		pod.Metadata.Namespace = "default" //nolint
+		pod.Metadata.Namespace = DefaultNamespace
 	}
 
 	// Create PodStore and check for errors.
@@ -187,7 +187,7 @@ func CreatePod(c *gin.Context) {
 
 	// Check for the namespace and name in the pod configuration.
 	if pod.Metadata.Namespace == "" {
-		pod.Metadata.Namespace = "default"
+		pod.Metadata.Namespace = DefaultNamespace
 	}
 
 	// Create PodStore and check for errors.

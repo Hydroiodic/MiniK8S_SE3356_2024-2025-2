@@ -31,7 +31,7 @@ func CreateService(c *gin.Context) {
 	}
 
 	if svc.Metadata.Namespace == "" {
-		svc.Metadata.Namespace = "default"
+		svc.Metadata.Namespace = DefaultNamespace
 	}
 
 	st, _ := object.NewServiceStore([]string{})
@@ -126,7 +126,7 @@ func DeleteService(c *gin.Context) {
 	}
 
 	if svc.Metadata.Namespace == "" {
-		svc.Metadata.Namespace = "default"
+		svc.Metadata.Namespace = DefaultNamespace
 	}
 
 	st, _ := object.NewServiceStore([]string{})
