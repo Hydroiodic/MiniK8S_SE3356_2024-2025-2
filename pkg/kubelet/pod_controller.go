@@ -257,6 +257,7 @@ func (c *PodController) Reconcile(
 		}
 	}
 
+	// TODO: 验证状态，仅作调试用
 	currentMap = make(map[string]object.Pod)
 
 	// 验证已有的 Pod和 期望的 Pod 是否一致
@@ -275,7 +276,6 @@ func (c *PodController) Reconcile(
 		currentMap[key] = pod
 	}
 
-	// TODO: 验证状态，仅作调试用
 	for key := range desiredMap {
 		// If not in currentPods, panic
 		currPod, exists := currentMap[key]
