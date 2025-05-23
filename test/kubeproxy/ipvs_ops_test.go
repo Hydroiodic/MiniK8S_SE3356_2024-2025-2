@@ -5,6 +5,7 @@ import (
 	"os/exec"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/container"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/pod"
@@ -27,13 +28,14 @@ func TestClusterIP(t *testing.T) {
 		ipvs_ops.CLUSTER_CIDR_DEFAULT,
 	) // 假设 ClusterIPCIDR 为 "222.111.0.0/16"
 	defer ops.Close()
+	ops.Clear()
 	ops.Init()
 
 	// 1. 创建一个 Pod
 	pod := &object.Pod{
 		Kind: "Pod",
 		Metadata: object.Metadata{
-			Name:      "test-pod",
+			Name:      "shit-pod",
 			Namespace: "default",
 			Labels:    map[string]string{"app": "test"},
 		},
@@ -106,6 +108,8 @@ func TestClusterIP(t *testing.T) {
 
 	ops.AddService(svc)
 	t.Logf("Service added: %v", svc)
+
+	time.Sleep(1 * time.Second) // 等待服务生效
 
 	// 4. 测试访问 ClusterIP
 	clusterIPAddr := fmt.Sprintf("%s:%d", svc.Status.ClusterIP, 8080)
