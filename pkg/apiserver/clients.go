@@ -282,7 +282,7 @@ func (c *APIClient) GetHpas() ([]object.HorizontalPodAutoscaler, error) {
 
 func (c *APIClient) DeleteDns(dns *object.DNS) error {
 	// Construct the URL for the Pod deletion endpoint.
-	url := c.BaseURL + DnsDeleteURL
+	url := c.BaseURL + DNSDeleteURL
 
 	// Convert the Pod object to JSON to be sent in the request body.
 	dnsJSON, err := json.Marshal(dns)
@@ -361,7 +361,7 @@ func (c *APIClient) CreateHpa(hpa *object.HorizontalPodAutoscaler) error {
 
 func (c *APIClient) CreateDns(dns *object.DNS) error {
 	// Construct the URL for the Pod creation endpoint.
-	url := c.BaseURL + DnsCreateURL
+	url := c.BaseURL + DNSDeleteURL
 
 	// Convert the Pod object to JSON to be sent in the request body.
 	dnsJSON, err := json.Marshal(dns)

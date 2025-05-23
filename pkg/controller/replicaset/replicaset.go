@@ -2,6 +2,7 @@ package replicaset
 
 import (
 	"fmt"
+	"log"
 	"strings"
 	"time"
 
@@ -14,7 +15,7 @@ type ReplicasetController struct {
 }
 
 func (rsc *ReplicasetController) Start() {
-	ticker := time.NewTicker(3 * time.Second) // 每3秒触发一次
+	ticker := time.NewTicker(5 * time.Second) // 每3秒触发一次
 	defer ticker.Stop()                       // 确保程序退出时停止Ticker
 
 	for {
@@ -37,7 +38,7 @@ func (rsc *ReplicasetController) CreatePod(
 	num int,
 	rs object.ReplicaSet,
 ) {
-	ci := client.NewAPIClient("http://localhost:8080")
+	ci := client.NewAPIClient("")
 
 	for range num {
 		var pod object.Pod
@@ -50,7 +51,10 @@ func (rsc *ReplicasetController) CreatePod(
 		}
 		pod.Kind = "Pod"
 
-		ci.CreatePod(&pod)
+		err := ci.CreatePod(&pod)
+		if err != nil {
+			fmt.Println(err)
+		}
 	}
 }
 
@@ -58,7 +62,7 @@ func (rsc *ReplicasetController) DeletePod(
 	pods []object.Pod,
 	num int,
 ) {
-	ci := client.NewAPIClient("http://localhost:8080")
+	ci := client.NewAPIClient("")
 	for i := range num {
 		ci.DeletePod(&pods[i])
 	}
@@ -94,15 +98,19 @@ func (rsc *ReplicasetController) CheckAllReplicaset() {
 			}
 		}
 
+		rs.Status.AvailableReplicas = len(matchPods)
+
 		if len(matchPods) == rs.Spec.Replicas {
 			rs.Status.AvailableReplicas = len(matchPods)
 		} else if len(matchPods) < rs.Spec.Replicas {
 			//创建新的pod
+			log.Printf("数量不够 : %d", rs.Spec.Replicas-len(matchPods))
 			rsc.CreatePod(rs.Spec.Replicas-len(matchPods), rs)
-			rs.Status.AvailableReplicas = len(matchPods) + 1
+			rs.Status.AvailableReplicas = len(matchPods)
 		} else {
+			log.Printf("数量太多了 : %d", len(matchPods)-rs.Spec.Replicas)
 			rsc.DeletePod(matchPods, len(matchPods)-rs.Spec.Replicas)
-			rs.Status.AvailableReplicas = len(matchPods) - 1
+			rs.Status.AvailableReplicas = len(matchPods)
 		}
 
 		err = ci.UpdateReplicaset(rs)
