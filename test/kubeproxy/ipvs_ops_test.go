@@ -2,6 +2,7 @@ package kubeproxy_test
 
 import (
 	"fmt"
+	"log"
 	"os/exec"
 	"strings"
 	"testing"
@@ -138,6 +139,159 @@ func TestClusterIP(t *testing.T) {
 	}
 
 	// 7. 删除 Pod
+	err = podService.DeletePod(pod)
+	if err != nil {
+		t.Fatalf("failed to delete pod: %v", err)
+	}
+
+	t.Logf("Pod deleted: %s", pod.Metadata.Name)
+}
+func TestNodePort(t *testing.T) {
+	containerService, err := container.NewContainerService()
+	if err != nil {
+		t.Fatalf("failed to create container service: %v", err)
+	}
+
+	podService := pod.NewPodService(containerService)
+
+	ops := ipvs_ops.NewIpvsOps(
+		ipvs_ops.CLUSTER_CIDR_DEFAULT,
+	)
+	defer ops.Close()
+	ops.Clear()
+	ops.Init()
+
+	// 1. 创建一个 Pod
+	pod := &object.Pod{
+		Kind: "Pod",
+		Metadata: object.Metadata{
+			Name:      "nodeport-pod",
+			Namespace: "default",
+			Labels:    map[string]string{"app": "nodeport-test"},
+		},
+		Spec: object.PodSpec{
+			Containers: []object.Container{
+				{
+					Name:  "nginx",
+					Image: "nginx:latest",
+					Ports: []object.ContainerPort{
+						{
+							ContainerPort: 80,
+						},
+					},
+				},
+			},
+		},
+	}
+
+	err = podService.CreatePod(pod)
+	if err != nil {
+		t.Fatalf("failed to create pod: %v", err)
+	}
+
+	t.Logf("Pod created: %v", pod)
+
+	err = podService.StartPod(pod)
+	if err != nil {
+		t.Fatalf("failed to start pod: %v", err)
+	}
+
+	t.Logf("Pod started: %s", pod.Metadata.Name)
+
+	podIP := pod.Status.IP
+	if podIP == "" {
+		t.Fatalf("failed to get pod IP")
+	}
+
+	t.Logf("Pod IP: %s", podIP)
+
+	// 2. 创建一个NodePort类型的Service
+	nodePort := 30080
+	svc := &object.Service{
+		Kind: "Service",
+		Type: object.SERVICE_TYPE_NODEPORT_STR,
+		Metadata: object.Metadata{
+			Name:      "test-nodeport",
+			Namespace: "default",
+			Labels:    map[string]string{"app": "nodeport-test"},
+		},
+		Spec: object.ServiceSpec{
+			Selector: map[string]string{"app": "nodeport-test"},
+			Ports: []object.ServicePort{
+				{
+					Name:       "http",
+					Port:       8080,
+					TargetPort: 80,
+					NodePort:   nodePort,
+				},
+			},
+		},
+		Status: object.ServiceStatus{
+			ClusterIP: "222.111.0.2",
+			Endpoints: []object.Endpoint{
+				{
+					IP:   podIP,
+					Port: 80,
+				},
+			},
+		},
+	}
+
+	ops.AddService(svc)
+	t.Logf("NodePort Service added: %v", svc)
+
+	time.Sleep(1 * time.Second) // 等待服务生效
+
+	// 获取本机IP
+	nodeIP := "127.0.0.1" //nolint
+
+	output, err := exec.Command("hostname", "-I").Output()
+	if err == nil {
+		ips := strings.Fields(string(output))
+		for _, ip := range ips {
+			if ip != "127.0.0.1" && !strings.HasPrefix(ip, "172.") &&
+				!strings.HasPrefix(ip, "10.") {
+				nodeIP = ip
+				break
+			}
+		}
+
+		if nodeIP == "127.0.0.1" && len(ips) > 0 {
+			nodeIP = ips[0]
+		}
+	}
+
+	nodePortAddr := fmt.Sprintf("%s:%d", nodeIP, nodePort)
+
+	log.Printf("NodePort address: %s", nodePortAddr)
+
+	time.Sleep(3 * time.Second) // 等待服务生效
+
+	curlOut, err := exec.Command("curl", "--max-time", "3", nodePortAddr).
+		Output()
+
+	if err != nil || !strings.Contains(string(curlOut), "Welcome") {
+		t.Fatalf(
+			"Failed to curl NodePort Service: %v, output: %s",
+			err,
+			string(curlOut),
+		)
+	}
+
+	// 删除 Service
+	ops.DelService(svc)
+
+	// 测试删除后无法访问
+	curlOut, err = exec.Command("curl", "--max-time", "3", nodePortAddr).
+		Output()
+	if err == nil && string(curlOut) != "" {
+		t.Fatalf(
+			"NodePort Service still accessible after deletion, output: %s",
+			string(curlOut),
+		)
+	}
+
+	// 删除 Pod
 	err = podService.DeletePod(pod)
 	if err != nil {
 		t.Fatalf("failed to delete pod: %v", err)
