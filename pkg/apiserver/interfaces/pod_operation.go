@@ -178,6 +178,51 @@ func AssignPodToNode(c *gin.Context) {
 	c.JSON(http.StatusOK, "Pod created: "+path)
 }
 
+func UpdateReplicaset(c *gin.Context) {
+	// Parse the JSON body into a Pod object.
+	var replicaset object.ReplicaSet
+	if err := c.BindJSON(&replicaset); err != nil {
+		c.JSON(http.StatusBadRequest, "Invalid JSON: "+err.Error())
+		return
+	}
+
+	// Check for the namespace and name in the pod configuration.
+	if replicaset.Metadata.Namespace == "" {
+		replicaset.Metadata.Namespace = "default"
+	}
+
+	// Create PodStore and check for errors.
+	st, err := object.NewReplicasetStore([]string{})
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			"Failed to create pod store: "+err.Error(),
+		)
+
+		return
+	}
+
+	// Ensure the PodStore is closed after use.
+	defer func() {
+		if closeErr := st.Close(); closeErr != nil {
+			fmt.Printf("Failed to close pod store: %v\n", closeErr)
+		}
+	}()
+
+	// Check if the pod already exists in etcd.
+	err = st.UpdateReplicaset(
+		c.Request.Context(),
+		&replicaset,
+	)
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			"Failed to get pod from etcd: "+err.Error(),
+		)
+
+		return
+	}
+}
 func CreatePod(c *gin.Context) {
 	// Parse the JSON body into a Pod object.
 	var pod object.Pod

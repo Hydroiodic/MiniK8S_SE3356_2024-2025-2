@@ -33,6 +33,7 @@ func declareGinServer() *gin.Engine {
 	r.GET(apiserver.ReplicasetGetURL, interfaces.GetReplicasets)
 	r.POST(apiserver.ReplicasetCreateURL, interfaces.CreateReplicaset)
 	r.POST(apiserver.ReplicasetDeleteURL, interfaces.DeleteReplicasetFromEtcd)
+	r.POST(apiserver.ReplicasetUpdateURL, interfaces.DeleteReplicasetFromEtcd)
 
 	r.GET(apiserver.HpaGetURL, interfaces.CreateHpa)
 	r.POST(apiserver.HpaCreateURL, interfaces.GetHpas)

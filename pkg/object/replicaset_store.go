@@ -97,3 +97,9 @@ func (s *ReplicasetStore) DeleteReplicaset(
 ) error {
 	return s.etcdClient.Delete(ctx, s.key(namespace, name))
 }
+
+func (s *ReplicasetStore) UpdateReplicaset(ctx context.Context,
+	rs *ReplicaSet,
+) error {
+	return s.AddReplicaset(ctx, rs)
+}

@@ -170,15 +170,42 @@ func (c *APIClient) GeHpayName(
 }
 
 func (c *APIClient) UpdateReplicaset(r object.ReplicaSet) error {
+	// Construct the URL for the Kubelet get nodes endpoint.
+	url := c.BaseURL + ReplicasetUpdateURL
 
-	err := c.DeleteReplicaset(r.Metadata.Name)
+	// Create a new HTTP GET request.
+	req, err := http.NewRequest("POST", url, nil)
 	if err != nil {
 		return err
 	}
-	err = c.CreateReplicaset(&r)
+
+	// Send the request and return the response.
+	resp, err := c.Client.Do(req)
 	if err != nil {
 		return err
 	}
+
+	// Ensure the response body is closed after use.
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			// Log the error if closing the response body fails.
+			fmt.Println("Failed to close response body: ", cerr)
+		}
+	}()
+	// Check if the response status code is OK (200).
+	if resp.StatusCode != http.StatusOK {
+		// If not, read the response body and return an error.
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("%s", string(bodyBytes))
+	}
+
+	// Parse the response body as a list of Replicaset objects.
+	var replicasets []object.ReplicaSet
+	if err := json.NewDecoder(resp.Body).Decode(&replicasets); err != nil {
+		// If parsing fails, return an error.
+		return err
+	}
+
 	return nil
 }
 
