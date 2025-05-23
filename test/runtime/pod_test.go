@@ -105,6 +105,7 @@ func TestDeletePod(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to start pod: %v", err)
 	}
+
 	t.Logf("Pod started for deletion test: %v", pod)
 
 	err = podService.DeletePod(pod)
