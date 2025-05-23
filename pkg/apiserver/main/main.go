@@ -26,6 +26,11 @@ func declareGinServer() *gin.Engine {
 	r.POST(apiserver.PodAssignURL, interfaces.AssignPodToNode)
 	r.POST(apiserver.PodDeleteURL, interfaces.DeletePod)
 
+	// DNS operations.
+	r.POST(apiserver.DNSAddURL, interfaces.AddDNS)
+	r.POST(apiserver.DNSDeleteURL, interfaces.DeleteSingleDNS)
+	r.GET(apiserver.DNSGetResolveURL, interfaces.GetDNSResolve)
+
 	// r.POST("/getOnePod", interfaces.GetOnePod)
 
 	// r.POST("/updateHost", interfaces.HandleUpdateHost)

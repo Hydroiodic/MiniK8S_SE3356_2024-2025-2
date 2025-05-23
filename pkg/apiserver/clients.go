@@ -112,59 +112,10 @@ func (c *APIClient) HeartbeatKubelet(kubelet *object.Kubelet) error {
 }
 
 func (c *APIClient) GetNodes() ([]object.Kubelet, error) {
-	// Construct the URL for the Kubelet get nodes endpoint.
-	url := c.BaseURL + KubeletGetNodesURL
-
-	// Create a new HTTP GET request.
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	// Send the request and return the response.
-	resp, err := c.Client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-
-	// Ensure the response body is closed after use.
-	defer func() {
-		if cerr := resp.Body.Close(); cerr != nil {
-			// Log the error if closing the response body fails.
-			fmt.Println("Failed to close response body: ", cerr)
-		}
-	}()
-
-	// Check if the response status code is OK (200).
-	if resp.StatusCode != http.StatusOK {
-		// If not, read the response body and return an error.
-		bodyBytes, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("%s", string(bodyBytes))
-	}
-
-	// 先完整读取响应体
-	bodyBytes, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return nil, err
-	}
-
-	// 先解析外层字符串
-	var raw string
-	if err := json.Unmarshal(bodyBytes, &raw); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal as string: %v", err)
-	}
-
-	// 再解析内部的 JSON 数组
 	var nodes []object.Kubelet
-	if err := json.Unmarshal([]byte(raw), &nodes); err != nil {
-		return nil, fmt.Errorf(
-			"failed to unmarshal as []object.Kubelet: %v",
-			err,
-		)
-	}
+	err := c.getAndUnmarshalList(KubeletGetNodesURL, &nodes)
 
-	// Return the list of Kubelet objects.
-	return nodes, nil
+	return nodes, err
 }
 
 func (c *APIClient) CreatePod(pod *object.Pod) error {
@@ -208,45 +159,10 @@ func (c *APIClient) CreatePod(pod *object.Pod) error {
 }
 
 func (c *APIClient) GetPods() ([]object.Pod, error) {
-	// Construct the URL for the Pod get endpoint.
-	url := c.BaseURL + PodGetURL
-
-	// Create a new HTTP GET request.
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	// Send the request and return the response.
-	resp, err := c.Client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-
-	// Ensure the response body is closed after use.
-	defer func() {
-		if cerr := resp.Body.Close(); cerr != nil {
-			// Log the error if closing the response body fails.
-			fmt.Println("Failed to close response body: ", cerr)
-		}
-	}()
-
-	// Check if the response status code is OK (200).
-	if resp.StatusCode != http.StatusOK {
-		// If not, read the response body and return an error.
-		bodyBytes, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("%s", string(bodyBytes))
-	}
-
-	// Parse the response body as a list of Pod objects.
 	var pods []object.Pod
-	if err := json.NewDecoder(resp.Body).Decode(&pods); err != nil {
-		// If parsing fails, return an error.
-		return nil, err
-	}
+	err := c.getAndUnmarshalList(PodGetURL, &pods)
 
-	// Return the list of Pod objects.
-	return pods, nil
+	return pods, err
 }
 
 func (c *APIClient) AssignPodToNode(pod *object.Pod, nodeName string) error {
@@ -416,57 +332,24 @@ func (c *APIClient) CreateService(svc *object.Service) error {
 }
 
 func (c *APIClient) GetServices() ([]object.Service, error) {
-	// Construct the URL for the Service get endpoint.
-	url := c.BaseURL + ServiceGetURL
-
-	// Create a new HTTP GET request.
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	// Send the request and return the response.
-	resp, err := c.Client.Do(req)
-	if err != nil {
-		return nil, err
-	}
-
-	// Ensure the response body is closed after use.
-	defer func() {
-		if cerr := resp.Body.Close(); cerr != nil {
-			// Log the error if closing the response body fails.
-			fmt.Println("Failed to close response body: ", cerr)
-		}
-	}()
-
-	// Check if the response status code is OK (200).
-	if resp.StatusCode != http.StatusOK {
-		// If not, read the response body and return an error.
-		bodyBytes, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("%s", string(bodyBytes))
-	}
-
-	// Parse the response body as a list of Service objects.
 	var svcs []object.Service
-	if err := json.NewDecoder(resp.Body).Decode(&svcs); err != nil {
-		return nil, err
-	}
+	err := c.getAndUnmarshalList(ServiceGetURL, &svcs)
 
-	return svcs, nil
+	return svcs, err
 }
 
-func (c *APIClient) DeleteService(svc *object.Service) error {
-	// Construct the URL for the Service deletion endpoint.
-	url := c.BaseURL + ServiceDeleteURL
+func (c *APIClient) AddDNS(dns *object.DNS) error {
+	// Construct the URL for the DNS addition endpoint.
+	url := c.BaseURL + DNSAddURL
 
-	// Convert the Service object to JSON to be sent in the request body.
-	svcJSON, err := json.Marshal(svc)
+	// Convert the DNS object to JSON to be sent in the request body.
+	dnsJSON, err := json.Marshal(dns)
 	if err != nil {
 		return err
 	}
 
-	// Create a new HTTP POST request with the service as the body.
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(svcJSON))
+	// Create a new HTTP POST request with the DNS as the body.
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(dnsJSON))
 	if err != nil {
 		return err
 	}
@@ -493,4 +376,64 @@ func (c *APIClient) DeleteService(svc *object.Service) error {
 	}
 
 	return nil
+}
+
+func (c *APIClient) DeleteSingleDNS(dns *object.DNS) error {
+	// Construct the URL for the DNS deletion endpoint.
+	url := c.BaseURL + DNSDeleteURL
+
+	// Convert the DNS object to JSON to be sent in the request body.
+	dnsJSON, err := json.Marshal(dns)
+	if err != nil {
+		return err
+	}
+
+	// Create a new HTTP POST request with the DNS as the body.
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(dnsJSON))
+	if err != nil {
+		return err
+	}
+
+	// Send the request and return the response.
+	resp, err := c.Client.Do(req)
+	if err != nil {
+		return err
+	}
+
+	// Ensure the response body is closed after use.
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			// Log the error if closing the response body fails.
+			fmt.Println("Failed to close response body: ", cerr)
+		}
+	}()
+
+	// Check if the response status code is OK (200).
+	if resp.StatusCode != http.StatusOK {
+		// If not, read the response body and return an error.
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("%s", string(bodyBytes))
+	}
+
+	return nil
+}
+
+func (c *APIClient) GetDNSResolve() ([]object.DNSResolveInfo, error) {
+	// Get DNSResolveInfo from the API server.
+	var dns []object.DNSResolveInfo
+	err := c.getAndUnmarshalList(DNSGetResolveURL, &dns)
+
+	// If the request fails, return an empty slice and the error.
+	if err != nil {
+		return []object.DNSResolveInfo{}, err
+	}
+
+	// If any of the domain does not end with ".", add it.
+	for i := range dns {
+		if dns[i].Host[len(dns[i].Host)-1] != '.' {
+			dns[i].Host += "."
+		}
+	}
+
+	return dns, nil
 }
