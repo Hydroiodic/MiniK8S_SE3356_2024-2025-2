@@ -1,8 +1,11 @@
 package interfaces
 
 import (
+	"context"
+	"fmt"
 	"log"
 	"net/http"
+	"path"
 
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
 	"github.com/gin-gonic/gin"
@@ -234,8 +237,24 @@ func KubeProxyHeartbeat(c *gin.Context) {
 		len(servicesToDelete),
 	)
 
-	// TODO: 根据需求同步 servicesToAdd, servicesToUpdate, servicesToDelete
-	// 可参照 KubeletHeartbeat 中的逻辑，如 internalUpdatePods / internalDeletePods
+	// 更新 etcd 里的 EndPoints
+	if err := internalUpdateServices(c.Request.Context(), servicesToAdd); err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			"Failed to add services: "+err.Error(),
+		)
+
+		return
+	}
+
+	if err := internalUpdateServices(c.Request.Context(), servicesToUpdate); err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			"Failed to update services: "+err.Error(),
+		)
+
+		return
+	}
 
 	// 更新 etcd 里的 kubeproxy
 	if err := store.UpdateKubeProxy(c.Request.Context(), &kp); err != nil {
@@ -245,6 +264,10 @@ func KubeProxyHeartbeat(c *gin.Context) {
 		)
 
 		return
+	}
+
+	if err := internalSyncServices(c.Request.Context(), servicesToAdd, servicesToUpdate, servicesToDelete); err != nil {
+		log.Printf("Failed to sync services: %v", err)
 	}
 
 	c.JSON(http.StatusOK, "KubeProxy heartbeat: "+kp.Config.Name)
@@ -305,4 +328,110 @@ func endpointsEqual(a, b []object.Endpoint) bool {
 	}
 
 	return true
+}
+
+// internalUpdateServices updates the given services in etcd.
+func internalUpdateServices(
+	ctx context.Context,
+	services []object.Service,
+) error {
+	if services == nil {
+		return fmt.Errorf("invalid nil services")
+	}
+
+	if len(services) == 0 {
+		return nil
+	}
+
+	st, err := object.NewServiceStore([]string{})
+	if err != nil {
+		return fmt.Errorf("failed to create service store: %w", err)
+	}
+
+	defer func() {
+		if closeErr := st.Close(); closeErr != nil {
+			log.Printf("Failed to close service store: %v\n", closeErr)
+		}
+	}()
+
+	for _, svc := range services {
+		if err := st.UpdateService(ctx, &svc); err != nil {
+			log.Printf(
+				"Failed to update service %s: %v\n",
+				path.Join(svc.Metadata.Namespace, svc.Metadata.Name),
+				err,
+			)
+		}
+	}
+
+	return nil
+}
+
+// internalDeleteServices deletes the given services from etcd.
+func internalDeleteServices(
+	ctx context.Context,
+	services []object.Service,
+) error {
+	if services == nil {
+		return fmt.Errorf("invalid nil services")
+	}
+
+	if len(services) == 0 {
+		return nil
+	}
+
+	st, err := object.NewServiceStore([]string{})
+
+	if err != nil {
+		return fmt.Errorf("failed to create service store: %w", err)
+	}
+
+	defer func() {
+		if closeErr := st.Close(); closeErr != nil {
+			log.Printf("Failed to close service store: %v\n", closeErr)
+		}
+	}()
+
+	for _, svc := range services {
+		if err := st.DeleteService(ctx, svc.Metadata.Namespace, svc.Metadata.Name); err != nil {
+			log.Printf(
+				"Failed to delete service %s: %v\n",
+				path.Join(svc.Metadata.Namespace, svc.Metadata.Name),
+				err,
+			)
+		}
+	}
+
+	return nil
+}
+
+// TODO: 发送消息队列
+func internalSyncServices(
+	ctx context.Context,
+	servicesToAdd,
+	servicesToUpdate,
+	servicesToDelete []object.Service,
+) error {
+	for _, svc := range servicesToAdd {
+		log.Printf(
+			"Adding service %s\n",
+			path.Join(svc.Metadata.Namespace, svc.Metadata.Name),
+		)
+	}
+
+	for _, svc := range servicesToUpdate {
+		log.Printf(
+			"Updating service %s\n",
+			path.Join(svc.Metadata.Namespace, svc.Metadata.Name),
+		)
+	}
+
+	for _, svc := range servicesToDelete {
+		log.Printf(
+			"Deleting service %s\n",
+			path.Join(svc.Metadata.Namespace, svc.Metadata.Name),
+		)
+	}
+
+	return nil
 }

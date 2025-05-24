@@ -48,9 +48,16 @@ func (kp *KubeProxyService) CreateServiceHandler(svc object.Service) error {
 	kp.kubeProxy.Mu.Unlock()
 
 	// 检查服务是否已经存在
-	for _, svc := range kp.kubeProxy.Services {
-		if svc.Metadata.Name == svc.Metadata.Name {
-			return nil // 服务已存在，返回
+	kp.kubeProxy.Mu.Lock()
+	for _, s := range kp.kubeProxy.Services {
+		if s.Metadata.Name == svc.Metadata.Name {
+			kp.kubeProxy.Mu.Unlock()
+			log.Printf(
+				"Service %s already exists, skipping creation",
+				svc.Metadata.Name,
+			)
+
+			return nil // 服务已存在，直接返回
 		}
 	}
 
@@ -81,6 +88,7 @@ func (kp *KubeProxyService) DeleteServiceHandler(svc *object.Service) error {
 				kp.kubeProxy.Services[:i],
 				kp.kubeProxy.Services[i+1:]...,
 			)
+
 			break
 		}
 	}
@@ -101,6 +109,7 @@ func (kp *KubeProxyService) UpdateServiceHandler(svc *object.Service) error {
 		}
 	}
 	kp.kubeProxy.Mu.Unlock()
+
 	if oldSvc == nil {
 		log.Printf("Service %s not found", svc.Metadata.Name)
 		return nil // 服务不存在，返回
@@ -117,80 +126,12 @@ func (kp *KubeProxyService) UpdateServiceHandler(svc *object.Service) error {
 			break
 		}
 	}
+
 	kp.kubeProxy.LastUpdateTime = time.Now()
 	kp.kubeProxy.Mu.Unlock()
 
 	return nil
 }
-
-// func (kp *KubeProxy) SyncPodsAndServices(
-// 	pods []object.Pod,
-// 	svcs []object.Service,
-// ) {
-// 	kp.Mu.Lock()
-// 	defer kp.Mu.Unlock()
-
-// 	// 清空 PodMap，重新填充
-// 	kp.PodMap = make(map[string]*object.Pod)
-// 	for _, pod := range pods {
-// 		kp.PodMap[pod.Metadata.Name] = &pod
-// 	}
-
-// 	// 创建一个新的服务映射，用于增量更新
-// 	updatedSvcs := make(map[string]*object.Service)
-
-// 	for _, svc := range svcs {
-// 		if svc.Spec.Selector == nil {
-// 			continue
-// 		}
-
-// 		// 遍历所有 Pod，挑选出能被该 Service 管理的所有 Endpoints
-// 		managedEps := make([]object.Endpoint, 0)
-
-// 		for _, pod := range kp.PodMap {
-// 			// 跳过无效的 Pod
-// 			if pod.Status.IP == "" ||
-// 				pod.Status.Phase != object.PodRunning {
-// 				continue
-// 			}
-
-// 			// 检查 Pod 是否匹配 Service 的 Selector
-// 			if isSelectedPod(pod, svc.Spec.Selector) {
-// 				newEps := getEndpointsFromPods([]*object.Pod{pod})
-// 				managedEps = append(managedEps, newEps...)
-// 			}
-// 		}
-
-// 		// 深拷贝 Service 并更新 Endpoints
-// 		data, _ := json.Marshal(&svc)
-
-// 		var svcCopy object.Service
-// 		_ = json.Unmarshal(data, &svcCopy)
-// 		svcCopy.Status.Endpoints = managedEps
-// 		updatedSvcs[svc.Metadata.Name] = &svcCopy
-// 	}
-
-// 	// 同步服务：先删除旧的服务，再添加或更新新的服务
-// 	for name, svc := range kp.ServiceMap {
-// 		if _, ok := updatedSvcs[name]; !ok {
-// 			// 如果旧的服务不在新的服务列表中，删除它
-// 			kp.IpvsOps.DelService(svc)
-// 			delete(kp.ServiceMap, name)
-// 		}
-// 	}
-
-// 	for name, svc := range updatedSvcs {
-// 		if _, ok := kp.ServiceMap[name]; !ok {
-// 			// 如果是新的服务，直接添加
-// 			kp.IpvsOps.AddService(svc)
-// 		} else {
-// 			// 如果服务已存在，更新其 Endpoints
-// 			kp.IpvsOps.UpdateServiceEps(kp.ServiceMap[name], svc)
-// 		}
-// 		// 更新服务映射
-// 		kp.ServiceMap[name] = svc
-// 	}
-// }
 
 func (kp *KubeProxyService) Run(stopCh <-chan struct{}) {
 	// 处理消息队列中的 Service 创建请求
