@@ -68,6 +68,7 @@ func (p *PodService) CreatePod(pod *object.Pod) error {
 			NetworkMode: container.NetworkMode(pauseNsArg),
 			IpcMode:     container.IpcMode(pauseNsArg),
 			PidMode:     container.PidMode(pauseNsArg),
+			// TODO: Binds: , 处理 hostPath 卷
 		}
 
 		// 创建容器

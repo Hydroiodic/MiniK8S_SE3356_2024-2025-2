@@ -48,11 +48,6 @@ type ResourceLimits struct {
 	Memory string `yaml:"memory"` // 如 "128Mi"
 }
 
-type Volume struct {
-	Name string `yaml:"name"`
-	Path string `yaml:"path"` // 挂载路径
-}
-
 type PodStatus struct {
 	Phase      string    `yaml:"phase"`      // 运行状态：Pending, Running, Failed 等
 	StartTime  time.Time `yaml:"startTime"`  // 启动时间
