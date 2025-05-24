@@ -8,6 +8,7 @@ const (
 	PodPrefix           = "/minik8s/pods/"
 	KubeletPrefix       = "/minik8s/kubelets/"
 	ResourcePrefix      = "/minik8s/resources/"
+	KubeProxyPrefix     = "/minik8s/kubeproxy/"
 	ClusterIPPrefix     = "/minik8s/inner/cluster-ip/"
 	DNSPrefix           = "/minik8s/dns/"
 	defaultEtcdEndpoint = "localhost:2379"
