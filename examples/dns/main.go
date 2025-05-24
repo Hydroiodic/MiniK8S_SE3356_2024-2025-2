@@ -31,7 +31,7 @@ func main() {
 
 	// Run DNS server
 	server := &dns.Server{
-		Addr:    ":53",
+		Addr:    ":5300",
 		Net:     "udp",
 		UDPSize: 65535,
 	}
@@ -41,7 +41,7 @@ func main() {
 		log.Fatalf("Failed to start DNS server: %v\n", err)
 	}
 
-	log.Println("DNS server started on port 53")
+	log.Println("DNS server started on port 5300")
 
 	// Ensure the server shuts down gracefully
 	defer func() {
