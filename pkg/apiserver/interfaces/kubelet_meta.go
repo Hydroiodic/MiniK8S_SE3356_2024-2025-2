@@ -185,7 +185,7 @@ func KubeletHeartbeat(c *gin.Context) {
 
 			// If the pod is not found, add it to the delete list.
 			if i < 0 {
-				newPod.Status.Phase = object.PodCreating
+				newPod.Status.Phase = object.PodDeleting
 				podsToDeleteKubelet = append(podsToDeleteKubelet, newPod)
 			}
 		}
