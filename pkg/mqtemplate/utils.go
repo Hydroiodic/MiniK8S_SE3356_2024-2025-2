@@ -117,8 +117,7 @@ func ConsumeMessageOnQueue(
 	go func() {
 		for d := range msgs {
 			// Print the message.
-			fmt.Println("Received a message: ", string(d.Body))
-
+			// fmt.Println("Received a message: ", string(d.Body))
 			// Consume the message and handle it.
 			var msg map[string]interface{}
 			if err := json.Unmarshal(d.Body, &msg); err != nil {

@@ -58,6 +58,15 @@ func (c *PodController) CreatePodHandler(msg map[string]any) error {
 		return err
 	}
 
+	// 遍历 Kubelet 的 Pod 列表，检查 Pod 是否已经存在
+	for _, p := range c.kubelet.Pods {
+		if p.Metadata.Name == pod.Metadata.Name &&
+			p.Metadata.Namespace == pod.Metadata.Namespace {
+			// 找到 Pod，不予处理
+			return nil
+		}
+	}
+
 	// 将 Pod 对象添加到 Kubelet 的 Pod 列表中
 	// 设置 Pod 的状态为 PodCreating
 	pod.Status.Phase = object.PodCreating // NOTE: Pod Phase
