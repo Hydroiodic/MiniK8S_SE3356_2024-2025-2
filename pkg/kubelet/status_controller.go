@@ -50,9 +50,10 @@ func (c *PodStatusController) Run(stopCh <-chan struct{}) {
 
 func (c *PodStatusController) updatePodStatus() {
 	// Get a copy of the pods to avoid holding the lock for too long.
-	c.kubelet.Mu.RLock()
+	c.kubelet.Mu.Lock()
+	defer c.kubelet.Mu.Unlock()
+
 	pods := c.kubelet.Pods
-	c.kubelet.Mu.RUnlock()
 
 	log.Printf("Updating pod status for pods: %v", utils.ExtractPodNames(pods))
 
@@ -87,15 +88,12 @@ func (c *PodStatusController) updatePodStatus() {
 			continue
 		}
 
-		c.kubelet.Mu.Lock()
 		// 填写Pod的状态
 		c.kubelet.Pods[i].Status.Phase = status
-		c.kubelet.Mu.Unlock()
 	}
 
 	// TODO：上报状态到 API Server
 	// 上报 kubelet 状态
-	c.kubelet.Mu.RLock()
 	kubeletCopy := &object.Kubelet{
 		Config:         c.kubelet.Config,
 		Pods:           c.kubelet.Pods,
@@ -103,7 +101,6 @@ func (c *PodStatusController) updatePodStatus() {
 		LastUpdateTime: time.Now(),
 		// Copy other fields as needed, excluding the Mu
 	}
-	c.kubelet.Mu.RUnlock()
 
 	// TODO: 发送心跳可行吗
 	if err := c.apiClient.HeartbeatKubelet(kubeletCopy); err != nil {
