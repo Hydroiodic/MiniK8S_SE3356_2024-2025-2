@@ -45,6 +45,7 @@ func (c *ServiceController) CreateServiceHandler(svc object.Service) error {
 		if s.Metadata.Namespace == svc.Metadata.Namespace &&
 			s.Metadata.Name == svc.Metadata.Name {
 			// TODO: 服务已经存在，进行更新
+			// TODO: 服务已经存在，但是API Server又要我创建？
 			// 调用 ipvs_ops 更新服务
 			c.IpvsOps.UpdateServiceEps(&s, &svc)
 

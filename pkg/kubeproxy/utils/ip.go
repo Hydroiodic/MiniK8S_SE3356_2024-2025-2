@@ -29,3 +29,37 @@ func GetNodeIP() (string, error) {
 
 	return strings.TrimSpace(localAddr.IP.String()), nil
 }
+
+func GetEnInterfaceIP() (string, error) {
+	interfaces, err := net.Interfaces()
+	if err != nil {
+		return "", err
+	}
+
+	for _, iface := range interfaces {
+		if strings.HasPrefix(iface.Name, "en") && iface.Flags&net.FlagUp != 0 &&
+			iface.Flags&net.FlagLoopback == 0 {
+			addrs, err := iface.Addrs()
+			if err != nil {
+				continue
+			}
+
+			for _, addr := range addrs {
+				var ip net.IP
+				switch v := addr.(type) {
+				case *net.IPNet:
+					ip = v.IP
+				case *net.IPAddr:
+					ip = v.IP
+				}
+
+				if ip != nil && ip.To4() != nil {
+					fmt.Println("Found en* interface IP:", ip.String())
+					return ip.String(), nil
+				}
+			}
+		}
+	}
+
+	return "", fmt.Errorf("no en* interface IP found")
+}
