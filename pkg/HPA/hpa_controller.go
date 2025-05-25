@@ -28,7 +28,7 @@ func NewHPAController(etcdEndpoints []string) (*HPAController, error) {
 	}
 
 	// 初始化 cAdvisor 客户端
-	metricsClient, err := client.NewClient("http://localhost:8080/")
+	metricsClient, err := client.NewClient("")
 	if err != nil {
 		return nil, fmt.Errorf("failed to connect to cAdvisor: %v", err)
 	}

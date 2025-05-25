@@ -21,7 +21,7 @@ type HorizontalPodAutoscalerSpec struct {
 
 // CrossVersionObjectReference 表示可伸缩的目标工作负载
 type CrossVersionObjectReference struct {
-	Kind       string `yaml:"kind"`       // 类型：ReplicaSet/Deployment/Pod
+	Kind       string `yaml:"kind"`       // 类型：ReplicaSet/Pod
 	Name       string `yaml:"name"`       // 工作负载名称
 	APIVersion string `yaml:"apiVersion"` // API 版本
 }
@@ -40,9 +40,9 @@ type ResourceMetricSource struct {
 
 // MetricTarget 定义指标目标
 type MetricTarget struct {
-	Type               string  `yaml:"type"`                         // 类型："Utilization"/"AverageValue"
-	AverageUtilization *int32  `yaml:"averageUtilization,omitempty"` // 目标利用率（百分比）
-	AverageValue       *string `yaml:"averageValue,omitempty"`       // 目标平均值（如 "100m"）
+	Type               string   `yaml:"type"`                   // 类型："Utilization"/"AverageValue"
+	AverageUtilization *float64 `yaml:"averageUtilization"`     // 目标利用率（百分比）
+	AverageValue       *string  `yaml:"averageValue,omitempty"` // 目标平均值（如 "100m"）
 }
 
 // HorizontalPodAutoscalerBehavior 定义扩缩容行为策略
@@ -53,16 +53,8 @@ type HorizontalPodAutoscalerBehavior struct {
 
 // HPAScalingRules 定义扩缩容规则
 type HPAScalingRules struct {
-	StabilizationWindowSeconds *int32             `yaml:"stabilizationWindowSeconds,omitempty"` // 稳定窗口时间
-	SelectPolicy               *string            `yaml:"selectPolicy,omitempty"`               // 策略选择方式
-	Policies                   []HPAScalingPolicy `yaml:"policies"`                             // 策略列表
-}
-
-// HPAScalingPolicy 定义单个扩缩容策略
-type HPAScalingPolicy struct {
-	Type          string `yaml:"type"`          // 类型："Pods"/"Percent"
-	Value         int32  `yaml:"value"`         // 调整值（如每次增减的Pod数量）
-	PeriodSeconds int32  `yaml:"periodSeconds"` // 调整间隔（秒）
+	ScaleTime  *time.Time `yaml:"scaleTime"`
+	ScaleSpeed int32      `yaml:"scaleSpeed"`
 }
 
 // HorizontalPodAutoscalerStatus 表示 HPA 的当前状态

@@ -68,3 +68,7 @@ const (
 	PodDeleted  = "Deleted"
 	PodFailed   = "Failed"
 )
+
+type PodMetrics struct {
+	Resources map[string]float64 `yaml:"-"`
+}

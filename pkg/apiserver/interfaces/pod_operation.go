@@ -1,6 +1,7 @@
 package interfaces
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"path"
@@ -177,6 +178,51 @@ func AssignPodToNode(c *gin.Context) {
 	c.JSON(http.StatusOK, "Pod created: "+path)
 }
 
+func UpdateReplicaset(c *gin.Context) {
+	// Parse the JSON body into a Pod object.
+	var replicaset object.ReplicaSet
+	if err := c.BindJSON(&replicaset); err != nil {
+		c.JSON(http.StatusBadRequest, "Invalid JSON: "+err.Error())
+		return
+	}
+
+	// Check for the namespace and name in the pod configuration.
+	if replicaset.Metadata.Namespace == "" {
+		replicaset.Metadata.Namespace = DefaultNamespace
+	}
+
+	// Create PodStore and check for errors.
+	st, err := object.NewReplicasetStore([]string{})
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			"Failed to create pod store: "+err.Error(),
+		)
+
+		return
+	}
+
+	// Ensure the PodStore is closed after use.
+	defer func() {
+		if closeErr := st.Close(); closeErr != nil {
+			fmt.Printf("Failed to close pod store: %v\n", closeErr)
+		}
+	}()
+
+	// Check if the pod already exists in etcd.
+	err = st.UpdateReplicaset(
+		c.Request.Context(),
+		&replicaset,
+	)
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			"Failed to get pod from etcd: "+err.Error(),
+		)
+
+		return
+	}
+}
 func CreatePod(c *gin.Context) {
 	// Parse the JSON body into a Pod object.
 	var pod object.Pod
@@ -266,6 +312,77 @@ func CreatePod(c *gin.Context) {
 	c.JSON(http.StatusOK, "Creating pod from file: "+path)
 }
 
+func CreateReplicaset(c *gin.Context) {
+	// Parse the JSON body into a Pod object.
+	var replicaset object.ReplicaSet
+	if err := c.BindJSON(&replicaset); err != nil {
+		c.JSON(http.StatusBadRequest, "Invalid JSON: "+err.Error())
+		return
+	}
+
+	// Check for the namespace and name in the pod configuration.
+	if replicaset.Metadata.Namespace == "" {
+		replicaset.Metadata.Namespace = DefaultNamespace
+	}
+
+	// Create PodStore and check for errors.
+	st, err := object.NewReplicasetStore([]string{})
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			"Failed to create pod store: "+err.Error(),
+		)
+
+		return
+	}
+
+	// Ensure the PodStore is closed after use.
+	defer func() {
+		if closeErr := st.Close(); closeErr != nil {
+			fmt.Printf("Failed to close pod store: %v\n", closeErr)
+		}
+	}()
+
+	// Check if the pod already exists in etcd.
+	reply, err := st.GetReplicaset(
+		c.Request.Context(),
+		replicaset.Metadata.Namespace,
+		replicaset.Metadata.Name,
+	)
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			"Failed to get pod from etcd: "+err.Error(),
+		)
+
+		return
+	}
+
+	// If the pod already exists, return an error.
+	if reply != nil {
+		fmt.Println(
+			"Create ReplicaSet from file failed: same pod namespace & name",
+		)
+		c.JSON(
+			http.StatusConflict,
+			"Create ReplicaSet  from file failed: same pod namespace & name",
+		)
+
+		return
+	}
+
+	//写入etcd即可
+	// Add the pod to etcd.
+	if err := st.AddReplicaset(c.Request.Context(), &replicaset); err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			"Failed to add replicaset to etcd: "+err.Error(),
+		)
+
+		return
+	}
+}
+
 func GetPods(c *gin.Context) {
 	// Create PodStore and check for errors.
 	st, err := object.NewPodStore([]string{})
@@ -298,6 +415,40 @@ func GetPods(c *gin.Context) {
 
 	// Convert the pods to a JSON format and return them.
 	c.JSON(http.StatusOK, pods)
+}
+
+func GetReplicasets(c *gin.Context) {
+	// Create PodStore and check for errors.
+	st, err := object.NewReplicasetStore([]string{})
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			"Failed to create replicaset store: "+err.Error(),
+		)
+
+		return
+	}
+
+	// Ensure the PodStore is closed after use.
+	defer func() {
+		if closeErr := st.Close(); closeErr != nil {
+			fmt.Printf("Failed to close replicaset store: %v\n", closeErr)
+		}
+	}()
+
+	// List all pods in etcd.
+	replicasets, err := st.ListReplicasets(c.Request.Context())
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			"Failed to list pods from etcd: "+err.Error(),
+		)
+
+		return
+	}
+
+	// Convert the pods to a JSON format and return them.
+	c.JSON(http.StatusOK, replicasets)
 }
 
 func DeletePod(c *gin.Context) {
@@ -434,4 +585,158 @@ func DeletePod(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, "Pod deletion requested: "+podToUpdate.Metadata.Name)
+}
+
+// func pdateReplicasetInEtcd(c *gin.Context) {
+// 	var rs object.ReplicaSet
+// 	if err := c.BindJSON(&rs); err != nil {
+// 		c.JSON(http.StatusBadRequest, "Invalid JSON: "+err.Error())
+// 		return
+// 	}
+
+// }
+
+func DeleteReplicasetFromEtcd(c *gin.Context) {
+	// Parse the JSON body into a Pod object.
+	var rs object.ReplicaSet
+	if err := c.BindJSON(&rs); err != nil {
+		c.JSON(http.StatusBadRequest, "Invalid JSON: "+err.Error())
+		return
+	}
+
+	// Create PodStore and check for errors.
+	st, err := object.NewReplicasetStore([]string{})
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			"Failed to create replicaset store: "+err.Error(),
+		)
+
+		return
+	}
+
+	// Ensure the PodStore is closed after use.
+	defer func() {
+		if closeErr := st.Close(); closeErr != nil {
+			fmt.Printf("Failed to close replicaset store: %v\n", closeErr)
+		}
+	}()
+
+	// Delete the pod from etcd.
+	if err := st.DeleteReplicaset(
+		c.Request.Context(),
+		rs.Metadata.Namespace,
+		rs.Metadata.Name,
+	); err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			"Failed to delete replicaset from etcd: "+err.Error(),
+		)
+
+		return
+	}
+
+	c.JSON(http.StatusOK, "Replicaset deleted: "+rs.Metadata.Name)
+}
+
+func CreateHpa(c *gin.Context) {
+	// Parse the JSON body into a hpa object.
+	var hpa object.HorizontalPodAutoscaler
+	if err := c.BindJSON(&hpa); err != nil {
+		c.JSON(http.StatusBadRequest, "Invalid JSON: "+err.Error())
+		return
+	}
+
+	// // Check for the namespace and name in the pod configuration.
+	// if hpa.Metadata.Namespace == "" {
+	// 	hpa.Metadata.Namespace = DefaultNamespace
+	// }
+
+	// Create PodStore and check for errors.
+	st, err := object.NewHpaStore([]string{})
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			"Failed to create hpa store: "+err.Error(),
+		)
+
+		return
+	}
+
+	// Ensure the PodStore is closed after use.
+	defer func() {
+		if closeErr := st.Close(); closeErr != nil {
+			fmt.Printf("Failed to close hpa store: %v\n", closeErr)
+		}
+	}()
+
+	// Check if the pod already exists in etcd.
+	reply, err := st.GetHpa(
+		c.Request.Context(),
+		hpa.Metadata.Namespace,
+		hpa.Metadata.Name,
+	)
+
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			"Failed to get hpa from etcd: "+err.Error(),
+		)
+
+		return
+	}
+
+	// If the pod already exists, return an error.
+	if reply != nil {
+		fmt.Println("Create hpa from file failed: same hpa namespace & name")
+		c.JSON(
+			http.StatusConflict,
+			"Create hpa from file failed: same hpa namespace & name",
+		)
+
+		return
+	}
+
+	if err := st.AddHpa(c.Request.Context(), &hpa); err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			"Failed to add hpa to etcd: "+err.Error(),
+		)
+
+		return
+	}
+}
+
+func GetHpas(c *gin.Context) {
+	// Create PodStore and check for errors.
+	st, err := object.NewHpaStore([]string{})
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			"Failed to create hpa store: "+err.Error(),
+		)
+
+		return
+	}
+
+	// Ensure the PodStore is closed after use.
+	defer func() {
+		if closeErr := st.Close(); closeErr != nil {
+			fmt.Printf("Failed to close hpa store: %v\n", closeErr)
+		}
+	}()
+
+	// List all pods in etcd.
+	pods, err := st.ListHpas(c.Request.Context())
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			"Failed to list pods from etcd: "+err.Error(),
+		)
+
+		return
+	}
+
+	// Convert the pods to a JSON format and return them.
+	c.JSON(http.StatusOK, pods)
 }

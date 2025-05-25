@@ -1,3 +1,3 @@
 package runtime
 
-const PauseImage = "registry.k8s.io/pause:3.6"
+const PauseImage = "registry.aliyuncs.com/google_containers/pause:3.6"
