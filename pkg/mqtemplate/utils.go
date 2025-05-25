@@ -18,6 +18,17 @@ func CreatePodMessage(pod object.Pod) (string, error) {
 	return string(jsonData), nil
 }
 
+func CreateServiceMessage(service object.Service) (string, error) {
+	// Create a message for creating a service.
+	jsonData, err := json.Marshal(service)
+	if err != nil {
+		fmt.Println("Failed to marshal service: ", err)
+		return "", err
+	}
+
+	return string(jsonData), nil
+}
+
 func SendMessageToQueue(queueName string, body string) error {
 	// Create connection to RabbitMQ server.
 	conn, err := Connect(RabbitMQUrl)

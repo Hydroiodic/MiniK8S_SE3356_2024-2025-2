@@ -34,3 +34,36 @@ type Endpoint struct {
 	IP   string `yaml:"ip"`   // Pod IP
 	Port int    `yaml:"port"` // Pod Port
 }
+
+func (s *Service) CheckReady() bool {
+	// If the ClusterIP is empty, the service is not ready.
+	if s.Status.ClusterIP == "" {
+		return false
+	}
+
+	// If the Endpoints are empty, the service is not ready.
+	if len(s.Status.Endpoints) == 0 {
+		return false
+	}
+
+	return true
+}
+
+func (s *Service) MatchLabels(
+	podLabels map[string]string,
+) bool {
+	for key, svcValue := range s.Spec.Selector {
+		// If the key is in the pod labels.
+		if value, ok := podLabels[key]; ok {
+			// If the value in the selector is not equal to the pod label.
+			if value != svcValue {
+				return false
+			}
+		} else {
+			// If the key is not in the pod labels, return false.
+			return false
+		}
+	}
+
+	return true
+}

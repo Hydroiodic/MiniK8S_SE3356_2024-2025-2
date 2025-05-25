@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"path"
+	"slices"
 
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/mqtemplate"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
@@ -112,7 +113,7 @@ func KubeletHeartbeat(c *gin.Context) {
 	// Update the kubelet's last update time.
 	kubelet.Heartbeat()
 
-	// Create a new etcd connection for kubelet heartbeat.
+	// Create a kubelet store for kubelet heartbeat.
 	st, err := object.NewKubeletStore([]string{})
 	if err != nil {
 		// Failed to create kubelet store, report error.
@@ -124,9 +125,29 @@ func KubeletHeartbeat(c *gin.Context) {
 		return
 	}
 
+	// Ensure the kubelet store is closed after use.
 	defer func() {
 		if closeErr := st.Close(); closeErr != nil {
 			log.Printf("Failed to close kubelet store: %v\n", closeErr)
+		}
+	}()
+
+	// Create service store for kubelet heartbeat.
+	svcStore, err := object.NewServiceStore([]string{})
+	if err != nil {
+		// Failed to create service store, report error.
+		c.JSON(
+			http.StatusInternalServerError,
+			"Failed to create service store: "+err.Error(),
+		)
+
+		return
+	}
+
+	// Ensure the service store is closed after use.
+	defer func() {
+		if closeErr := svcStore.Close(); closeErr != nil {
+			log.Printf("Failed to close service store: %v\n", closeErr)
 		}
 	}()
 
@@ -136,69 +157,241 @@ func KubeletHeartbeat(c *gin.Context) {
 		c.Request.Context(),
 		kubelet.Config.Name,
 	)
+	if err != nil || oldKubelet == nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			"Failed to get kubelet: "+err.Error(),
+		)
 
+		return
+	}
+
+	// Sync the pods with the kubelet.
+	if err := syncKubeletPods(
+		c.Request.Context(), st, oldKubelet, &kubelet,
+	); err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			"Failed to sync kubelet pods: "+err.Error(),
+		)
+
+		return
+	}
+
+	// Sync services with the kubelet.
+	if err := synceKubeletServices(
+		c.Request.Context(), svcStore, &kubelet,
+	); err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			"Failed to sync kubelet services: "+err.Error(),
+		)
+
+		return
+	}
+
+	c.JSON(http.StatusOK, "Kubelet heartbeat: "+kubelet.Config.Name)
+}
+
+func findIndex(
+	pods []object.Pod,
+	pod object.Pod,
+) int {
+	// Iterate over the pods to find the index of the specified pod.
+	for i, p := range pods {
+		if p.Metadata.Name == pod.Metadata.Name &&
+			p.Metadata.Namespace == pod.Metadata.Namespace {
+			return i
+		}
+	}
+
+	// If the pod is not found, return -1.
+	return -1
+}
+
+func checkEndpointsSame(
+	ep1, ep2 []object.Endpoint,
+) bool {
+	// Check if the lengths of the endpoints are the same.
+	if len(ep1) != len(ep2) {
+		return false
+	}
+
+	// Iterate over the endpoints to check if they are the same.
+	for _, e1 := range ep1 {
+		if !slices.Contains(ep2, e1) {
+			return false
+		}
+	}
+
+	return true
+}
+
+func synceKubeletServices(
+	ctx context.Context,
+	st *object.ServiceStore,
+	kubelet *object.Kubelet,
+) error {
+	// Get all valid services from etcd.
+	services, err := st.ListServices(ctx, true)
+	if err != nil {
+		return fmt.Errorf("failed to list services: %w", err)
+	}
+
+	// Make some lists to store the services to be added and deleted.
+	servicesToAdd := make([]object.Service, 0)
+	servicesToDelete := make([]object.Service, 0)
+
+	// Check if there's any valid service not in the kubelet.
+	for _, svc := range services {
+		// Use a bool flag to check if the service is in the kubelet.
+		found := false
+
+		// Check if the service is already in the kubelet.
+		for _, kubeSvc := range kubelet.Services {
+			// If not the same service, continue.
+			if svc.Metadata.Name != kubeSvc.Metadata.Name ||
+				svc.Metadata.Namespace != kubeSvc.Metadata.Namespace {
+				continue
+			}
+
+			// We have found the service in the kubelet.
+			found = true
+
+			// Compare their endpoints.
+			if !checkEndpointsSame(
+				svc.Status.Endpoints,
+				kubeSvc.Status.Endpoints,
+			) {
+				// If the endpoints are different, update the kubelet's service.
+				servicesToAdd = append(servicesToAdd, *svc)
+			}
+
+			break
+		}
+
+		// If the service is not found in the kubelet, add it to the list.
+		if !found {
+			// Add the service to the kubelet's service list.
+			servicesToAdd = append(servicesToAdd, *svc)
+		}
+	}
+
+	// Check if there are any services in the kubelet not in etcd.
+	for _, kubeSvc := range kubelet.Services {
+		// Use a bool flag to check if the service is in etcd.
+		found := false
+
+		// Check if the service is already in etcd.
+		for _, svc := range services {
+			// If not the same service, continue.
+			if kubeSvc.Metadata.Name != svc.Metadata.Name ||
+				kubeSvc.Metadata.Namespace != svc.Metadata.Namespace {
+				continue
+			}
+
+			// We have found the service in etcd.
+			found = true
+
+			break
+		}
+
+		// If the service is not found in etcd, add it to the list.
+		if !found {
+			// Add the service to the kubelet's service list.
+			servicesToDelete = append(servicesToDelete, kubeSvc)
+		}
+	}
+
+	// Log the details of the heartbeat.
 	log.Printf(
-		"Received heartbeat from kubelet %s with pods: %v\n",
+		"Received heartbeat from kubelet %s: %d services, %d to add, %d to delete\n",
 		kubelet.Config.Name,
-		retrievePodsName(kubelet.Pods),
+		len(kubelet.Services),
+		len(servicesToAdd),
+		len(servicesToDelete),
 	)
-	log.Printf("Old kubelet pods: %v\n", retrievePodsName(oldKubelet.Pods))
+	log.Printf("Services to add: %v\n", retrieveServicesName(servicesToAdd))
+	log.Printf(
+		"Services to delete: %v\n",
+		retrieveServicesName(servicesToDelete),
+	)
+
+	// Execute the operations on the services.
+	if err := internalAddKubeletServices(
+		kubelet.Config.Name, servicesToAdd,
+	); err != nil {
+		return fmt.Errorf("failed to add kubelet services: %w", err)
+	}
+
+	if err := internalDeleteKubeletServices(
+		kubelet.Config.Name, servicesToDelete,
+	); err != nil {
+		return fmt.Errorf("failed to delete kubelet services: %w", err)
+	}
+
+	return nil
+}
+
+func syncKubeletPods(
+	ctx context.Context,
+	st *object.KubeletStore,
+	oldKubelet, kubelet *object.Kubelet,
+) error {
 	// Two arrays of pods are compared.
 	podsToUpdate := make([]object.Pod, 0)
 	podsToDelete := make([]object.Pod, 0)
 	podsToAddKubelet := make([]object.Pod, 0)
 	podsToDeleteKubelet := make([]object.Pod, 0)
 
-	if err == nil && oldKubelet != nil && oldKubelet.Pods != nil {
-		// Delete the pods not existing in the new kubelet.
-		for _, oldPod := range oldKubelet.Pods {
-			// Iterate through the new kubelet's pods to check if the old pod exists.
-			i := findIndex(kubelet.Pods, oldPod)
+	// Delete the pods not existing in the new kubelet.
+	for _, oldPod := range oldKubelet.Pods {
+		// Iterate through the new kubelet's pods to check if the old pod exists.
+		i := findIndex(kubelet.Pods, oldPod)
 
-			if i < 0 {
-				// If the pod is not found, sync status with Kubelet.
-				switch oldPod.Status.Phase {
-				case object.PodUnknown,
-					object.PodCreating,
-					object.PodRunning,
-					object.PodFailed:
-					oldPod.Status.Phase = object.PodCreating
-					podsToAddKubelet = append(podsToAddKubelet, oldPod)
-					podsToUpdate = append(podsToUpdate, oldPod)
-				case object.PodDeleting:
-					podsToDelete = append(podsToDelete, oldPod)
-				}
-			} else {
-				// If the pod is found, update it in the new kubelet.
-				// TODO: some containers may not need to be updated.
-				switch oldPod.Status.Phase {
-				case object.PodUnknown,
-					object.PodCreating,
-					object.PodRunning,
-					object.PodFailed:
-					podsToUpdate = append(podsToUpdate, kubelet.Pods[i])
-				case object.PodDeleting:
-					podsToDeleteKubelet = append(podsToDeleteKubelet, oldPod)
-				}
+		if i < 0 {
+			// If the pod is not found, sync status with Kubelet.
+			switch oldPod.Status.Phase {
+			case object.PodUnknown,
+				object.PodCreating,
+				object.PodRunning,
+				object.PodFailed:
+				oldPod.Status.Phase = object.PodCreating
+				podsToAddKubelet = append(podsToAddKubelet, oldPod)
+				podsToUpdate = append(podsToUpdate, oldPod)
+			case object.PodDeleting:
+				podsToDelete = append(podsToDelete, oldPod)
+			}
+		} else {
+			// If the pod is found, update it in the new kubelet.
+			// TODO: some containers may not need to be updated.
+			switch oldPod.Status.Phase {
+			case object.PodUnknown,
+				object.PodCreating,
+				object.PodRunning,
+				object.PodFailed:
+				podsToUpdate = append(podsToUpdate, kubelet.Pods[i])
+			case object.PodDeleting:
+				podsToDeleteKubelet = append(podsToDeleteKubelet, oldPod)
 			}
 		}
-
-		// If there's any pod in the new kubelet that doesn't exist in the old kubelet,
-		// add it to the `podsToDeleteKubelet` list.
-		for _, newPod := range kubelet.Pods {
-			// Iterate through the old kubelet's pods to check if the new pod exists.
-			i := findIndex(oldKubelet.Pods, newPod)
-
-			// If the pod is not found, add it to the delete list.
-			if i < 0 {
-				newPod.Status.Phase = object.PodDeleting
-				podsToDeleteKubelet = append(podsToDeleteKubelet, newPod)
-			}
-		}
-
-		// Use `podsToUpdate` and `podsToDeleteKubelet` as the new pods list.
-		kubelet.Pods = append(podsToUpdate, podsToDeleteKubelet...)
 	}
+
+	// If there's any pod in the new kubelet that doesn't exist in the old kubelet,
+	// add it to the `podsToDeleteKubelet` list.
+	for _, newPod := range kubelet.Pods {
+		// Iterate through the old kubelet's pods to check if the new pod exists.
+		i := findIndex(oldKubelet.Pods, newPod)
+
+		// If the pod is not found, add it to the delete list.
+		if i < 0 {
+			newPod.Status.Phase = object.PodDeleting
+			podsToDeleteKubelet = append(podsToDeleteKubelet, newPod)
+		}
+	}
+
+	// Use `podsToUpdate` and `podsToDeleteKubelet` as the new pods list.
+	kubelet.Pods = append(podsToUpdate, podsToDeleteKubelet...)
 
 	// Log the details of the heartbeat.
 	log.Printf(
@@ -223,32 +416,17 @@ func KubeletHeartbeat(c *gin.Context) {
 	// TODO: ensure the three database operations are atomic.
 
 	// Operations on pods in etcd.
-	if err := internalDeletePods(c.Request.Context(), podsToDelete); err != nil {
-		c.JSON(
-			http.StatusInternalServerError,
-			"Failed to delete pods: "+err.Error(),
-		)
-
-		return
+	if err := internalDeletePods(ctx, podsToDelete); err != nil {
+		return fmt.Errorf("failed to delete pods: %w", err)
 	}
 
-	if err := internalUpdatePods(c.Request.Context(), podsToUpdate); err != nil {
-		c.JSON(
-			http.StatusInternalServerError,
-			"Failed to update pods: "+err.Error(),
-		)
-
-		return
+	if err := internalUpdatePods(ctx, podsToUpdate); err != nil {
+		return fmt.Errorf("failed to update pods: %w", err)
 	}
 
 	// Update the kubelet object in etcd.
-	if err := st.UpdateKubelet(c.Request.Context(), &kubelet); err != nil {
-		c.JSON(
-			http.StatusInternalServerError,
-			"Failed to update kubelet: "+err.Error(),
-		)
-
-		return
+	if err := st.UpdateKubelet(ctx, kubelet); err != nil {
+		return fmt.Errorf("failed to update kubelet: %w", err)
 	}
 
 	// Sync the pods with the kubelet.
@@ -261,23 +439,77 @@ func KubeletHeartbeat(c *gin.Context) {
 		log.Printf("Failed to sync pods with kubelet: %v\n", err)
 	}
 
-	c.JSON(http.StatusOK, "Kubelet heartbeat: "+kubelet.Config.Name)
+	return nil
 }
 
-func findIndex(
-	pods []object.Pod,
-	pod object.Pod,
-) int {
-	// Iterate over the pods to find the index of the specified pod.
-	for i, p := range pods {
-		if p.Metadata.Name == pod.Metadata.Name &&
-			p.Metadata.Namespace == pod.Metadata.Namespace {
-			return i
+func internalAddKubeletServices(
+	nodeName string,
+	services []object.Service,
+) error {
+	// Iterate through the services to add them to the kubelet.
+	for _, svc := range services {
+		// Log the service creation.
+		log.Printf(
+			"Service %s/%s is re-creating on node %s\n",
+			svc.Metadata.Namespace,
+			svc.Metadata.Name,
+			nodeName,
+		)
+
+		// Here we use a message queue to process the service creation.
+		msg, err := mqtemplate.CreateServiceMessage(svc)
+		if err != nil {
+			log.Printf("Failed to create service message: %v\n", err)
+			continue
+		}
+
+		// Send the message to the queue.
+		queueName := path.Join(
+			mqtemplate.KubeProxyCreateServiceQueue,
+			nodeName,
+		)
+		if err = mqtemplate.SendMessageToQueue(queueName, msg); err != nil {
+			log.Printf("Failed to send message to queue: %v\n", err)
+			continue
 		}
 	}
 
-	// If the pod is not found, return -1.
-	return -1
+	return nil
+}
+
+func internalDeleteKubeletServices(
+	nodeName string,
+	services []object.Service,
+) error {
+	// Iterate through the services to delete them from the kubelet.
+	for _, svc := range services {
+		// Log the service creation.
+		log.Printf(
+			"Service %s/%s is deleting on node %s\n",
+			svc.Metadata.Namespace,
+			svc.Metadata.Name,
+			nodeName,
+		)
+
+		// Here we use a message queue to process the service creation.
+		msg, err := mqtemplate.CreateServiceMessage(svc)
+		if err != nil {
+			log.Printf("Failed to create service message: %v\n", err)
+			continue
+		}
+
+		// Send the message to the queue.
+		queueName := path.Join(
+			mqtemplate.KubeProxyDeleteServiceQueue,
+			nodeName,
+		)
+		if err = mqtemplate.SendMessageToQueue(queueName, msg); err != nil {
+			log.Printf("Failed to send message to queue: %v\n", err)
+			continue
+		}
+	}
+
+	return nil
 }
 
 func internalDeletePods(ctx context.Context, pods []object.Pod) error {
