@@ -12,16 +12,20 @@ var deleteCmd = &cobra.Command{
 	Use:   "delete",
 	Short: "Delete a Kubernetes resource",
 	Run: func(_ *cobra.Command, args []string) {
-		if len(args) < 3 {
+		if len(args) < 2 {
 			_, _ = fmt.Println(
-				"Usage: minik8s kubectl delete <resource-type> <resource-name> <resource-namespace>",
+				"Usage: minik8s kubectl delete <resource-type> <resource-name> [resource-namespace]",
 			)
 			return
 		}
 
 		resourceType := args[0]
 		resourceName := args[1]
-		resourceNamespace := args[2]
+		resourceNamespace := "default" // Default value
+
+		if len(args) >= 3 {
+			resourceNamespace = args[2]
+		}
 
 		switch resourceType {
 		case PodResource:
