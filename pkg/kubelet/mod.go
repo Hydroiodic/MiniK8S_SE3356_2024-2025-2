@@ -88,5 +88,6 @@ func (s *KubeletService) Run(stopCh <-chan struct{}) {
 
 	go s.podController.Run(stopCh)
 	go s.statusController.Run(stopCh)
+	go s.serviceController.Run(stopCh)
 	<-stopCh
 }
