@@ -41,6 +41,9 @@ func NewPodController(
 }
 
 func (c *PodController) CreatePodHandler(msg map[string]any) error {
+	c.kubelet.Mu.Lock()
+	defer c.kubelet.Mu.Unlock()
+
 	// 解析消息体
 	msgBody, err := json.Marshal(msg)
 	if err != nil {
@@ -55,14 +58,21 @@ func (c *PodController) CreatePodHandler(msg map[string]any) error {
 		return err
 	}
 
+	// 遍历 Kubelet 的 Pod 列表，检查 Pod 是否已经存在
+	for _, p := range c.kubelet.Pods {
+		if p.Metadata.Name == pod.Metadata.Name &&
+			p.Metadata.Namespace == pod.Metadata.Namespace {
+			// 找到 Pod，不予处理
+			return nil
+		}
+	}
+
 	// 将 Pod 对象添加到 Kubelet 的 Pod 列表中
-	c.kubelet.Mu.Lock()
 	// 设置 Pod 的状态为 PodCreating
 	pod.Status.Phase = object.PodCreating // NOTE: Pod Phase
 	pod.Status.StartTime = time.Now()
 	// 添加到 Kubelet 的 Pod 列表中
 	c.kubelet.Pods = append(c.kubelet.Pods, pod)
-	c.kubelet.Mu.Unlock()
 
 	// 在这里可以对 Pod 进行进一步处理，比如创建或更新
 	// TODO: 错误处理，创建失败时
@@ -79,7 +89,6 @@ func (c *PodController) CreatePodHandler(msg map[string]any) error {
 
 	log.Printf("Pod started: %s", pod.Metadata.Name)
 
-	c.kubelet.Mu.Lock()
 	// 更改 Pod 的状态为 Running
 	pod.Status.Phase = object.PodRunning
 	pod.Status.StartTime = time.Now()
@@ -91,12 +100,14 @@ func (c *PodController) CreatePodHandler(msg map[string]any) error {
 			break
 		}
 	}
-	c.kubelet.Mu.Unlock()
 
 	return nil
 }
 
 func (c *PodController) DeletePodHandler(msg map[string]interface{}) error {
+	c.kubelet.Mu.Lock()
+	defer c.kubelet.Mu.Unlock()
+
 	// 解析消息体
 	msgBody, err := json.Marshal(msg)
 	if err != nil {
@@ -112,7 +123,6 @@ func (c *PodController) DeletePodHandler(msg map[string]interface{}) error {
 	}
 
 	// 检查 Pod 是否存在
-	c.kubelet.Mu.Lock()
 	podExists := false
 	// 遍历 Kubelet 的 Pod 列表，检查 Pod 是否存在
 	for _, p := range c.kubelet.Pods {
@@ -126,7 +136,6 @@ func (c *PodController) DeletePodHandler(msg map[string]interface{}) error {
 			break
 		}
 	}
-	c.kubelet.Mu.Unlock()
 
 	// 如果 Pod 不存在，直接返回
 	if !podExists {
@@ -148,7 +157,6 @@ func (c *PodController) DeletePodHandler(msg map[string]interface{}) error {
 	}
 
 	// 从 Kubelet 的 Pod 列表中删除
-	c.kubelet.Mu.Lock()
 	for i, p := range c.kubelet.Pods {
 		if p.Metadata.Name == pod.Metadata.Name &&
 			p.Metadata.Namespace == pod.Metadata.Namespace {
@@ -161,7 +169,6 @@ func (c *PodController) DeletePodHandler(msg map[string]interface{}) error {
 			break
 		}
 	}
-	c.kubelet.Mu.Unlock()
 
 	return nil
 }
