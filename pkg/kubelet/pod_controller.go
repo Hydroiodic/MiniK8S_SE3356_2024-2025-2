@@ -9,6 +9,7 @@ import (
 
 	"slices"
 
+	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/apiserver"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/pod"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/mqtemplate"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
@@ -17,7 +18,7 @@ import (
 type PodController struct {
 	kubelet    *object.Kubelet
 	podService pod.PodServiceInterface
-	apiClient  APIServerClient
+	apiClient  *apiserver.APIClient
 	syncPeriod time.Duration
 }
 
@@ -28,7 +29,7 @@ type PodController struct {
 func NewPodController(
 	kubelet *object.Kubelet,
 	podService pod.PodServiceInterface,
-	apiClient APIServerClient,
+	apiClient *apiserver.APIClient,
 	syncPeriod time.Duration,
 ) *PodController {
 	return &PodController{
