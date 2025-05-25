@@ -8,15 +8,11 @@ import (
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/etcd"
 )
 
-// ServicePrefix 是存储 Service 对象的前缀，和 PodPrefix 类似
-const ServicePrefix = "/miniK8s/services"
-
-// ServiceStore 提供对 Service 元数据的增删改查
+// ServiceStore provides methods to manage Service objects in Etcd.
 type ServiceStore struct {
 	etcdClient *etcd.Client
 }
 
-// NewServiceStore 使用给定的 etcdEndpoints 创建一个 ServiceStore
 func NewServiceStore(etcdEndpoints []string) (*ServiceStore, error) {
 	client, err := etcd.NewEtcdClient(etcdEndpoints)
 	if err != nil {
@@ -26,20 +22,27 @@ func NewServiceStore(etcdEndpoints []string) (*ServiceStore, error) {
 	return &ServiceStore{etcdClient: client}, nil
 }
 
-// Close 用于关闭 Etcd 客户端连接
 func (s *ServiceStore) Close() error {
 	return s.etcdClient.Close()
 }
 
 // key 根据 Service 的 Namespace 和 Name 生成在 Etcd 中的存储路径
-func (s *ServiceStore) key(namespace, name string) string {
-	return path.Join(ServicePrefix, namespace, name)
+func (s *ServiceStore) key(namespace, name string, ready bool) string {
+	var prefix string
+	if ready {
+		prefix = etcd.ValidServicePrefix
+	} else {
+		prefix = etcd.PendingServicePrefix
+	}
+
+	return path.Join(prefix, namespace, name)
 }
 
 // AddService 将 Service 元数据存储到 Etcd
 func (s *ServiceStore) AddService(
 	ctx context.Context,
 	svc *Service,
+	ready bool,
 ) error {
 	jsonData, err := json.Marshal(svc)
 	if err != nil {
@@ -48,7 +51,7 @@ func (s *ServiceStore) AddService(
 
 	return s.etcdClient.Put(
 		ctx,
-		s.key(svc.Metadata.Namespace, svc.Metadata.Name),
+		s.key(svc.Metadata.Namespace, svc.Metadata.Name, ready),
 		string(jsonData),
 	)
 }
@@ -57,8 +60,9 @@ func (s *ServiceStore) AddService(
 func (s *ServiceStore) GetService(
 	ctx context.Context,
 	namespace, name string,
+	ready bool,
 ) (*Service, error) {
-	data, err := s.etcdClient.Get(ctx, s.key(namespace, name))
+	data, err := s.etcdClient.Get(ctx, s.key(namespace, name, ready))
 	if err != nil {
 		return nil, err
 	} else if data == "" {
@@ -77,23 +81,32 @@ func (s *ServiceStore) GetService(
 func (s *ServiceStore) UpdateService(
 	ctx context.Context,
 	svc *Service,
+	ready bool,
 ) error {
-	return s.AddService(ctx, svc)
+	return s.AddService(ctx, svc, ready)
 }
 
 // DeleteService 从 Etcd 中删除指定的 Service 元数据
 func (s *ServiceStore) DeleteService(
 	ctx context.Context,
 	namespace, name string,
+	ready bool,
 ) error {
-	return s.etcdClient.Delete(ctx, s.key(namespace, name))
+	return s.etcdClient.Delete(ctx, s.key(namespace, name, ready))
 }
 
 // ListServices 列出所有 Service 元数据
 func (s *ServiceStore) ListServices(
 	ctx context.Context,
+	ready bool,
 ) ([]*Service, error) {
-	kvs, err := s.etcdClient.List(ctx, ServicePrefix)
+	// Get prefix based on the ready status.
+	servicePrefix := etcd.ValidServicePrefix
+	if !ready {
+		servicePrefix = etcd.PendingServicePrefix
+	}
+
+	kvs, err := s.etcdClient.List(ctx, servicePrefix)
 	if err != nil {
 		return nil, err
 	}
@@ -116,8 +129,16 @@ func (s *ServiceStore) ListServices(
 func (s *ServiceStore) ListServicesInNamespace(
 	ctx context.Context,
 	namespace string,
+	ready bool,
 ) ([]*Service, error) {
-	kvs, err := s.etcdClient.List(ctx, path.Join(ServicePrefix, namespace))
+	// Get prefix based on the ready status.
+	servicePrefix := etcd.ValidServicePrefix
+	if !ready {
+		servicePrefix = etcd.PendingServicePrefix
+	}
+
+	// Use the namespace to filter the services.
+	kvs, err := s.etcdClient.List(ctx, path.Join(servicePrefix, namespace))
 	if err != nil {
 		return nil, err
 	}
