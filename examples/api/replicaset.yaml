@@ -12,15 +12,13 @@ spec:
     metadata:
       labels:
         app: myapp
+      name: r-pod
+      namespace: default
     spec:
       containers:
       - name: myapp-container
         image: nginx:latest
         ports:
         - containerPort: 80
-        resources:
-          cpu: "1"
-          memory: "128Mi"
-status:
-  replicas: 3
-  availableReplicas: 2
+
+

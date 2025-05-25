@@ -14,6 +14,8 @@ const (
 	KubeProxyCreateServiceQueue = "kubeProxyCreateServiceQueue"
 	KubeProxyDeleteServiceQueue = "kubeProxyDeleteServiceQueue"
 
+	DnsCreatePod        = "DnsCreatePodQueue"
+	DnsDeletePod        = "DnsDeletePodQueue"
 	CreateDnsQueueName  = "createDns"
 	UpdateDnsQueueName  = "updateDns"
 	DeleteDnsQueueName  = "deleteDns"

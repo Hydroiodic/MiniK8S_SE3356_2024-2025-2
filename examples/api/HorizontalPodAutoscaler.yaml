@@ -1,31 +1,19 @@
+apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
-name: <hpa-name>
-target:
-  kind: ReplicaSet  # 或 Deployment/Pod
-  name: <target-name>
-minReplicas: <min>  # 最小副本数
-maxReplicas: <max>  # 最大副本数
-metrics:
+metadata:
+  name: myapp-hpa
+  namespace: default
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: ReplicaSet
+    name: my-replicaset
+  minReplicas: 1
+  maxReplicas: 10
+  metrics:
   - type: Resource
     resource:
-      name: cpu     # 必选
-      target:
-        type: Utilization  # 或 AverageValue
-        value: 50%        # 目标利用率
-  - type: Resource
-    resource:
-      name: memory  # 可选（或其他资源类型）
+      name: memory
       target:
         type: Utilization
-        value: 70%
-behavior:           # 扩缩容策略（可选）
-  scaleUp:
-    policies:
-      - type: Pods
-        value: 1     # 每次增加 1 个 Pod
-        periodSeconds: 15  # 每 15 秒触发一次
-  scaleDown:
-    policies:
-      - type: Pods
-        value: 1
-        periodSeconds: 60
+        averageUtilization: 0.00001

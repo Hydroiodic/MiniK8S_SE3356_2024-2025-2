@@ -158,8 +158,21 @@ func handleServiceRaw(rawData []byte) error {
 }
 
 func handleReplicaSetRaw(rawData []byte) error {
-	fmt.Println("Raw ReplicaSet JSON/YAML:", string(rawData))
-	// 在这里可以直接操作 JSON，如提取字段、修改内容等
+	// 1. 解析 YAML 到 map\
+	var r object.ReplicaSet
+	if err := yaml.Unmarshal(rawData, &r); err != nil {
+		log.Fatalf("error unmarshaling YAML: %v", err)
+	}
+
+	ci := client.NewAPIClient("http://localhost:8080")
+
+	fmt.Println(r)
+
+	err := ci.CreateReplicaset(&r)
+	if err != nil {
+		fmt.Println(err)
+	}
+
 	return nil
 }
 
@@ -168,7 +181,20 @@ func handleDNSConfigRaw(rawData []byte) error {
 	return nil
 }
 func handleHPARaw(rawData []byte) error {
-	fmt.Println("Raw HPA JSON/YAML:", string(rawData))
+	var hpa object.HorizontalPodAutoscaler
+	if err := yaml.Unmarshal(rawData, &hpa); err != nil {
+		log.Fatalf("error unmarshaling YAML: %v", err)
+	}
+
+	ci := client.NewAPIClient("http://localhost:8080")
+
+	fmt.Println(hpa)
+
+	err := ci.CreateHpa(&hpa)
+	if err != nil {
+		fmt.Println(err)
+	}
+
 	return nil
 }
 

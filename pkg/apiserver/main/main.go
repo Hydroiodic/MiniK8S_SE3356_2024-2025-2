@@ -30,6 +30,13 @@ func declareGinServer() *gin.Engine {
 	r.POST(apiserver.DNSDeleteURL, interfaces.DeleteSingleDNS)
 	r.GET(apiserver.DNSGetResolveURL, interfaces.GetDNSResolve)
 
+	r.GET(apiserver.ReplicasetGetURL, interfaces.GetReplicasets)
+	r.POST(apiserver.ReplicasetCreateURL, interfaces.CreateReplicaset)
+	r.POST(apiserver.ReplicasetDeleteURL, interfaces.DeleteReplicasetFromEtcd)
+	r.POST(apiserver.ReplicasetUpdateURL, interfaces.UpdateReplicaset)
+
+	r.GET(apiserver.HpaGetURL, interfaces.GetHpas)
+	r.POST(apiserver.HpaCreateURL, interfaces.CreateHpa)
 	// r.POST("/getOnePod", interfaces.GetOnePod)
 
 	// r.POST("/updateHost", interfaces.HandleUpdateHost)

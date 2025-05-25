@@ -139,16 +139,66 @@ func getAllServices() string {
 }
 
 // ReplicaSet 相关操作.
-func getReplicaSet(name string) string {
-	_, _ = fmt.Printf("Getting ReplicaSet: %s\n", name)
-	// 这里添加实际获取单个 ReplicaSet 的逻辑
-	return emptyReply
+func getReplicaSet(name string) {
+	rs, err := ci.GetReplicasetyName(name)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	var rsArr []object.ReplicaSet
+	rsArr = append(rsArr, rs)
+	PrintReplicaSetTable(rsArr)
 }
 
-func getAllReplicaSets() string {
-	_, _ = fmt.Println("Listing all ReplicaSets")
-	// 这里添加实际获取所有 ReplicaSet 的逻辑
-	return emptyReply
+func PrintReplicaSetTable(replicaSets []object.ReplicaSet) {
+	// 表头
+	header := "NAME\t\tDESIRED\tCURRENT\tREADY\tCONTAINERS\tIMAGES\t\tSELECTOR"
+	fmt.Println(header)
+
+	// 每行数据
+	for _, rs := range replicaSets {
+		// 获取容器信息
+		var containerNames []string
+
+		var containerImages []string
+
+		for _, c := range rs.Spec.Template.Spec.Containers {
+			containerNames = append(containerNames, c.Name)
+			containerImages = append(containerImages, c.Image)
+		}
+
+		// 格式化选择器
+		var selectorParts []string
+		for k, v := range rs.Spec.Selector {
+			selectorParts = append(selectorParts, fmt.Sprintf("%s=%s", k, v))
+		}
+
+		selector := strings.Join(selectorParts, ",")
+
+		// 打印行数据
+		line := fmt.Sprintf("%s\t%d\t%d\t%d\t%s\t%s\t%s",
+			rs.Metadata.Name,
+			rs.Spec.Replicas,
+			rs.Status.AvailableReplicas,
+			rs.Status.AvailableReplicas,
+			strings.Join(containerNames, ","),
+			strings.Join(containerImages, ","),
+			selector,
+		)
+
+		fmt.Println(line)
+	}
+}
+
+func getAllReplicaSets() {
+	rs, err := ci.GetReplicasets()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	PrintReplicaSetTable(rs)
 }
 
 // DNS 相关操作.
@@ -171,8 +221,6 @@ func getHPA(name string) string {
 	return emptyReply
 }
 
-func getAllHPA() string {
-	_, _ = fmt.Println("Listing all HPA configs")
-	// 这里添加实际获取所有 HPA 配置的逻辑
-	return emptyReply
+func getAllHPA() {
+	_, _ = fmt.Println("Listing all hpa configs")
 }
