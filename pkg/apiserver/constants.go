@@ -30,5 +30,5 @@ const (
 	ReplicasetDeleteURL = "/replicaset/deleteReplicaset"
 
 	HpaGetURL    = "/hpa/getHpas"
-	HpaCreateURL = "hpa/createHpa"
+	HpaCreateURL = "/hpa/createHpa"
 )

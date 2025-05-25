@@ -15,6 +15,7 @@ type ReplicasetController struct {
 }
 
 func (rsc *ReplicasetController) Start() {
+
 	ticker := time.NewTicker(5 * time.Second) // 每3秒触发一次
 	defer ticker.Stop()                       // 确保程序退出时停止Ticker
 
@@ -110,7 +111,7 @@ func (rsc *ReplicasetController) CheckAllReplicaset() {
 		} else {
 			log.Printf("数量太多了 : %d", len(matchPods)-rs.Spec.Replicas)
 			rsc.DeletePod(matchPods, len(matchPods)-rs.Spec.Replicas)
-			rs.Status.AvailableReplicas =rs.Spec.Replicas
+			rs.Status.AvailableReplicas = rs.Spec.Replicas
 		}
 
 		err = ci.UpdateReplicaset(&rs)

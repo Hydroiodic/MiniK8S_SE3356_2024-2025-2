@@ -23,7 +23,7 @@ type DnsController struct {
 }
 
 func (dc *DnsController) Init() {
-	dc.ci = apiserver.NewAPIClient("http://localhost:8080")
+	dc.ci = apiserver.NewAPIClient("")
 	//创建一个nginx pod
 	var nginxPod object.Pod
 

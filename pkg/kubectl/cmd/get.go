@@ -222,8 +222,12 @@ func getHPA(name string) string {
 	return emptyReply
 }
 
-func getAllHPA() string {
-	_, _ = fmt.Println("Listing all HPA configs")
-	// 这里添加实际获取所有 HPA 配置的逻辑
-	return emptyReply
+func getAllHPA() {
+	// rs, err := ci.GetHpas()
+	// if err != nil {
+	// 	fmt.Println(err)
+	return
+	// }
+
+	// PrintReplicaSetTable()
 }

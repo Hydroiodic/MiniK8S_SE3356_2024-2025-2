@@ -2,12 +2,14 @@ package hpa
 
 import (
 	"fmt"
+	"log"
 	"math"
 	"time"
 
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/apiserver"
 	replicasetutil "github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/controller/replicaset"
 	cadvisorutils "github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/cadvisor"
+	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/container"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
 )
 
@@ -18,14 +20,18 @@ type HPAController struct {
 	Tickers map[string]*time.Ticker
 	// 新增一个map来存储每个HPA对象的退出通道
 	QuitChs map[string]chan struct{}
-	ci      *apiserver.APIClient
+	Ci      *apiserver.APIClient
+	Cs      *container.ContainerService
 }
 
 func (hpaC *HPAController) Start() {
+	hpaC.Cs, _ = container.NewContainerService()
+	hpaC.Cs.RunCadvisorContainer()
 	hpaC.HpasMap = make(map[string]*object.HorizontalPodAutoscaler)
 	hpaC.Tickers = make(map[string]*time.Ticker)
 	hpaC.QuitChs = make(map[string]chan struct{})
 	// 建议比replicaSet处理时间长一点
+
 	ticker := time.NewTicker(15 * time.Second)
 	go func() {
 		for {
@@ -35,19 +41,19 @@ func (hpaC *HPAController) Start() {
 			}
 		}
 	}()
-	hpaC.ci = apiserver.NewAPIClient("http://localhost:8080")
+	hpaC.Ci = apiserver.NewAPIClient("")
 }
 
 // 增量式地同步HPA对象
 func (hpaC *HPAController) CheckAllHPA() {
 
 	//获取所有hpa对象
-	hpas, err := hpaC.ci.GetHpas()
+	hpas, err := hpaC.Ci.GetHpas()
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-
+	log.Printf("开始检查 :::%d", len(hpas))
 	updatedHpas := make(map[string]*object.HorizontalPodAutoscaler)
 
 	for _, hpa := range hpas {
@@ -94,13 +100,13 @@ func (hpaC *HPAController) CheckAllHPA() {
 // 这个函数用于在一个ticker协程里，定期检查一个HPA对象；需要各自维护状态
 func (hpaC *HPAController) CheckOneHPA(hpa object.HorizontalPodAutoscaler) {
 	// 获取所有pod对象
-	pods, err := hpaC.ci.GetPods()
+	pods, err := hpaC.Ci.GetPods()
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 	// 根据hpa的配置，获得replicaSet
-	replicaset, err := hpaC.ci.GetReplicasetyName(
+	replicaset, err := hpaC.Ci.GetReplicasetyName(
 		hpa.Spec.ScaleTargetRef.Name,
 	)
 	if err != nil {
@@ -123,17 +129,30 @@ func (hpaC *HPAController) CheckOneHPA(hpa object.HorizontalPodAutoscaler) {
 	// // 计算replicaset级别的所有pod的资源利用情况，只是做一个简单的算术平均
 	podsMetricsEntries := make(map[string]object.PodMetrics, 0)
 	for _, pod := range matchPods {
+		containers := pod.Spec.Containers
+		var cpuUsage = 0.0
+		var memoryUsage = 0.0
+		for _, container := range containers {
+			fmt.Println(
+				pod.Metadata.Namespace + "_" + pod.Metadata.Name + "_" + container.Name,
+			)
+			containercpuUsage, containermemoryUsage, err := cadvisorutils.GetContainerCPUandMem(
+				"localhost",
+				"8090",
+				pod.Metadata.Namespace+"_"+pod.Metadata.Name+"_"+container.Name,
+			)
+			if err != nil {
+				fmt.Println(err)
+				continue
 
-		cpuUsage, memoryUsage, err := cadvisorutils.GetContainerCPUandMem(
-			"localhost",
-			"8090",
-			"test-container",
-		)
-		if err != nil {
-			fmt.Println(err)
-			continue
-
+			}
+			cpuUsage += containercpuUsage
+			memoryUsage += containermemoryUsage
 		}
+
+		fmt.Printf("cpu利用率 %f\n", cpuUsage)
+		fmt.Printf("内存利用率 %f\n", memoryUsage)
+
 		podsMetricsEntries[pod.Metadata.Namespace+pod.Metadata.Name] =
 			object.PodMetrics{
 				Resources: map[string]float64{
@@ -155,7 +174,8 @@ func (hpaC *HPAController) CheckOneHPA(hpa object.HorizontalPodAutoscaler) {
 		currentReplicaNum,
 		rsMetricsResult,
 	)
-
+	fmt.Printf("当前replicaset的数量: %d\n", currentReplicaNum)
+	fmt.Printf("期望replicaset的数量: %d\n", desiredReplicaNum)
 	// 比较
 	if currentReplicaNum == desiredReplicaNum {
 		// 如果已经相等，则不管
@@ -169,7 +189,7 @@ func (hpaC *HPAController) CheckOneHPA(hpa object.HorizontalPodAutoscaler) {
 		}
 
 		// 发给api-server，为这个replicaSet应用新的副本数；注意这里直接使用create方法，传递相同的静态配置（不需要管UID的问题，重建一份也没事），只是副本数不同
-		err = hpaC.ci.UpdateReplicaset(&replicaset)
+		err = hpaC.Ci.UpdateReplicaset(&replicaset)
 		if err != nil {
 			fmt.Printf("update replicaset failed : %s\n", err)
 		}
@@ -181,7 +201,9 @@ func CalculateReplicaMetrics(
 	h *object.HorizontalPodAutoscaler,
 	metrics map[string]object.PodMetrics,
 ) object.PodMetrics {
-	var result object.PodMetrics
+	result := object.PodMetrics{
+		Resources: make(map[string]float64), // 显式初始化
+	}
 	for _, metric := range h.Spec.Metrics {
 		var total float64
 		var count float64
@@ -226,7 +248,13 @@ func CalculateDesiredReplicas(
 						curReplicaNum,
 					) * oneCurMtc / *oneTargetMtc.Resource.Target.AverageUtilization,
 				),
+			) // fmt.Printf("%s目标指标值:\n",oneTargetMtc.Resource.Name)
+			fmt.Printf(
+				"%s 目标指标值:%f\n",
+				oneTargetMtc.Resource.Name,
+				*oneTargetMtc.Resource.Target.AverageUtilization,
 			)
+			fmt.Printf("%s 当前指标值:%f\n", oneTargetMtc.Resource.Name, oneCurMtc)
 			// fmt.Printf("in metrics %s, calculate expectRelicas %v\n", oneTargetMtc.Name, expectedReplicas)
 			if expectedReplicas > maxDesiredReplicas {
 				maxDesiredReplicas = expectedReplicas

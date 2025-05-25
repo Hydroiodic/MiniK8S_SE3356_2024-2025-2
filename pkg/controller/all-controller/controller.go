@@ -9,7 +9,7 @@ type Controller struct {
 	// endpointsController *(endpointsController.EndpointsController)
 	// servicesController *(servicesController.ServicesController)
 	ReplicasetController *(replicaset.ReplicasetController)
-	hpaController        *(hpa.HPAController)
+	HpaController        *(hpa.HPAController)
 	// dnsController        *(dnsController.DnsController)
 }
 
@@ -19,6 +19,9 @@ func (c *Controller) Init() {
 
 // NOTE: 由于DNS/反向代理需要，nginx必须部署在和controller相同的
 func (c *Controller) StartController() {
-	c.ReplicasetController.Start()
-	c.hpaController.Start()
+
+	go c.ReplicasetController.Start()
+	go c.HpaController.Start()
+	select {}
+
 }

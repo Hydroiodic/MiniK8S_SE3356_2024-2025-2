@@ -13,7 +13,7 @@ import (
 const WorkDir = "/home/ubuntu/wang/MiniK8S_SE3356_2024-2025-2"
 
 func WriteNginxConf(dns object.DNS) {
-	ci := apiserver.NewAPIClient("http://localhost:8080")
+	ci := apiserver.NewAPIClient("")
 	filePath := WorkDir + "/assets/nginxconf/" + dns.Spec.Host + ".conf"
 	file, err := os.OpenFile(filePath, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0644)
 

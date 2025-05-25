@@ -40,9 +40,9 @@ type ResourceMetricSource struct {
 
 // MetricTarget 定义指标目标
 type MetricTarget struct {
-	Type               string   `yaml:"type"`                         // 类型："Utilization"/"AverageValue"
-	AverageUtilization *float64 `yaml:"averageUtilization,omitempty"` // 目标利用率（百分比）
-	AverageValue       *string  `yaml:"averageValue,omitempty"`       // 目标平均值（如 "100m"）
+	Type               string   `yaml:"type"`                   // 类型："Utilization"/"AverageValue"
+	AverageUtilization *float64 `yaml:"averageUtilization"`     // 目标利用率（百分比）
+	AverageValue       *string  `yaml:"averageValue,omitempty"` // 目标平均值（如 "100m"）
 }
 
 // HorizontalPodAutoscalerBehavior 定义扩缩容行为策略

@@ -364,7 +364,7 @@ func (c *APIClient) CreateHpa(hpa *object.HorizontalPodAutoscaler) error {
 	if err != nil {
 		return err
 	}
-
+	fmt.Println(hpa)
 	// Send the request and return the response.
 	resp, err := c.Client.Do(req)
 	if err != nil {
