@@ -20,6 +20,9 @@ type Kubelet struct {
 	Runtime   time.Duration `yaml:"runtime"   json:"runtime"`
 	Pods      []Pod         `yaml:"pods"      json:"pods"`
 
+	// We will combine the functionality of kubelet and kubeproxy in the future.
+	Services []Service `yaml:"services" json:"services"`
+
 	// We need to record the last update time of the kubelet for heartbeat.
 	LastUpdateTime time.Time `yaml:"lastUpdateTime" json:"lastUpdateTime"`
 

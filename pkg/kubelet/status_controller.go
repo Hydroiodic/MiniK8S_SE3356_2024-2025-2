@@ -4,6 +4,7 @@ import (
 	"log"
 	"time"
 
+	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/apiserver"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/pod"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/utils"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
@@ -12,7 +13,7 @@ import (
 type PodStatusController struct {
 	kubelet    *object.Kubelet
 	podService pod.PodServiceInterface
-	apiClient  APIServerClient
+	apiClient  *apiserver.APIClient
 	period     time.Duration
 }
 
@@ -21,7 +22,7 @@ type PodStatusController struct {
 func NewPodStatusController(
 	kubelet *object.Kubelet,
 	podService pod.PodServiceInterface,
-	apiClient APIServerClient,
+	apiClient *apiserver.APIClient,
 	period time.Duration,
 ) *PodStatusController {
 	return &PodStatusController{
@@ -105,7 +106,7 @@ func (c *PodStatusController) updatePodStatus() {
 	c.kubelet.Mu.RUnlock()
 
 	// TODO: 发送心跳可行吗
-	if err := c.apiClient.SendHeartbeat(kubeletCopy); err != nil {
+	if err := c.apiClient.HeartbeatKubelet(kubeletCopy); err != nil {
 		log.Printf("Failed to update node status to API Server: %v", err)
 	}
 }

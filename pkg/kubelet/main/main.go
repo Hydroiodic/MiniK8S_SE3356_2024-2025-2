@@ -30,10 +30,9 @@ func main() {
 
 	// 初始化 APIServerClient 的实际实现
 	var client = apiserver.NewAPIClient("")
-	apiClient := kubelet.NewAPIServerClient(client)
 
 	// 创建 KubeletService
-	kubeletService := kubelet.NewKubeletService(config, podService, apiClient)
+	kubeletService := kubelet.NewKubeletService(config, podService, client)
 
 	// 创建一个 stopCh，用于优雅关闭服务
 	stopCh := make(chan struct{})
