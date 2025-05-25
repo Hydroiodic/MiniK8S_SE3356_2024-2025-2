@@ -32,9 +32,7 @@ func TestCreatePod(t *testing.T) {
 					Image: "docker.io/library/nginx:latest",
 					// Image:   "nginx:latest",
 					Command: []string{"nginx", "-g", "daemon off;"},
-					Ports: []object.ContainerPort{
-						{ContainerPort: 80},
-					},
+					Ports:   []int{80},
 				},
 			},
 		},
@@ -86,9 +84,7 @@ func TestDeletePod(t *testing.T) {
 					Name:    "test-container",
 					Image:   "docker.io/library/nginx:latest",
 					Command: []string{"nginx", "-g", "daemon off;"},
-					Ports: []object.ContainerPort{
-						{ContainerPort: 80},
-					},
+					Ports:   []int{80},
 				},
 			},
 		},
@@ -141,9 +137,7 @@ func TestPodContainerCommunication(t *testing.T) {
 					Name:    "server-container",
 					Image:   "docker.io/library/nginx:latest",
 					Command: []string{"nginx", "-g", "daemon off;"},
-					Ports: []object.ContainerPort{
-						{ContainerPort: 80}, // 服务端监听 80 端口
-					},
+					Ports:   []int{80},
 				},
 				{
 					Name:    "client-container",
@@ -313,9 +307,7 @@ func TestPodNetwork(t *testing.T) {
 					Name:    "server-container",
 					Image:   "docker.io/library/nginx:latest",
 					Command: []string{"nginx", "-g", "daemon off;"},
-					Ports: []object.ContainerPort{
-						{ContainerPort: 80}, // 服务端监听 80 端口
-					},
+					Ports:   []int{80},
 				},
 			},
 		},

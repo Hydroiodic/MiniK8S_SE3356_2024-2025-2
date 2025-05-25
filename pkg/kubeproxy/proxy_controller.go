@@ -9,6 +9,8 @@ import (
 	"path"
 	"time"
 
+	"slices"
+
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/apiserver"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubeproxy/ipvs_ops"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/mqtemplate"
@@ -86,9 +88,9 @@ func (c *ServiceController) DeleteServiceHandler(svc *object.Service) error {
 	// 从服务映射中删除服务
 	for i, s := range c.kubelet.Services {
 		if s.Metadata.Name == svc.Metadata.Name {
-			c.kubelet.Services = append(
-				c.kubelet.Services[:i],
-				c.kubelet.Services[i+1:]...,
+			c.kubelet.Services = slices.Delete(
+				c.kubelet.Services, i,
+				i+1,
 			)
 
 			break
@@ -106,7 +108,7 @@ func (c *ServiceController) Run(stopCh <-chan struct{}) {
 			c.kubelet.Config.Name)
 		err := mqtemplate.ConsumeMessageOnQueue(
 			queueName,
-			func(msg map[string]interface{}) error {
+			func(msg map[string]any) error {
 				// 解析消息体
 				msgBody, _ := json.Marshal(msg)
 
@@ -131,11 +133,13 @@ func (c *ServiceController) Run(stopCh <-chan struct{}) {
 
 	// 处理消息队列中的 Service 删除请求
 	go func() {
-		queueName := path.Join(mqtemplate.KubeProxyDeleteServiceQueue,
-			c.kubelet.Config.Name)
+		queueName := path.Join(
+			mqtemplate.KubeProxyDeleteServiceQueue,
+			c.kubelet.Config.Name,
+		)
 		err := mqtemplate.ConsumeMessageOnQueue(
 			queueName,
-			func(msg map[string]interface{}) error {
+			func(msg map[string]any) error {
 				// 解析消息体
 				msgBody, _ := json.Marshal(msg)
 

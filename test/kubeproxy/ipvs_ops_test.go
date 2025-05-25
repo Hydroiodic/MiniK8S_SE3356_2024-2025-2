@@ -45,11 +45,7 @@ func TestClusterIP(t *testing.T) {
 				{
 					Name:  "nginx",
 					Image: "nginx:latest",
-					Ports: []object.ContainerPort{
-						{
-							ContainerPort: 80,
-						},
-					},
+					Ports: []int{80},
 				},
 			},
 		},
@@ -174,11 +170,7 @@ func TestNodePort(t *testing.T) {
 				{
 					Name:  "nginx",
 					Image: "nginx:latest",
-					Ports: []object.ContainerPort{
-						{
-							ContainerPort: 80,
-						},
-					},
+					Ports: []int{80},
 				},
 			},
 		},

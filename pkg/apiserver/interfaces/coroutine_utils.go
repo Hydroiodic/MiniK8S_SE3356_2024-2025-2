@@ -251,12 +251,87 @@ func SyncEtcdServices() error {
 		}
 	}()
 
-	// Get all services objects from etcd.
-	// services, err := st.ListServices(ctx)
-	// if err != nil {
-	// 	// Failed to list services, report error.
-	// 	return err
-	// }
+	// Create a new pod store for status checking.
+	podStore, err := object.NewPodStore([]string{})
+	if err != nil {
+		// Failed to create pod store, report error.
+		return err
+	}
+
+	// Ensure the pod store is closed after use.
+	defer func() {
+		if closeErr := podStore.Close(); closeErr != nil {
+			log.Printf("Failed to close pod store: %v\n", closeErr)
+		}
+	}()
+
+	// Get all ready services objects from etcd.
+	services, err := st.ListServices(ctx, true)
+	if err != nil {
+		// Failed to list services, report error.
+		return err
+	}
+
+	// Get all pods objects from etcd.
+	pods, err := podStore.ListPods(ctx)
+	if err != nil {
+		// Failed to list pods, report error.
+		return err
+	}
+
+	// Make some lists for later use.
+	servicesToUpdate := make([]*object.Service, 0)
+
+	// Iterate through all services and find their endpoints.
+	for _, service := range services {
+		// Make a list to save valid pods for this service.
+		endpoints := make([]object.Endpoint, 0)
+
+		// Iterate through all pods and find their endpoints.
+		for _, pod := range pods {
+			// Get all exposed ports of the pod.
+			for _, container := range pod.Spec.Containers {
+				for _, port := range container.Ports {
+					endpoints = append(endpoints, object.Endpoint{
+						IP:   pod.Status.IP,
+						Port: port,
+					})
+				}
+			}
+		}
+
+		// Check if the endpoints are different from the service.
+		if len(endpoints) != len(service.Status.Endpoints) {
+			// Update the service endpoints.
+			service.Status.Endpoints = endpoints
+			servicesToUpdate = append(servicesToUpdate, service)
+		} else {
+			// Check if the endpoints are different.
+			for _, endpoint := range endpoints {
+				if !slices.Contains(service.Status.Endpoints, endpoint) {
+					// Update the service endpoints.
+					service.Status.Endpoints = endpoints
+					servicesToUpdate = append(servicesToUpdate, service)
+
+					break
+				}
+			}
+		}
+	}
+
+	// Update the services.
+	for _, service := range servicesToUpdate {
+		if err := st.UpdateServiceWithoutStatus(ctx, service); err != nil {
+			// Failed to update service, report error.
+			log.Printf(
+				"Failed to update service %s: %v\n",
+				service.Metadata.Name,
+				err,
+			)
+
+			continue
+		}
+	}
 
 	return nil
 }
