@@ -52,15 +52,15 @@ func (s *Service) CheckReady() bool {
 func (s *Service) MatchLabels(
 	podLabels map[string]string,
 ) bool {
-	for key, value := range podLabels {
-		// If the key is in the selector.
-		if svcValue, ok := s.Spec.Selector[key]; ok {
+	for key, svcValue := range s.Spec.Selector {
+		// If the key is in the pod labels.
+		if value, ok := podLabels[key]; ok {
 			// If the value in the selector is not equal to the pod label.
 			if value != svcValue {
 				return false
 			}
 		} else {
-			// If the key is not in the selector, return false.
+			// If the key is not in the pod labels, return false.
 			return false
 		}
 	}
