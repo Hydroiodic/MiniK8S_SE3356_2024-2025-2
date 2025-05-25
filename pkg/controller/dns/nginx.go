@@ -24,7 +24,12 @@ func WriteNginxConf(dns object.DNS) {
 		return
 	}
 
-	defer file.Close()
+	defer func() {
+		closeErr := file.Close()
+		if err == nil && closeErr != nil {
+			err = fmt.Errorf("failed to close file: %w", closeErr)
+		}
+	}()
 
 	_, _ = file.WriteString("server {\n")
 	_, _ = file.WriteString("    listen 80;\n")

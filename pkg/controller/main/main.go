@@ -11,7 +11,6 @@ import (
 )
 
 func main() {
-
 	c := &allcontroller.Controller{
 		ReplicasetController: &replicaset.ReplicasetController{},
 		HpaController: &hpa.HPAController{

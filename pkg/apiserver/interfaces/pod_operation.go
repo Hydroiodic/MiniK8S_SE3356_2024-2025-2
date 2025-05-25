@@ -188,7 +188,7 @@ func UpdateReplicaset(c *gin.Context) {
 
 	// Check for the namespace and name in the pod configuration.
 	if replicaset.Metadata.Namespace == "" {
-		replicaset.Metadata.Namespace = "default"
+		replicaset.Metadata.Namespace = DefaultNamespace
 	}
 
 	// Create PodStore and check for errors.
@@ -322,7 +322,7 @@ func CreateReplicaset(c *gin.Context) {
 
 	// Check for the namespace and name in the pod configuration.
 	if replicaset.Metadata.Namespace == "" {
-		replicaset.Metadata.Namespace = "default"
+		replicaset.Metadata.Namespace = DefaultNamespace
 	}
 
 	// Create PodStore and check for errors.
@@ -381,7 +381,6 @@ func CreateReplicaset(c *gin.Context) {
 
 		return
 	}
-
 }
 
 func GetPods(c *gin.Context) {
@@ -648,10 +647,10 @@ func CreateHpa(c *gin.Context) {
 		return
 	}
 
-	// Check for the namespace and name in the pod configuration.
-	if hpa.Metadata.Namespace == "" {
-		hpa.Metadata.Namespace = "default"
-	}
+	// // Check for the namespace and name in the pod configuration.
+	// if hpa.Metadata.Namespace == "" {
+	// 	hpa.Metadata.Namespace = DefaultNamespace
+	// }
 
 	// Create PodStore and check for errors.
 	st, err := object.NewHpaStore([]string{})
@@ -677,6 +676,7 @@ func CreateHpa(c *gin.Context) {
 		hpa.Metadata.Namespace,
 		hpa.Metadata.Name,
 	)
+
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -696,8 +696,7 @@ func CreateHpa(c *gin.Context) {
 
 		return
 	}
-	//写入etcd即可
-	// Add the hpa to etcd.
+
 	if err := st.AddHpa(c.Request.Context(), &hpa); err != nil {
 		c.JSON(
 			http.StatusInternalServerError,

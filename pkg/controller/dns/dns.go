@@ -82,7 +82,6 @@ func (dc *DnsController) Init() {
 }
 
 func (dc *DnsController) handleCreateDns(msg map[string]interface{}) error {
-
 	var dns object.DNS
 
 	req, err := json.Marshal(msg)
@@ -154,11 +153,11 @@ func (dc *DnsController) handleCreateDns(msg map[string]interface{}) error {
 		fmt.Println("marshal request body failed")
 		return err
 	}
+
 	return nil
 }
 
 func (dc *DnsController) handleDeleteDns(msg map[string]interface{}) error {
-
 	var dns object.DNS
 
 	req, err := json.Marshal(msg)

@@ -136,6 +136,7 @@ func KubeletHeartbeat(c *gin.Context) {
 		c.Request.Context(),
 		kubelet.Config.Name,
 	)
+
 	log.Printf(
 		"Received heartbeat from kubelet %s with pods: %v\n",
 		kubelet.Config.Name,

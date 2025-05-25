@@ -18,6 +18,7 @@ func (ipa *IpAllocator) Init(sn string, mb string) error {
 	if err != nil {
 		return fmt.Errorf("invalid mask bits: %v", err)
 	}
+
 	if maskBits < 0 || maskBits > 32 {
 		return fmt.Errorf("mask bits must be between 0 and 32")
 	}
@@ -37,11 +38,14 @@ func (ipa *IpAllocator) Init(sn string, mb string) error {
 		if err != nil {
 			return fmt.Errorf("invalid subnet octet %q: %v", parts[i], err)
 		}
+
 		if ipa.subnet[i] < 0 || ipa.subnet[i] > 255 {
 			return fmt.Errorf("subnet octet %d must be 0-255", ipa.subnet[i])
 		}
 	}
+
 	ipa.mask_bit = maskBits
+
 	return nil
 }
 
@@ -55,7 +59,7 @@ func (ipa *IpAllocator) AllocateIp() string {
 			// 先将子网部分转换为一个32位数（int64）
 			subnetNum := ipa.subnet[0]<<24 | ipa.subnet[1]<<16 | ipa.subnet[2]<<8 | ipa.subnet[3]
 			// 分配的IP = 子网部分 + i
-			ipNum := subnetNum + int64(i)
+			ipNum := subnetNum + i
 
 			// 将ipNum拆回4个字节
 			b0 := (ipNum >> 24) & 0xFF
@@ -67,6 +71,7 @@ func (ipa *IpAllocator) AllocateIp() string {
 			return fmt.Sprintf("%d.%d.%d.%d", b0, b1, b2, b3)
 		}
 	}
+
 	return ""
 }
 
@@ -77,22 +82,29 @@ func (ipa *IpAllocator) DeallocateIp(ip string) error {
 	}
 
 	var ipOctets [4]int64
+
 	for i := 0; i < 4; i++ {
 		octet, err := strconv.ParseInt(parts[i], 10, 64)
 		if err != nil || octet < 0 || octet > 255 {
 			return fmt.Errorf("invalid IP octet %q in %s", parts[i], ip)
 		}
+
 		ipOctets[i] = octet
 	}
+
 	ipNum := ipOctets[0]<<24 | ipOctets[1]<<16 | ipOctets[2]<<8 | ipOctets[3]
 	subnet := ipa.subnet[0]<<24 | ipa.subnet[1]<<16 | ipa.subnet[2]<<8 | ipa.subnet[3]
-	index := ipNum - int64(subnet)
+	index := ipNum - subnet
+
 	if index < 0 || index >= int64(len(ipa.bitmap)) {
 		return fmt.Errorf("invalid IP format: %s", ip)
 	}
+
 	if ipa.bitmap[index] == 0 {
 		return fmt.Errorf("IP %s is not allocated", ip)
 	}
+
 	ipa.bitmap[index] = 0
+
 	return nil
 }

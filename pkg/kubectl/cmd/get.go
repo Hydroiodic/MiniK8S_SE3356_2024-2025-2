@@ -158,7 +158,6 @@ func PrintReplicaSetTable(replicaSets []object.ReplicaSet) {
 
 	// 每行数据
 	for _, rs := range replicaSets {
-
 		// 获取容器信息
 		var containerNames []string
 
@@ -223,11 +222,5 @@ func getHPA(name string) string {
 }
 
 func getAllHPA() {
-	// rs, err := ci.GetHpas()
-	// if err != nil {
-	// 	fmt.Println(err)
-	return
-	// }
-
-	// PrintReplicaSetTable()
+	_, _ = fmt.Println("Listing all hpa configs")
 }

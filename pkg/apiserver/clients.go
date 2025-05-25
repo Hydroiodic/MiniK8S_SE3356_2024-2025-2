@@ -139,6 +139,7 @@ func (c *APIClient) GetPodByName(
 	if err != nil {
 		return object.Pod{}, err
 	}
+
 	for _, pod := range pods {
 		if pod.Metadata.Name == podName && pod.Metadata.Namespace == namespace {
 			return pod, err
@@ -173,6 +174,7 @@ func (c *APIClient) UpdateReplicaset(r *object.ReplicaSet) error {
 	// Construct the URL for the Kubelet get nodes endpoint.
 	url := c.BaseURL + ReplicasetUpdateURL
 	replicasetJSON, err := json.Marshal(r)
+
 	if err != nil {
 		return err
 	}
@@ -364,7 +366,9 @@ func (c *APIClient) CreateHpa(hpa *object.HorizontalPodAutoscaler) error {
 	if err != nil {
 		return err
 	}
+
 	fmt.Println(hpa)
+
 	// Send the request and return the response.
 	resp, err := c.Client.Do(req)
 	if err != nil {
@@ -576,6 +580,7 @@ func HasMatchingLabels(
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -689,6 +694,7 @@ func (c *APIClient) DeletePodByName(name string, namespace string) error {
 	// Construct the URL for the Pod deletion endpoint.
 	url := c.BaseURL + PodDeleteURL
 	pod, err := c.GetPodByName(name, namespace)
+
 	if err != nil {
 		return err
 	}

@@ -15,15 +15,11 @@ type ReplicasetController struct {
 }
 
 func (rsc *ReplicasetController) Start() {
-
 	ticker := time.NewTicker(5 * time.Second) // 每3秒触发一次
 	defer ticker.Stop()                       // 确保程序退出时停止Ticker
 
-	for {
-		select {
-		case <-ticker.C:
-			rsc.CheckAllReplicaset()
-		}
+	for range ticker.C {
+		rsc.CheckAllReplicaset()
 	}
 }
 
@@ -65,12 +61,15 @@ func (rsc *ReplicasetController) DeletePod(
 ) {
 	ci := client.NewAPIClient("")
 	for i := range num {
-		ci.DeletePod(&pods[i])
+		err := ci.DeletePod(&pods[i])
+		if err != nil {
+			fmt.Println(err)
+			continue
+		}
 	}
 }
 
 func (rsc *ReplicasetController) CheckAllReplicaset() {
-
 	ci := client.NewAPIClient("")
 
 	var replicasets []object.ReplicaSet
@@ -116,6 +115,7 @@ func (rsc *ReplicasetController) CheckAllReplicaset() {
 
 		err = ci.UpdateReplicaset(&rs)
 		log.Printf("更新数量 : %d", rs.Status.AvailableReplicas)
+
 		if err != nil {
 			fmt.Println(err)
 		}
