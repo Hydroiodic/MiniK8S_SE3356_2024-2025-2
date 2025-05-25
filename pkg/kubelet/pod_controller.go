@@ -22,8 +22,8 @@ type PodController struct {
 }
 
 // PodController 是一个控制器，用于管理 Pod 的生命周期
-// 它会定期检查 Pod 的状态，并在需要时创建、删除或更新 Pod
-// 它还会从 API Server 获取最新的 Pod 配置，并与本地缓存进行比较
+// 它会定期检查 Pod 的状态，并通知API Server
+// API Server 会在需要时通知 PodController 创建、删除或更新 Pod
 // 以确保本地 Pod 的状态与 API Server 上的 Pod 状态一致
 func NewPodController(
 	kubelet *object.Kubelet,

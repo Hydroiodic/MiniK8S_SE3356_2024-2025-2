@@ -6,6 +6,7 @@ import (
 
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/pod"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/utils"
+	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubeproxy"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
 )
 
@@ -19,10 +20,11 @@ func NewKubelet(config object.KubeletConfig) *object.Kubelet {
 }
 
 type KubeletService struct {
-	kubelet          *object.Kubelet
-	podController    *PodController
-	statusController *PodStatusController
-	apiClient        APIServerClient
+	kubelet           *object.Kubelet
+	podController     *PodController
+	statusController  *PodStatusController
+	serviceController *kubeproxy.ServiceController // TODO: 添加Service Controller
+	apiClient         APIServerClient
 }
 
 func NewKubeletService(
@@ -63,6 +65,10 @@ func (s *KubeletService) Run(stopCh <-chan struct{}) {
 	if err != nil {
 		log.Printf("Failed to fetch pods: %v", err)
 	}
+
+	// 清理 KubeProxy 本地状态
+	s.serviceController.IpvsOps.Init()
+	s.serviceController.IpvsOps.Clear()
 
 	log.Printf("Restoring local pods: %v", utils.ExtractPodNames(localPods))
 	s.kubelet.Mu.Lock()
