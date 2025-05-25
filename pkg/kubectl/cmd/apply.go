@@ -13,7 +13,7 @@ import (
 )
 
 // PodResource 代表 Pod 资源类型.
-const PodResource = "Pod"
+const PodResource = "pod"
 
 var execCmd = &cobra.Command{
 	Use:   "apply",
