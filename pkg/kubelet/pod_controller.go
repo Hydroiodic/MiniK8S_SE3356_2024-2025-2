@@ -19,7 +19,6 @@ type PodController struct {
 	kubelet    *object.Kubelet
 	podService pod.PodServiceInterface
 	apiClient  *apiserver.APIClient
-	syncPeriod time.Duration
 }
 
 // PodController 是一个控制器，用于管理 Pod 的生命周期
@@ -30,13 +29,11 @@ func NewPodController(
 	kubelet *object.Kubelet,
 	podService pod.PodServiceInterface,
 	apiClient *apiserver.APIClient,
-	syncPeriod time.Duration,
 ) *PodController {
 	return &PodController{
 		kubelet:    kubelet,
 		podService: podService,
 		apiClient:  apiClient,
-		syncPeriod: syncPeriod,
 	}
 }
 

@@ -34,17 +34,11 @@ func NewKubeletService(
 	apiClient *apiserver.APIClient,
 ) *KubeletService {
 	kubelet := NewKubelet(config)
+
 	podController := NewPodController(
 		kubelet,
 		podService,
 		apiClient,
-		30*time.Second,
-	)
-	statusController := NewPodStatusController(
-		kubelet,
-		podService,
-		apiClient,
-		10*time.Second,
 	)
 
 	// TODO: 改变Client
@@ -52,7 +46,14 @@ func NewKubeletService(
 		kubelet,
 		ipvs_ops.NewIpvsOps(ipvs_ops.CLUSTER_CIDR_DEFAULT),
 		apiClient,
-		10*time.Second,
+	)
+
+	// Routine: heartbeat every 10 seconds to API Server
+	statusController := NewPodStatusController(
+		kubelet,
+		podService,
+		apiClient,
+		5*time.Second,
 	)
 
 	return &KubeletService{

@@ -28,7 +28,7 @@ var deleteCmd = &cobra.Command{
 		}
 
 		switch resourceType {
-		case PodResource:
+		case "pod":
 			deletePod(resourceName, resourceNamespace)
 		case "service":
 			deleteService(resourceName)

@@ -1,4 +1,4 @@
-kind: pod
+kind: Pod
 metadata:
   name: nginx2
   namespace: default
