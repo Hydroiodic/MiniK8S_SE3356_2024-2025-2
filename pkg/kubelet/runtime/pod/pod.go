@@ -335,6 +335,11 @@ func (p *PodService) ListPods() ([]object.Pod, error) {
 			pauseCtr.Labels[utils.PodNsNameLabelKey],
 		)
 
+		// 获取 Pod 的 IP 地址
+		podIp := pauseCtr.IP
+
+		log.Printf("Pod IP: %s", podIp)
+
 		// 找到这个Pod的所有容器（Pause以外）
 		ctrConfigs, err := p.CtrService.GetContainersByLabels(
 			map[string]string{
@@ -365,6 +370,7 @@ func (p *PodService) ListPods() ([]object.Pod, error) {
 			},
 			Status: object.PodStatus{
 				StartTime: time.Now(), // 这个东西是应该Kubelet一直存着的？？
+				IP:        podIp,
 			},
 		}
 

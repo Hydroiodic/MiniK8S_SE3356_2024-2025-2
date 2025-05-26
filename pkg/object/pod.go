@@ -37,6 +37,7 @@ type Container struct {
 
 	Labels       map[string]string `yaml:"labels"` // 容器标签
 	ExposedPorts nat.PortSet       `yaml:"-"`      // FIXME：这是干什么的？
+	IP           string            `yaml:"ip"`     // TODO: 容器 IP 地址，能删除吗？
 }
 
 type ResourceLimits struct {

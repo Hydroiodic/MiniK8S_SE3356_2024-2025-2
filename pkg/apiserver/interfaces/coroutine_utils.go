@@ -266,7 +266,7 @@ func SyncEtcdServices() error {
 	}()
 
 	// Get all ready services objects from etcd.
-	services, err := st.ListServices(ctx, true)
+	services, err := st.ListServicesWithoutStatus(ctx)
 	if err != nil {
 		// Failed to list services, report error.
 		return err

@@ -154,6 +154,21 @@ func handlePodRaw(rawData []byte) error {
 
 func handleServiceRaw(rawData []byte) error {
 	fmt.Println("Raw Service JSON/YAML:", string(rawData))
+	// 1. 解析 YAML 到 map
+	var s object.Service
+	if err := yaml.Unmarshal(rawData, &s); err != nil {
+		log.Fatalf("error unmarshaling YAML: %v", err)
+	}
+
+	ci := client.NewAPIClient("http://localhost:8080")
+
+	fmt.Println(s)
+
+	err := ci.CreateService(&s)
+	if err != nil {
+		fmt.Println(err)
+	}
+
 	return nil
 }
 

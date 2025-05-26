@@ -489,14 +489,35 @@ func (cs *ContainerService) GetContainersByLabels(
 		containerName := strings.TrimPrefix(container.Names[0], "/")
 		_, _, containerName = utils.ParseContainerName(containerName)
 
+		// ExposedPorts 怎么转换到 Ports 列表
+		ports := make([]int, 0)
+
+		for port := range ctrInfo.Config.ExposedPorts {
+			ports = append(ports, port.Int())
+		}
+
+		log.Printf("Container %s Exposed Ports: %v", containerName, ports)
+
+		ipAddr := ""
+
+		if len(ctrInfo.NetworkSettings.Networks) > 0 {
+			for _, network := range ctrInfo.NetworkSettings.Networks {
+				ipAddr = network.IPAddress
+				break
+			}
+		}
+
 		if matches {
 			result = append(result, object.Container{
 				ID:      container.ID,
 				Name:    containerName,
 				Image:   ctrInfo.Config.Image,
 				Command: ctrInfo.Config.Cmd,
-				// TODO: 如何重建Ports和Limits？
+				// TODO: 重建Limits？
+				Ports:  ports,
 				Labels: ctrInfo.Config.Labels,
+				// TODO: Flannel
+				IP: ipAddr,
 			})
 		}
 	}

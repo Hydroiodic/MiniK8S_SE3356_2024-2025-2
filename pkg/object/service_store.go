@@ -72,11 +72,7 @@ func (s *ServiceStore) GetServiceWithoutStatus(
 
 	// Only one of the two data should be present.
 	if dataNotReady == "" && dataReady == "" {
-		return nil, fmt.Errorf(
-			"service not found: %s/%s",
-			namespace,
-			name,
-		)
+		return nil, nil
 	}
 
 	if dataNotReady != "" && dataReady != "" {
