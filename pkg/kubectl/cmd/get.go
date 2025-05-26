@@ -36,7 +36,7 @@ var getCmd = &cobra.Command{
 			resourceNamespace = args[2]
 		}
 		switch strings.ToLower(resourceType) {
-		case "pods", PodResource:
+		case "pods":
 			if resourceName != "" {
 				getPod(resourceName, resourceNamespace)
 			} else {

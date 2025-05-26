@@ -34,7 +34,7 @@ func main() {
 			},
 		},
 		Status: object.ServiceStatus{
-			ClusterIP: "222.111.0.100", // 假设 ClusterIP
+			ClusterIP: object.DNSClusterIP,
 			Endpoints: []object.Endpoint{
 				{
 					IP:   "192.168.1.6", // 必须是节点的IP地址

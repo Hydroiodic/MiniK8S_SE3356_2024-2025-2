@@ -18,23 +18,20 @@ import (
 )
 
 type ServiceController struct {
-	kubelet    *object.Kubelet
-	IpvsOps    ipvs_ops.IpvsOpsInterface
-	apiClient  *apiserver.APIClient
-	syncPeriod time.Duration
+	kubelet   *object.Kubelet
+	IpvsOps   ipvs_ops.IpvsOpsInterface
+	apiClient *apiserver.APIClient
 }
 
 func NewServiceController(
 	kubelet *object.Kubelet,
 	ipvsOps ipvs_ops.IpvsOpsInterface,
 	apiClient *apiserver.APIClient,
-	syncPeriod time.Duration,
 ) *ServiceController {
 	return &ServiceController{
-		kubelet:    kubelet,
-		IpvsOps:    ipvsOps,
-		apiClient:  apiClient,
-		syncPeriod: syncPeriod,
+		kubelet:   kubelet,
+		IpvsOps:   ipvsOps,
+		apiClient: apiClient,
 	}
 }
 

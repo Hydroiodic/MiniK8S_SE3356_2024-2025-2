@@ -159,7 +159,7 @@ func KubeletHeartbeat(c *gin.Context) {
 	)
 	if err != nil || oldKubelet == nil {
 		c.JSON(
-			http.StatusInternalServerError,
+			http.StatusBadRequest,
 			"Failed to get kubelet: "+err.Error(),
 		)
 
@@ -179,7 +179,7 @@ func KubeletHeartbeat(c *gin.Context) {
 	}
 
 	// Sync services with the kubelet.
-	if err := synceKubeletServices(
+	if err := syncKubeletServices(
 		c.Request.Context(), svcStore, &kubelet,
 	); err != nil {
 		c.JSON(
@@ -227,7 +227,7 @@ func checkEndpointsSame(
 	return true
 }
 
-func synceKubeletServices(
+func syncKubeletServices(
 	ctx context.Context,
 	st *object.ServiceStore,
 	kubelet *object.Kubelet,

@@ -8,7 +8,7 @@ const (
 	PodPrefix        = "/minik8s/pods/"
 	KubeletPrefix    = "/minik8s/kubelets/"
 	ResourcePrefix   = "/minik8s/resources/"
-	ClusterIPPrefix  = "/minik8s/inner/cluster-ip/"
+	ClusterIPPrefix  = "/minik8s/clusterip/"
 	DNSPrefix        = "/minik8s/dns/"
 	ReplicasetPrefix = "/minik8s/replicaset"
 	HpaPrefix        = "/minik8s/hpa"

@@ -12,9 +12,6 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// PodResource 代表 Pod 资源类型.
-const PodResource = "pod"
-
 var execCmd = &cobra.Command{
 	Use:   "apply",
 	Short: "Interactive exec into a resource",
@@ -40,18 +37,6 @@ func init() {
 	rootCmd.AddCommand(execCmd)
 }
 
-// // 统一解析并处理 YAML 资源的通用函数.
-// func parseAndHandle[T any](data []byte, handler func(*T)) error {
-// 	var obj T
-// 	if err := yaml.Unmarshal(data, &obj); err != nil {
-// 		return fmt.Errorf("解析 YAML 失败: %w", err)
-// 	}
-
-// 	handler(&obj)
-
-// 	return nil
-// }
-
 func parseYaml(fileAddr string) {
 	data, err := os.ReadFile(fileAddr) // #nosec G304
 	if err != nil {
@@ -70,8 +55,7 @@ func parseYaml(fileAddr string) {
 	}
 
 	resourceHandlers := map[string]func([]byte) error{
-		PodResource: func(rawData []byte) error {
-			// 直接传递原始 JSON/YAML 数据，不解析成结构体
+		"Pod": func(rawData []byte) error {
 			return handlePodRaw(rawData)
 		},
 		"Service": func(rawData []byte) error {
@@ -86,24 +70,6 @@ func parseYaml(fileAddr string) {
 		"HorizontalPodAutoscaler": func(rawData []byte) error {
 			return handleHPARaw(rawData)
 		},
-		// PodResource: func(data []byte) error {
-		// 	return parseAndHandle[object.Pod](data, handlePod)
-		// },
-		// "Service": func(data []byte) error {
-		// 	return parseAndHandle[object.Service](data, handleService)
-		// },
-		// "ReplicaSet": func(data []byte) error {
-		// 	return parseAndHandle[object.ReplicaSet](data, handleReplicaSet)
-		// },
-		// "DNS": func(data []byte) error {
-		// 	return parseAndHandle[object.DNS](data, handleDNSConfig)
-		// },
-		// "HorizontalPodAutoscaler": func(data []byte) error {
-		// 	return parseAndHandle[object.HorizontalPodAutoscaler](
-		// 		data,
-		// 		handleHPA,
-		// 	)
-		// },
 	}
 
 	// 根据 kind 处理相应的资源
@@ -122,7 +88,7 @@ func handlePodRaw(rawData []byte) error {
 	if err := yaml.Unmarshal(rawData, &data); err != nil {
 		panic(err)
 	}
-	//获取当前时间
+	// 获取当前时间
 	currentTime := time.Now().UTC().Format(time.RFC3339)
 	// 2. 添加 status 字段
 	data["status"] = map[string]string{
@@ -173,7 +139,7 @@ func handleServiceRaw(rawData []byte) error {
 }
 
 func handleReplicaSetRaw(rawData []byte) error {
-	// 1. 解析 YAML 到 map\
+	// 1. 解析 YAML 到 map
 	var r object.ReplicaSet
 	if err := yaml.Unmarshal(rawData, &r); err != nil {
 		log.Fatalf("error unmarshaling YAML: %v", err)
@@ -192,9 +158,28 @@ func handleReplicaSetRaw(rawData []byte) error {
 }
 
 func handleDNSConfigRaw(rawData []byte) error {
-	fmt.Println("Raw DNS JSON/YAML:", string(rawData))
+	// 1. 解析 YAML 到 map
+	var DNS object.DNS
+	if err := yaml.Unmarshal(rawData, &DNS); err != nil {
+		log.Fatalf("error unmarshaling YAML: %v", err)
+		return err
+	}
+
+	// Create a new API client.
+	ci := client.NewAPIClient("")
+
+	// Print the DNS configuration.
+	fmt.Println(DNS)
+	// Add the DNS configuration.
+	err := ci.AddDNS(&DNS)
+	if err != nil {
+		log.Printf("error adding DNS: %v", err)
+		return err
+	}
+
 	return nil
 }
+
 func handleHPARaw(rawData []byte) error {
 	var hpa object.HorizontalPodAutoscaler
 	if err := yaml.Unmarshal(rawData, &hpa); err != nil {
@@ -212,22 +197,3 @@ func handleHPARaw(rawData []byte) error {
 
 	return nil
 }
-
-// func handlePod(pod *object.Pod) {
-// 	_, _ = fmt.Println("pod apply" + pod.Kind)
-// }
-
-// func handleService(pod *object.Service) {
-// 	_, _ = fmt.Println("service apply" + pod.Kind)
-// }
-
-// func handleReplicaSet(pod *object.ReplicaSet) {
-// 	_, _ = fmt.Println("replicaset apply" + pod.Kind)
-// }
-
-// func handleDNSConfig(pod *object.DNS) {
-// 	_, _ = fmt.Println("dns apply" + pod.Kind)
-// }
-// func handleHPA(pod *object.HorizontalPodAutoscaler) {
-// 	_, _ = fmt.Println("hpa apply" + pod.Kind)
-// }

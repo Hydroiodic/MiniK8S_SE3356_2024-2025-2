@@ -36,9 +36,9 @@ func CheckKubeletTimeout() error {
 		return err
 	}
 
-	// NOTE: In `kubelet/runtime/status_controller.go`, the interval of heartbeat is 10s.
+	// NOTE: In `kubelet/runtime/status_controller.go`, the interval of heartbeat is 5s.
 	//       Here we use three times of that as the timeout.
-	timeout := 3 * 10 * time.Second
+	timeout := 5 * 5 * time.Second
 
 	// We use an array to store kubelets that have timed out.
 	timeout_kubelets := make([]*object.Kubelet, 0)
@@ -284,11 +284,22 @@ func SyncEtcdServices() error {
 
 	// Iterate through all services and find their endpoints.
 	for _, service := range services {
+		// NOTE: Because DNSService and ProxyService are internal services,
+		// 	     there're no pods related, so we should skip them.
+		if service.Type == object.SERVICE_TYPE_CLUSTERIP_STR {
+			continue
+		}
+
 		// Make a list to save valid pods for this service.
 		endpoints := make([]object.Endpoint, 0)
 
 		// Iterate through all pods and find their endpoints.
 		for _, pod := range pods {
+			// Only Running pods are considered.
+			if pod.Status.Phase != object.PodRunning {
+				continue
+			}
+
 			// Get all exposed ports of the pod.
 			for _, container := range pod.Spec.Containers {
 				for _, port := range container.Ports {
@@ -317,6 +328,14 @@ func SyncEtcdServices() error {
 				}
 			}
 		}
+	}
+
+	// If there's any services that need to be updated,
+	// DNS and proxy will be updated later.
+	if len(servicesToUpdate) != 0 {
+		forwardingInfoMutex.Lock()
+		forwardingInfoNeedUpdate = true
+		forwardingInfoMutex.Unlock()
 	}
 
 	// Update the services.

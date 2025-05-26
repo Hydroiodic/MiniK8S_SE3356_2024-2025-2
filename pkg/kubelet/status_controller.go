@@ -49,10 +49,10 @@ func (c *PodStatusController) Run(stopCh <-chan struct{}) {
 }
 
 func (c *PodStatusController) updatePodStatus() {
-	// Get a copy of the pods to avoid holding the lock for too long.
 	c.kubelet.Mu.Lock()
 	defer c.kubelet.Mu.Unlock()
 
+	// Get a copy of the pods to avoid holding the lock for too long.
 	pods := c.kubelet.Pods
 
 	log.Printf("Updating pod status for pods: %v", utils.ExtractPodNames(pods))

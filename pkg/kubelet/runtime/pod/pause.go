@@ -38,6 +38,7 @@ func CreatePauseContainer(
 	hostConfig := &container.HostConfig{
 		IpcMode:     container.IPCModeShareable,
 		NetworkMode: container.NetworkMode("flannel"),
+		DNS:         []string{object.DNSClusterIP, "8.8.8.8"},
 	}
 
 	// 创建Pause容器
