@@ -69,6 +69,7 @@ func randomClusterIP(existingClusterIPs map[string]any) (string, error) {
 	}
 }
 
+// TODO: IP may be wasted if interruption occurs during generation.
 func GenClusterIP() (string, error) {
 	// Create a new context for the request.
 	ctx := context.Background()
@@ -93,5 +94,19 @@ func GenClusterIP() (string, error) {
 		return "", err
 	}
 
-	return randomClusterIP(existingClusterIPs.ClusterIPMap)
+	// Generate a new ClusterIP that is not already in use.
+	newClusterIP, err := randomClusterIP(existingClusterIPs.ClusterIPMap)
+	if err != nil {
+		log.Printf("Failed to generate a new ClusterIP: %v", err)
+		return "", err
+	}
+
+	// Add the new ClusterIP to the store.
+	err = clusterIPStore.SetClusterIP(ctx, newClusterIP)
+	if err != nil {
+		log.Printf("Failed to add new ClusterIP %s: %v", newClusterIP, err)
+		return "", err
+	}
+
+	return newClusterIP, nil
 }

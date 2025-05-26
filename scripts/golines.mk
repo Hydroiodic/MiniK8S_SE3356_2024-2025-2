@@ -1,3 +1,3 @@
 
 install:
-	go install github.com/segmentio/golines@latest
+	@go install github.com/segmentio/golines@latest

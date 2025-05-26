@@ -421,6 +421,16 @@ func (p *PodService) AutoRestartPod(
 		}
 	}
 
+	// 如果PodIP为空，尝试重新获取
+	if pod.Status.IP == "" {
+		info, err := p.CtrService.GetContainerInfo(pod.Spec.PauseContainerID)
+		if err == nil {
+			pod.Status.IP = info.NetworkSettings.Networks["flannel"].IPAddress
+			log.Printf("Pod IP: %s", pod.Status.IP)
+		}
+		log.Printf("Failed to get pause container info: %v", err)
+	}
+
 	// TODO: 处理重启策略
 	restartPolicy := pod.Spec.RestartPolicy
 	// 遍历所有容器，依据状态进行重启

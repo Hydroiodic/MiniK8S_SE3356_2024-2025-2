@@ -1,4 +1,6 @@
-# TODO
+
+install: install-golangci install-golines
+
 install-golangci:
 	$(MAKE) -f scripts/golangci-lint.mk
 
@@ -21,4 +23,4 @@ test:
 	@go tool cover -html=coverage.out -o coverage.html
 	@echo "Coverage report generated: coverage.html"
 
-.PHONY: install-containerd install-golangci install-golines clean lint test
+.PHONY: install-golangci install-golines clean lint test
