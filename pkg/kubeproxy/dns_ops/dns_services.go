@@ -89,10 +89,10 @@ func (c *DNSClient) HandleDNSRequest(w dns.ResponseWriter, r *dns.Msg) {
 			}
 
 			// If the domain is not found in the resolveInfo array,
-			// we will return an NXDOMAIN response.
+			// we will return a SERVFAIL response so the client tries the next DNS.
 			if !found {
-				// Assign the NXDOMAIN response code.
-				m.Rcode = dns.RcodeNameError
+				// Assign the SERVFAIL response code.
+				m.Rcode = dns.RcodeServerFailure
 
 				// Optionally, log the domain not found.
 				log.Printf("Domain not found: %s\n", domain)

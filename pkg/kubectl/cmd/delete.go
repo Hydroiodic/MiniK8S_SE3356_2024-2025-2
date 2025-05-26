@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	client "github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/apiserver"
+	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
 	"github.com/spf13/cobra"
 )
 
@@ -35,7 +36,7 @@ var deleteCmd = &cobra.Command{
 		case "replicaset":
 			deleteReplicaSet(resourceName)
 		case "dns":
-			deleteDNS(resourceName)
+			deleteDNS(resourceName, resourceNamespace)
 		case "hpa":
 			deleteHPA(resourceName)
 		default:
@@ -77,9 +78,24 @@ func deleteReplicaSet(name string) {
 }
 
 // 删除 DNS 配置.
-func deleteDNS(name string) {
+func deleteDNS(name, namespace string) {
 	// 这里添加实际删除 DNS 配置的逻辑
-	_, _ = fmt.Printf("Deleting DNS config: %s\n", name)
+	err := ci.DeleteDNS(&object.DNS{
+		Metadata: object.Metadata{
+			Name:      name,
+			Namespace: namespace,
+		},
+	})
+	if err != nil {
+		fmt.Println("Error deleting DNS:", err)
+		return
+	}
+
+	_, _ = fmt.Printf(
+		"Deleting DNS config: %s in namespace: %s\n",
+		name,
+		namespace,
+	)
 }
 
 // 删除 HPA配置.

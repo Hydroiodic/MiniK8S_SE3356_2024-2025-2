@@ -7,9 +7,9 @@ metadata:
 spec:
   host: example.com
   paths:
-    - path: /api
-      serviceName: nginx-service
-      servicePort: 80
     - path: /web
       serviceName: web-service
       servicePort: 8080
+    - path: /
+      serviceName: nginx-service
+      servicePort: 80

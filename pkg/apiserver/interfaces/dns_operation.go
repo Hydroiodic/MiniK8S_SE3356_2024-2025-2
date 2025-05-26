@@ -49,8 +49,33 @@ func AddDNS(c *gin.Context) {
 		return
 	}
 
-	// Combine the DNS record to the store.
-	if err := st.CombineDNS(c.Request.Context(), &dns); err != nil {
+	// Try to find this DNS in etcd first.
+	existingDNS, err := st.GetDNS(
+		c.Request.Context(),
+		dns.Metadata.Namespace,
+		dns.Metadata.Name,
+	)
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			"Failed to get existing DNS: "+err.Error(),
+		)
+
+		return
+	}
+
+	// If the DNS already exists, return an error.
+	if existingDNS != nil {
+		c.JSON(
+			http.StatusConflict,
+			"DNS already exists: "+dns.Metadata.Name,
+		)
+
+		return
+	}
+
+	// Now we can add the new DNS to etcd.
+	if err := st.AddDNS(c.Request.Context(), &dns); err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
 			"Failed to add DNS: "+err.Error(),
@@ -58,6 +83,11 @@ func AddDNS(c *gin.Context) {
 
 		return
 	}
+
+	// Update the forwarding information cache after adding a new DNS.
+	forwardingInfoMutex.Lock()
+	forwardingInfoNeedUpdate = true
+	forwardingInfoMutex.Unlock()
 
 	c.JSON(http.StatusOK, "DNS added successfully")
 }
@@ -89,7 +119,12 @@ func DeleteDNS(c *gin.Context) {
 		return
 	}
 
-	if err := st.DeleteDNS(c.Request.Context(), dns.Spec.Host); err != nil {
+	err = st.DeleteDNS(
+		c.Request.Context(),
+		dns.Metadata.Namespace,
+		dns.Metadata.Name,
+	)
+	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
 			"Failed to delete DNS: "+err.Error(),
@@ -97,6 +132,11 @@ func DeleteDNS(c *gin.Context) {
 
 		return
 	}
+
+	// Update the forwarding information cache after deleting a DNS.
+	forwardingInfoMutex.Lock()
+	forwardingInfoNeedUpdate = true
+	forwardingInfoMutex.Unlock()
 
 	c.JSON(http.StatusOK, "DNS deleted successfully")
 }
@@ -192,7 +232,7 @@ func internalGetForwardingInfo() (*object.ForwardingInfo, error) {
 					proxyInfo = append(proxyInfo, object.ProxyRule{
 						Domain:     dns.Spec.Host,
 						PathPrefix: path.Path,
-						Target: service.Status.ClusterIP +
+						Target: "http://" + service.Status.ClusterIP +
 							":" + strconv.Itoa(path.ServicePort),
 					})
 					// Update the boolean flag.

@@ -94,6 +94,13 @@ func GenClusterIP() (string, error) {
 		return "", err
 	}
 
+	// If there are no existing ClusterIPs, we should create it.
+	if existingClusterIPs == nil {
+		existingClusterIPs = &ClusterIP{
+			ClusterIPMap: make(map[string]any),
+		}
+	}
+
 	// Generate a new ClusterIP that is not already in use.
 	newClusterIP, err := randomClusterIP(existingClusterIPs.ClusterIPMap)
 	if err != nil {

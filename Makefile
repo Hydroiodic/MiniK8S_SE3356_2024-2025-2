@@ -14,6 +14,21 @@ lint:
 	@echo "Running golangci-lint..."
 	@golangci-lint-v2 run
 
+apiserver:
+	@bash scripts/launch/apiserver.sh
+
+controller:
+	@bash scripts/launch/controller.sh
+
+kubelet:
+	@bash scripts/launch/kubelet.sh
+
+nameserver:
+	@bash scripts/launch/nameserver.sh
+
+scheduler:
+	@bash scripts/launch/scheduler.sh
+
 test:
 	@echo "Running tests..."
 	@go test -v ./test/...
