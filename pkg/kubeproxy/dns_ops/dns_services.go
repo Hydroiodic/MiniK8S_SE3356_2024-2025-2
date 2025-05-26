@@ -1,54 +1,50 @@
 package dns_ops
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
-	"slices"
 	"strings"
+	"sync"
 
-	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/apiserver"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
 	"github.com/miekg/dns"
 )
 
 type DNSClient struct {
 	// `resolveInfo` is a simple in-memory store after the DNS server starts.
-	resolveInfo []object.DNSResolveInfo
-	apiClient   *apiserver.APIClient
+	rules []object.DNSResolveInfo
+	mu    sync.RWMutex
 }
 
-func NewDNSClient() (*DNSClient, error) {
+func NewDNSClient() *DNSClient {
 	// Create a new DNS client.
-	client := &DNSClient{
-		resolveInfo: make([]object.DNSResolveInfo, 0),
-		apiClient:   nil,
+	return &DNSClient{
+		rules: make([]object.DNSResolveInfo, 0),
+		mu:    sync.RWMutex{},
 	}
-
-	// Initialize the cluster services.
-	if err := client.initializeClusterServices(); err != nil {
-		log.Printf("Failed to initialize cluster services: %v", err)
-		return nil, err
-	}
-
-	return client, nil
 }
 
-func (c *DNSClient) initializeClusterServices() error {
-	// Initialize the api client.
-	c.apiClient = apiserver.NewAPIClient("")
+func (c *DNSClient) UpdateRules(newRules []object.DNSResolveInfo) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
 
-	// Get the list of all DNS records from the API server.
-	resolveInfo, err := c.apiClient.GetDNSResolve()
-	if err != nil {
-		log.Printf("Failed to get DNS records: %v", err)
-		panic(err)
+	// Update the rules with the new rules.
+	c.rules = newRules
+
+	// If the domain does not end with a dot, we will add a dot to the end.
+	for i := range c.rules {
+		c.rules[i].Host = strings.ToLower(c.rules[i].Host)
+		if !strings.HasSuffix(c.rules[i].Host, ".") {
+			c.rules[i].Host = c.rules[i].Host + "."
+		}
 	}
 
-	// Assign the DNS records to the cluster services map.
-	c.resolveInfo = resolveInfo
+	// Log the updated rules.
+	log.Printf("DNS rules updated: %d rules loaded\n", len(c.rules))
 
-	return nil
+	for _, rule := range c.rules {
+		log.Printf("Rule: %s -> %s\n", rule.Host, rule.IP)
+	}
 }
 
 func (c *DNSClient) HandleDNSRequest(w dns.ResponseWriter, r *dns.Msg) {
@@ -56,6 +52,12 @@ func (c *DNSClient) HandleDNSRequest(w dns.ResponseWriter, r *dns.Msg) {
 	m := new(dns.Msg)
 	m.SetReply(r)
 	m.RecursionAvailable = true
+
+	// Make a copy of `rules` to avoid holding the lock for too long.
+	c.mu.RLock()
+	rulesCopy := make([]object.DNSResolveInfo, len(c.rules))
+	copy(rulesCopy, c.rules)
+	c.mu.RUnlock()
 
 	for _, q := range r.Question {
 		// Convert the domain name to lowercase.
@@ -71,8 +73,8 @@ func (c *DNSClient) HandleDNSRequest(w dns.ResponseWriter, r *dns.Msg) {
 			// Use a bool variable to check if the domain is found.
 			found := false
 
-			// Check if the domain is in the resolveInfo array.
-			for _, c := range c.resolveInfo {
+			// Check if the domain is in the `rules` array.
+			for _, c := range rulesCopy {
 				// Not found, continue to the next record.
 				if c.Host != domain {
 					continue
@@ -102,72 +104,4 @@ func (c *DNSClient) HandleDNSRequest(w dns.ResponseWriter, r *dns.Msg) {
 	if err := w.WriteMsg(m); err != nil {
 		log.Printf("failed to write DNS response: %v", err)
 	}
-}
-
-func (c *DNSClient) MessageHandler(msg map[string]any) error {
-	// Process the message sent on the queue.
-	// Marshal the map to JSON bytes first
-	msgBytes, err := json.Marshal(msg)
-	if err != nil {
-		log.Printf("Failed to marshal message map: %v", err)
-		return err
-	}
-
-	// Unmarshal the JSON bytes to the DNSResolveInfo object.
-	var dnsResolveInfo object.DNSResolveInfo
-	if err := json.Unmarshal(msgBytes, &dnsResolveInfo); err != nil {
-		log.Printf("Failed to unmarshal message: %v", err)
-		return err
-	}
-
-	// If the Host does not end with ".", add it.
-	if dnsResolveInfo.Host[len(dnsResolveInfo.Host)-1] != '.' {
-		dnsResolveInfo.Host += "."
-	}
-
-	log.Printf(
-		"Received DNSResolveInfo: %s -> %s\n",
-		dnsResolveInfo.Host,
-		dnsResolveInfo.IP,
-	)
-
-	// Update the DNSResolveInfo in the resolveInfo array.
-	// NOTE: if `IP` field is "0", it means to delete the record.
-	if dnsResolveInfo.IP == "0" {
-		// Delete the record from the resolveInfo array.
-		for i, r := range c.resolveInfo {
-			if r.Host == dnsResolveInfo.Host {
-				// Remove the record from the array.
-				c.resolveInfo = slices.Delete(c.resolveInfo, i, i+1)
-				// Log the deletion.
-				log.Printf("Deleted DNS record: %s\n", dnsResolveInfo.Host)
-
-				break
-			}
-		}
-	} else {
-		// Use a bool variable to check if the record already exists.
-		exists := false
-
-		// Check if the record already exists.
-		for i, r := range c.resolveInfo {
-			if r.Host == dnsResolveInfo.Host {
-				// Update the existing record.
-				c.resolveInfo[i].IP = dnsResolveInfo.IP
-				exists = true
-				// Log the update.
-				log.Printf("Updated DNS record: %s -> %s\n", dnsResolveInfo.Host, dnsResolveInfo.IP)
-
-				break
-			}
-		}
-
-		// If the record does not exist, add it to the resolveInfo array.
-		if !exists {
-			c.resolveInfo = append(c.resolveInfo, dnsResolveInfo)
-			log.Printf("Added new DNS record: %s -> %s\n", dnsResolveInfo.Host, dnsResolveInfo.IP)
-		}
-	}
-
-	return nil
 }

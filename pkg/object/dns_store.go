@@ -34,7 +34,7 @@ func (s *DNSStore) Close() error {
 // key returns the key for DNS in etcd using its host.
 func (s *DNSStore) key(host string) string {
 	// Trim the dot at the end of the host if it exists.
-	host = strings.TrimSuffix(host, ".")
+	host = strings.TrimSuffix(strings.ToLower(host), ".")
 	return path.Join(etcd.DNSPrefix, host)
 }
 

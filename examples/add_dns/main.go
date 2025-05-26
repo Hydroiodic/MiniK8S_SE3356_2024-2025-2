@@ -23,7 +23,6 @@ func main() {
 				{
 					Path:        "/",
 					ServiceName: "example-service",
-					ServiceIP:   "127.0.0.1",
 					ServicePort: 80,
 				},
 			},

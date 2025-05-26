@@ -20,9 +20,9 @@ const (
 	ServiceDeleteURL = "/service/deleteService"
 
 	// DNS operations.
-	DNSAddURL        = "/dns/addDNS"
-	DNSDeleteURL     = "/dns/deleteDNS"
-	DNSGetResolveURL = "/dns/getDNSResolve"
+	DNSAddURL               = "/dns/addDNS"
+	DNSDeleteURL            = "/dns/deleteDNS"
+	DNSGetForwardingInfoURL = "/dns/getForwardingInfo"
 
 	// Replicaset operations.
 	ReplicasetCreateURL = "/replicaset/createReplicasets"

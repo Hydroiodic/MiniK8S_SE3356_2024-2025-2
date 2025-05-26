@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubeproxy/dns_ops"
+	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
 )
 
 func main() {
@@ -13,7 +14,7 @@ func main() {
 	proxy := dns_ops.NewDynamicProxy()
 
 	// Initialize with some rules.
-	initialRules := []dns_ops.Rule{
+	initialRules := []object.ProxyRule{
 		{
 			Domain:     "example.com",
 			PathPrefix: "/1",

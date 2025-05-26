@@ -12,31 +12,44 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
 )
 
-// Rule defines a forwarding rule for the dynamic proxy.
-type Rule struct {
-	Domain     string // e.g. "example.com"
-	PathPrefix string
-	Target     string // e.g. "http://10.0.0.2:80" or "https://10.0.0.1:443"
-}
-
 type DynamicProxy struct {
-	rules     []Rule
+	rules     []object.ProxyRule
 	mu        sync.RWMutex
 	proxyPool sync.Map
 }
 
 // `NewDynamicProxy` creates a new instance of DynamicProxy.
 func NewDynamicProxy() *DynamicProxy {
-	return &DynamicProxy{}
+	return &DynamicProxy{
+		rules:     make([]object.ProxyRule, 0),
+		mu:        sync.RWMutex{},
+		proxyPool: sync.Map{},
+	}
 }
 
 // UpdateRules updates the forwarding rules for the proxy.
-func (dp *DynamicProxy) UpdateRules(newRules []Rule) {
+func (dp *DynamicProxy) UpdateRules(newRules []object.ProxyRule) {
 	dp.mu.Lock()
 	defer dp.mu.Unlock()
+
+	// Update the rules with the new rules.
 	dp.rules = newRules
+
+	// Log the updated rules.
+	log.Printf("Proxy rules updated: %d rules loaded\n", len(dp.rules))
+
+	for _, rule := range dp.rules {
+		log.Printf(
+			"Rule: %s%s -> %s\n",
+			rule.Domain,
+			rule.PathPrefix,
+			rule.Target,
+		)
+	}
 }
 
 // getProxyForTarget gets or creates a ReverseProxy for the given target.

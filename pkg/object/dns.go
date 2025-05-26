@@ -17,7 +17,6 @@ type DNSSpec struct {
 type DNSPath struct {
 	Path        string `yaml:"path"`        // The path for the DNS record, e.g., "/api"
 	ServiceName string `yaml:"serviceName"` // The name of the service associated with this path
-	ServiceIP   string `yaml:"serviceIP"`   // The IP address of the service associated with this path
 	ServicePort int    `yaml:"servicePort"` // The port of the service associated with this path
 }
 
@@ -32,4 +31,10 @@ type ProxyRule struct {
 	Domain     string // e.g. "example.com"
 	PathPrefix string
 	Target     string // e.g. "http://10.0.0.2:80" or "https://10.0.0.1:443"
+}
+
+// `ForwardingInfo` is a DTO that contains information about DNS resolutions and proxy rules.
+type ForwardingInfo struct {
+	DNSInfo    []DNSResolveInfo `json:"dnsInfo"`
+	ProxyRules []ProxyRule      `json:"proxyRules"`
 }

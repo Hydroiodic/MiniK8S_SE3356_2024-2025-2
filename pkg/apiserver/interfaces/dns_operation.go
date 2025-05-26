@@ -1,33 +1,26 @@
 package interfaces
 
 import (
-	"encoding/json"
-	"fmt"
+	"context"
 	"log"
 	"net/http"
-	"strings"
+	"strconv"
+	"sync"
 
-	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/mqtemplate"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
 	"github.com/gin-gonic/gin"
 )
 
+// Some local cache for the DNS and proxy information.
+var (
+	forwardingInfoLocalCache object.ForwardingInfo
+	forwardingInfoNeedUpdate = true
+	forwardingInfoMutex      sync.Mutex
+)
+
 func getProxyIPAddress() string {
-	// If one domain has multiple service paths,
-	// we need to redirect to our HTTP proxy server.
+	// We need to use the cluster IP of the proxy service.
 	return object.ProxyClusterIP
-}
-
-func resolveDNS(dns *object.DNS) (string, error) {
-	// If the domain has more than one path, we need to use the Nginx IP address.
-	if len(dns.Spec.Paths) == 1 {
-		return dns.Spec.Paths[0].ServiceIP, nil
-	} else if len(dns.Spec.Paths) > 1 {
-		return getProxyIPAddress(), nil
-	}
-
-	// If the domain has no path, we need to return an error.
-	return "", fmt.Errorf("no path found for domain %s", dns.Spec.Host)
 }
 
 func AddDNS(c *gin.Context) {
@@ -66,82 +59,10 @@ func AddDNS(c *gin.Context) {
 		return
 	}
 
-	// Get the DNS object from the store.
-	dnsObj, err := st.GetDNS(c.Request.Context(), dns.Spec.Host)
-	if err != nil {
-		c.JSON(
-			http.StatusInternalServerError,
-			"Failed to get DNS: "+err.Error(),
-		)
-
-		return
-	}
-
-	// Get the IP address for the domain.
-	ip, err := resolveDNS(dnsObj)
-	if err != nil {
-		c.JSON(
-			http.StatusInternalServerError,
-			"Failed to parse DNS: "+err.Error(),
-		)
-
-		return
-	}
-
-	// Create a DNSResolveInfo object.
-	dnsResolveInfo := object.DNSResolveInfo{
-		Host: dnsObj.Spec.Host,
-		IP:   ip,
-	}
-
-	// Marshal the DNSResolveInfo object to JSON.
-	dnsResolveInfoJSON, err := json.Marshal(dnsResolveInfo)
-	if err != nil {
-		c.JSON(
-			http.StatusInternalServerError,
-			"Failed to marshal DNSResolveInfo: "+err.Error(),
-		)
-
-		return
-	}
-
-	// Send a message in RabbitMQ to notify DNS Server.
-	err = mqtemplate.SendMessageToQueue(
-		mqtemplate.UpdateHostQueueName,
-		string(dnsResolveInfoJSON),
-	)
-	if err != nil {
-		c.JSON(
-			http.StatusInternalServerError,
-			"Failed to send message to RabbitMQ: "+err.Error(),
-		)
-
-		return
-	}
-
 	c.JSON(http.StatusOK, "DNS added successfully")
 }
 
-func DeleteSingleDNS(c *gin.Context) {
-	// Parse the JSON body into a DNS object.
-	var dns object.DNS
-	if err := c.ShouldBindJSON(&dns); err != nil {
-		c.JSON(http.StatusBadRequest, "Invalid request payload")
-		return
-	}
-
-	// Check there is one and only one path in the DNS object.
-	if len(dns.Spec.Paths) != 1 {
-		c.JSON(
-			http.StatusBadRequest,
-			"Invalid DNS object: expected one path, got "+fmt.Sprint(
-				len(dns.Spec.Paths),
-			),
-		)
-
-		return
-	}
-
+func DeleteDNS(c *gin.Context) {
 	// Create a new etcd connection for DNS operations.
 	st, err := object.NewDNSStore([]string{})
 	if err != nil {
@@ -161,13 +82,14 @@ func DeleteSingleDNS(c *gin.Context) {
 		}
 	}()
 
-	// Delete the DNS record from the store.
-	err = st.DeleteSinglePathDNS(
-		c.Request.Context(),
-		dns.Spec.Host,
-		dns.Spec.Paths[0].Path,
-	)
-	if err != nil {
+	// Bind the host parameter from the URL.
+	var dns object.DNS
+	if err := c.ShouldBindJSON(&dns); err != nil {
+		c.JSON(http.StatusBadRequest, "Invalid request payload")
+		return
+	}
+
+	if err := st.DeleteDNS(c.Request.Context(), dns.Spec.Host); err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
 			"Failed to delete DNS: "+err.Error(),
@@ -176,79 +98,44 @@ func DeleteSingleDNS(c *gin.Context) {
 		return
 	}
 
-	// Get the DNS object from the etcd store.
-	dnsObj, err := st.GetDNS(c.Request.Context(), dns.Spec.Host)
-	if err != nil {
-		c.JSON(
-			http.StatusInternalServerError,
-			"Failed to get DNS: "+err.Error(),
-		)
-
-		return
-	}
-
-	// NOTE: If the DNS object is nil, `IP` is set to "0",
-	//       which means the DNS object is deleted.
-	dnsResolveInfo := object.DNSResolveInfo{
-		Host: dns.Spec.Host,
-		IP:   "0",
-	}
-
-	// Resolve the DNS object to get the IP address.
-	if dnsObj != nil {
-		// Get the IP address for the domain.
-		ip, err := resolveDNS(dnsObj)
-		if err != nil {
-			c.JSON(
-				http.StatusInternalServerError,
-				"Failed to parse DNS: "+err.Error(),
-			)
-
-			return
-		}
-
-		dnsResolveInfo.IP = ip
-	}
-
-	// Marshal the DNSResolveInfo object to JSON.
-	dnsResolveInfoJSON, err := json.Marshal(dnsResolveInfo)
-	if err != nil {
-		c.JSON(
-			http.StatusInternalServerError,
-			"Failed to marshal DNSResolveInfo: "+err.Error(),
-		)
-
-		return
-	}
-
-	// Send a message in RabbitMQ to notify DNS Server.
-	err = mqtemplate.SendMessageToQueue(
-		mqtemplate.UpdateHostQueueName,
-		string(dnsResolveInfoJSON),
-	)
-	if err != nil {
-		c.JSON(
-			http.StatusInternalServerError,
-			"Failed to send message to RabbitMQ: "+err.Error(),
-		)
-
-		return
-	}
-
 	c.JSON(http.StatusOK, "DNS deleted successfully")
 }
 
-func GetDNSResolve(c *gin.Context) {
-	// Create a new etcd connection for DNS operations.
-	st, err := object.NewDNSStore([]string{})
+func GetForwardingInfo(c *gin.Context) {
+	// Call `GetForwardingInfo` to retrieve the DNS resolve information.
+	forwardingInfo, err := internalGetForwardingInfo()
 	if err != nil {
-		// Failed to create DNS store, report error.
+		// Failed to get forwarding info, report error.
 		c.JSON(
 			http.StatusInternalServerError,
-			"Failed to create DNS store: "+err.Error(),
+			"Failed to get forwarding information: "+err.Error(),
 		)
 
 		return
+	}
+
+	// Send the forwarding information as a JSON response.
+	c.JSON(http.StatusOK, forwardingInfo)
+}
+
+func internalGetForwardingInfo() (*object.ForwardingInfo, error) {
+	// Lock the mutex to ensure thread safety.
+	forwardingInfoMutex.Lock()
+	defer forwardingInfoMutex.Unlock()
+
+	// If the local cache is valid, return it directly.
+	if !forwardingInfoNeedUpdate {
+		return &forwardingInfoLocalCache, nil
+	}
+
+	// Create a context used for the etcd connection.
+	ctx := context.Background()
+
+	// Create a new DNS store for status checking.
+	st, err := object.NewDNSStore([]string{})
+	if err != nil {
+		// Failed to create DNS store, report error.
+		return nil, err
 	}
 
 	// Ensure the DNS store is closed after use.
@@ -258,47 +145,80 @@ func GetDNSResolve(c *gin.Context) {
 		}
 	}()
 
-	// Get the DNS object from the store.
-	dns, err := st.ListDNS(c.Request.Context())
+	// Create a new Service store for status checking.
+	serviceStore, err := object.NewServiceStore([]string{})
 	if err != nil {
-		c.JSON(
-			http.StatusInternalServerError,
-			"Failed to get DNS: "+err.Error(),
-		)
-
-		return
+		// Failed to create service store, report error.
+		return nil, err
 	}
 
-	// Create a slice to store the DNS resolve information.
-	dnsResolveInfoList := make([]object.DNSResolveInfo, 0, len(dns))
+	// Ensure the service store is closed after use.
+	defer func() {
+		if closeErr := serviceStore.Close(); closeErr != nil {
+			log.Printf("Failed to close service store: %v\n", closeErr)
+		}
+	}()
 
-	// Iterate over the DNS records and extract the host and IP address.
-	for _, record := range dns {
-		// Convert the domain name to lowercase.
-		domain := strings.ToLower(record.Spec.Host)
+	// Get all DNS objects from etcd.
+	dnses, err := st.ListDNS(ctx)
+	if err != nil {
+		// Failed to list DNS, report error.
+		return nil, err
+	}
 
-		// Resolve the DNS record to get the IP address.
-		result, err := resolveDNS(record)
-		if err != nil {
-			log.Printf(
-				"Failed to resolve DNS for domain %s: %v\n",
-				domain,
-				err,
-			)
+	// Get all valid services from etcd.
+	services, err := serviceStore.ListServices(ctx, true)
+	if err != nil {
+		// Failed to list services, report error.
+		return nil, err
+	}
 
-			continue
+	// Make some lists for later use.
+	dnsInfo := make([]object.DNSResolveInfo, 0)
+	proxyInfo := make([]object.ProxyRule, 0)
+
+	// Iterate through all DNS objects and find if the service exists.
+	for _, dns := range dnses {
+		// Check if the service exists.
+		serviceExists := false
+
+		// Iterate through all paths in the DNS object.
+		for _, path := range dns.Spec.Paths {
+			// Get the service with the same namespace and name.
+			for _, service := range services {
+				if service.Metadata.Namespace == dns.Metadata.Namespace &&
+					service.Metadata.Name == path.ServiceName {
+					// The service exists, we find a rule now.
+					proxyInfo = append(proxyInfo, object.ProxyRule{
+						Domain:     dns.Spec.Host,
+						PathPrefix: path.Path,
+						Target: service.Status.ClusterIP +
+							":" + strconv.Itoa(path.ServicePort),
+					})
+					// Update the boolean flag.
+					serviceExists = true
+
+					break
+				}
+			}
 		}
 
-		// Add the resolved DNS information to the list.
-		dnsResolveInfoList = append(
-			dnsResolveInfoList,
-			object.DNSResolveInfo{
-				Host: domain,
-				IP:   result,
-			},
-		)
+		if serviceExists {
+			// As long as one path matches, we consider the DNS is valid.
+			dnsInfo = append(dnsInfo, object.DNSResolveInfo{
+				Host: dns.Spec.Host,
+				IP:   getProxyIPAddress(),
+			})
+		}
 	}
 
-	// Send the DNS resolve information as a JSON response.
-	c.JSON(http.StatusOK, dnsResolveInfoList)
+	// Update the local cache with the new forwarding information.
+	forwardingInfoLocalCache = object.ForwardingInfo{
+		DNSInfo:    dnsInfo,
+		ProxyRules: proxyInfo,
+	}
+	// Mark the local cache as valid.
+	forwardingInfoNeedUpdate = false
+
+	return &forwardingInfoLocalCache, nil
 }

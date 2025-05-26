@@ -35,27 +35,3 @@ func retrieveServicesName(services []object.Service) []string {
 
 	return serviceNames
 }
-
-func newSimpleDNS(domain, host, name string) object.DNS { //nolint
-	// Create a simple DNS object with the given domain and host.
-	// TODO: Refine the DNS object later.
-	return object.DNS{
-		Kind: "DNS",
-		Metadata: object.Metadata{
-			Name:      name,
-			Namespace: "default",
-			Labels:    nil,
-		},
-		Spec: object.DNSSpec{
-			Host: domain,
-			Paths: []object.DNSPath{
-				{
-					Path:        "/",
-					ServiceName: name,
-					ServiceIP:   host,
-					ServicePort: 80,
-				},
-			},
-		},
-	}
-}

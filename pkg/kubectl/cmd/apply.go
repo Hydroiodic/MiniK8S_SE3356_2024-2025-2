@@ -158,7 +158,25 @@ func handleReplicaSetRaw(rawData []byte) error {
 }
 
 func handleDNSConfigRaw(rawData []byte) error {
-	fmt.Println("Raw DNS JSON/YAML:", string(rawData))
+	// 1. 解析 YAML 到 map
+	var DNS object.DNS
+	if err := yaml.Unmarshal(rawData, &DNS); err != nil {
+		log.Fatalf("error unmarshaling YAML: %v", err)
+		return err
+	}
+
+	// Create a new API client.
+	ci := client.NewAPIClient("")
+
+	// Print the DNS configuration.
+	fmt.Println(DNS)
+	// Add the DNS configuration.
+	err := ci.AddDNS(&DNS)
+	if err != nil {
+		log.Printf("error adding DNS: %v", err)
+		return err
+	}
+
 	return nil
 }
 

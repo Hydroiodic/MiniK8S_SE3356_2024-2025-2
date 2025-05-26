@@ -27,37 +27,23 @@ func declareGinServer() *gin.Engine {
 
 	// DNS operations.
 	r.POST(apiserver.DNSAddURL, interfaces.AddDNS)
-	r.POST(apiserver.DNSDeleteURL, interfaces.DeleteSingleDNS)
-	r.GET(apiserver.DNSGetResolveURL, interfaces.GetDNSResolve)
+	r.POST(apiserver.DNSDeleteURL, interfaces.DeleteDNS)
+	r.GET(apiserver.DNSGetForwardingInfoURL, interfaces.GetForwardingInfo)
 
+	// Replicaset operations.
 	r.GET(apiserver.ReplicasetGetURL, interfaces.GetReplicasets)
 	r.POST(apiserver.ReplicasetCreateURL, interfaces.CreateReplicaset)
 	r.POST(apiserver.ReplicasetDeleteURL, interfaces.DeleteReplicasetFromEtcd)
 	r.POST(apiserver.ReplicasetUpdateURL, interfaces.UpdateReplicaset)
 
+	// HPA operations.
 	r.GET(apiserver.HpaGetURL, interfaces.GetHpas)
 	r.POST(apiserver.HpaCreateURL, interfaces.CreateHpa)
-	// r.POST("/getOnePod", interfaces.GetOnePod)
 
-	// r.POST("/updateHost", interfaces.HandleUpdateHost)
-
-	// r.POST("/getObjectByType", interfaces.GetObjectByType)
-
-	// r.POST("/createDnsFromFile", interfaces.HandleDnsCreate)
-	// r.POST("/deleteDnsFromFile", interfaces.HandleDnsDelete)
-
+	// Service operations.
 	r.POST(apiserver.ServiceCreateURL, interfaces.CreateService)
 	r.POST(apiserver.ServiceDeleteURL, interfaces.DeleteService)
 	r.GET(apiserver.ServiceGetURL, interfaces.GetAllService)
-	// r.POST("/serviceCheckNow", interfaces.ServiceCheckNow)
-
-	// r.POST("/createReplicasetFromFile", interfaces.CreateReplicaset)
-	// r.POST("/deleteReplicasetFromFile", interfaces.DeleteReplicaset)
-	// r.POST("/getOneReplicaset", interfaces.GetOneReplicaset)
-	// r.POST("/changeReplicasetNum", interfaces.ChangeReplicasetNum)
-
-	// r.POST("/createHPAFromFile", interfaces.CreateHPA)
-	// r.POST("/deleteHPAFromFile", interfaces.DeleteHPA)
 
 	// r.POST("/createCRFromFile", interfaces.CreateCR)
 	// r.POST("/deleteCRFromFile", interfaces.DeleteCR)
@@ -111,6 +97,9 @@ func checkService() {
 }
 
 func main() {
+	// Initialize internal services.
+	interfaces.InitializeInternalServices()
+
 	// Create a new Gin router.
 	r := declareGinServer()
 
