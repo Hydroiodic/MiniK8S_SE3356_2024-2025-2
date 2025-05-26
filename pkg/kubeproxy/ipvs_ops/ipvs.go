@@ -445,7 +445,7 @@ func (ops *IpvsOps) AddService(svc *object.Service) {
 
 	/** NodePort 的 IPVS 规则 */
 	if svc.Type == object.SERVICE_TYPE_NODEPORT_STR {
-		nodeIP, _ := utils.GetEnInterfaceIP()
+		nodeIP, _ := utils.GetNodeIP()
 
 		for _, port := range ports { // 也许有一些服务没有暴露NodePort
 			if port.NodePort == 0 {
