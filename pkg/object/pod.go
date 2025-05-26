@@ -35,8 +35,9 @@ type Container struct {
 	Ports     []int          `yaml:"ports"`     // 暴露端口
 	Resources ResourceLimits `yaml:"resources"` // 资源限制
 
-	Labels       map[string]string `yaml:"labels"` // 容器标签
-	ExposedPorts nat.PortSet       `yaml:"-"`      // FIXME：这是干什么的？
+	Labels       map[string]string `yaml:"labels"`       // 容器标签
+	ExposedPorts nat.PortSet       `yaml:"-"`            // FIXME：这是干什么的？
+	VolumeMounts []VolumeMount     `yaml:"volumeMounts"` // 挂载的卷
 }
 
 type ResourceLimits struct {
@@ -44,9 +45,9 @@ type ResourceLimits struct {
 	Memory string `yaml:"memory"` // 如 "128Mi"
 }
 
-type Volume struct {
-	Name string `yaml:"name"`
-	Path string `yaml:"path"` // 挂载路径
+type VolumeMount struct {
+	Name      string `yaml:"name"`
+	MountPath string `yaml:"mountPath"` // 挂载路径
 }
 
 type PodStatus struct {
