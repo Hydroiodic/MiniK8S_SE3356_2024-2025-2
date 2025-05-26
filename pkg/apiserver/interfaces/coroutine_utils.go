@@ -38,7 +38,7 @@ func CheckKubeletTimeout() error {
 
 	// NOTE: In `kubelet/runtime/status_controller.go`, the interval of heartbeat is 5s.
 	//       Here we use three times of that as the timeout.
-	timeout := 3 * 5 * time.Second
+	timeout := 5 * 5 * time.Second
 
 	// We use an array to store kubelets that have timed out.
 	timeout_kubelets := make([]*object.Kubelet, 0)
