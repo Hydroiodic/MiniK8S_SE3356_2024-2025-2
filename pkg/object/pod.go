@@ -27,20 +27,17 @@ type PodSpec struct {
 }
 
 type Container struct {
-	ID        string          `yaml:"id"`        // 容器 ID，由 Docker 生成
-	Name      string          `yaml:"name"`      // 容器名称
-	Image     string          `yaml:"image"`     // 镜像名和 Tag，如 nginx:latest
-	Command   []string        `yaml:"command"`   // 容器执行命令
-	Args      []string        `yaml:"args"`      // 命令参数
-	Ports     []ContainerPort `yaml:"ports"`     // 暴露端口
-	Resources ResourceLimits  `yaml:"resources"` // 资源限制
+	ID        string         `yaml:"id"`        // 容器 ID，由 Docker 生成
+	Name      string         `yaml:"name"`      // 容器名称
+	Image     string         `yaml:"image"`     // 镜像名和 Tag，如 nginx:latest
+	Command   []string       `yaml:"command"`   // 容器执行命令
+	Args      []string       `yaml:"args"`      // 命令参数
+	Ports     []int          `yaml:"ports"`     // 暴露端口
+	Resources ResourceLimits `yaml:"resources"` // 资源限制
 
 	Labels       map[string]string `yaml:"labels"` // 容器标签
 	ExposedPorts nat.PortSet       `yaml:"-"`      // FIXME：这是干什么的？
-}
-
-type ContainerPort struct {
-	ContainerPort int `yaml:"containerPort"`
+	IP           string            `yaml:"ip"`     // TODO: 容器 IP 地址，能删除吗？
 }
 
 type ResourceLimits struct {
@@ -68,3 +65,7 @@ const (
 	PodDeleted  = "Deleted"
 	PodFailed   = "Failed"
 )
+
+type PodMetrics struct {
+	Resources map[string]float64 `yaml:"-"`
+}

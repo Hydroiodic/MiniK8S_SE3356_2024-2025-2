@@ -23,4 +23,14 @@ const (
 	DNSAddURL        = "/dns/addDNS"
 	DNSDeleteURL     = "/dns/deleteDNS"
 	DNSGetResolveURL = "/dns/getDNSResolve"
+
+	// Replicaset operations.
+	ReplicasetCreateURL = "/replicaset/createReplicasets"
+	ReplicasetGetURL    = "/replicaset/getReplicasets"
+	ReplicasetUpdateURL = "/replicaset/updateReplicaset"
+	ReplicasetDeleteURL = "/replicaset/deleteReplicaset"
+
+	// HPA operations.
+	HpaGetURL    = "/hpa/getHpas"
+	HpaCreateURL = "/hpa/createHpa"
 )

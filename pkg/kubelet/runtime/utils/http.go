@@ -194,6 +194,7 @@ func GetRequestWithParamsAndObject(
 		return resp.StatusCode, nil
 	}
 
+	fmt.Println()
 	// 如果response_target为其他类型指针，则decode json为该类型结构体
 	err = json.Unmarshal(body, responseTarget)
 	if err != nil {

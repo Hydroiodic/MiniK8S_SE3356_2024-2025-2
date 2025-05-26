@@ -9,6 +9,7 @@ import (
 
 	"slices"
 
+	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/apiserver"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/pod"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/mqtemplate"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
@@ -17,16 +18,18 @@ import (
 type PodController struct {
 	kubelet    *object.Kubelet
 	podService pod.PodServiceInterface
-	apiClient  APIServerClient
+	apiClient  *apiserver.APIClient
 	syncPeriod time.Duration
 }
 
 // PodController 是一个控制器，用于管理 Pod 的生命周期
-// 它会定期检查 Pod 的状态，并在需要时创建、删除或更新 Pod
+// 它会定期检查 Pod 的状态，并通知API Server
+// API Server 会在需要时通知 PodController 创建、删除或更新 Pod
+// 以确保本地 Pod 的状态与 API Server 上的 Pod 状态一致
 func NewPodController(
 	kubelet *object.Kubelet,
 	podService pod.PodServiceInterface,
-	apiClient APIServerClient,
+	apiClient *apiserver.APIClient,
 	syncPeriod time.Duration,
 ) *PodController {
 	return &PodController{
@@ -38,6 +41,9 @@ func NewPodController(
 }
 
 func (c *PodController) CreatePodHandler(msg map[string]any) error {
+	c.kubelet.Mu.Lock()
+	defer c.kubelet.Mu.Unlock()
+
 	// 解析消息体
 	msgBody, err := json.Marshal(msg)
 	if err != nil {
@@ -52,13 +58,20 @@ func (c *PodController) CreatePodHandler(msg map[string]any) error {
 		return err
 	}
 
+	// 遍历 Kubelet 的 Pod 列表，检查 Pod 是否已经存在
+	for _, p := range c.kubelet.Pods {
+		if p.Metadata.Name == pod.Metadata.Name &&
+			p.Metadata.Namespace == pod.Metadata.Namespace {
+			// 找到 Pod，不予处理
+			return nil
+		}
+	}
+
 	// 将 Pod 对象添加到 Kubelet 的 Pod 列表中
-	c.kubelet.Mu.Lock()
 	// 设置 Pod 的状态为 PodCreating
 	pod.Status.Phase = object.PodCreating // NOTE: Pod Phase
 	// 添加到 Kubelet 的 Pod 列表中
 	c.kubelet.Pods = append(c.kubelet.Pods, pod)
-	c.kubelet.Mu.Unlock()
 
 	// 在这里可以对 Pod 进行进一步处理，比如创建或更新
 	// TODO: 错误处理，创建失败时
@@ -75,8 +88,6 @@ func (c *PodController) CreatePodHandler(msg map[string]any) error {
 
 	log.Printf("Pod started: %s", pod.Metadata.Name)
 
-	c.kubelet.Mu.Lock()
-	// Iterate over the Pods to find the one that matches the name and namespace.
 	for i, p := range c.kubelet.Pods {
 		if p.Metadata.Name == pod.Metadata.Name &&
 			p.Metadata.Namespace == pod.Metadata.Namespace {
@@ -87,12 +98,14 @@ func (c *PodController) CreatePodHandler(msg map[string]any) error {
 			break
 		}
 	}
-	c.kubelet.Mu.Unlock()
 
 	return nil
 }
 
 func (c *PodController) DeletePodHandler(msg map[string]interface{}) error {
+	c.kubelet.Mu.Lock()
+	defer c.kubelet.Mu.Unlock()
+
 	// 解析消息体
 	msgBody, err := json.Marshal(msg)
 	if err != nil {
@@ -108,7 +121,6 @@ func (c *PodController) DeletePodHandler(msg map[string]interface{}) error {
 	}
 
 	// 检查 Pod 是否存在
-	c.kubelet.Mu.Lock()
 	podExists := false
 	// 遍历 Kubelet 的 Pod 列表，检查 Pod 是否存在
 	for _, p := range c.kubelet.Pods {
@@ -122,7 +134,6 @@ func (c *PodController) DeletePodHandler(msg map[string]interface{}) error {
 			break
 		}
 	}
-	c.kubelet.Mu.Unlock()
 
 	// 如果 Pod 不存在，直接返回
 	if !podExists {
@@ -143,8 +154,6 @@ func (c *PodController) DeletePodHandler(msg map[string]interface{}) error {
 		return err
 	}
 
-	// Delete the Pod from the Kubelet's Pod list.
-	c.kubelet.Mu.Lock()
 	for i, p := range c.kubelet.Pods {
 		if p.Metadata.Name == pod.Metadata.Name &&
 			p.Metadata.Namespace == pod.Metadata.Namespace {
@@ -157,7 +166,6 @@ func (c *PodController) DeletePodHandler(msg map[string]interface{}) error {
 			break
 		}
 	}
-	c.kubelet.Mu.Unlock()
 
 	return nil
 }

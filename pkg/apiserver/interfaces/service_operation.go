@@ -1,19 +1,19 @@
 package interfaces
 
 import (
-	"encoding/json"
+	"context"
+	"log"
 	"math/rand"
 	"net/http"
 	"path"
 	"strconv"
 
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/etcd"
-	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/mqtemplate"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
 	"github.com/gin-gonic/gin"
 )
 
-func GenClusterIP() string {
+func randomGenClusterIP() string {
 	cip := "222.111." + strconv.Itoa(
 		rand.Intn(256),
 	) + "." + strconv.Itoa(
@@ -23,19 +23,99 @@ func GenClusterIP() string {
 	return cip
 }
 
+func genClusterIP() (string, error) {
+	// Create a new context for the request.
+	ctx := context.Background()
+
+	// Create a new ClusterIP
+	clusterIPStore, err := object.NewClusterIPStore([]string{})
+	if err != nil {
+		return "", err
+	}
+
+	// Ensure the ClusterIPStore is closed after use.
+	defer func() {
+		if closeErr := clusterIPStore.Close(); closeErr != nil {
+			log.Printf("Failed to close cluster IP store: %v", closeErr)
+		}
+	}()
+
+	var clusterIP string
+	// Repeatedly generate a random ClusterIP until it is not already in use.
+	for {
+		// Generate a random ClusterIP.
+		clusterIP = randomGenClusterIP()
+
+		// Check if the ClusterIP is already in use.
+		res, err := clusterIPStore.GetClusterIP(ctx, clusterIP)
+		if err != nil {
+			log.Printf("Failed to get cluster IP: %v", err)
+			continue
+		}
+
+		// If the ClusterIP is already in use, continue to the next iteration.
+		if res != "" {
+			log.Printf("Cluster IP %s is already in use, continue", clusterIP)
+			continue
+		}
+
+		// Store the generated ClusterIP in etcd.
+		err = clusterIPStore.SetClusterIP(ctx, clusterIP)
+		if err != nil {
+			log.Printf("Failed to set cluster IP: %v", err)
+			continue
+		}
+
+		// Jump out of the loop if no error occurred.
+		break
+	}
+
+	return clusterIP, nil
+}
+
+func removeClusterIP(clusterIP string) error {
+	// Create a new context for the request.
+	ctx := context.Background()
+
+	// Create a new ClusterIPStore instance.
+	clusterIPStore, err := object.NewClusterIPStore([]string{})
+	if err != nil {
+		return err
+	}
+
+	// Ensure the ClusterIPStore is closed after use.
+	defer func() {
+		if closeErr := clusterIPStore.Close(); closeErr != nil {
+			log.Printf("Failed to close cluster IP store: %v", closeErr)
+		}
+	}()
+
+	// Remove the ClusterIP from etcd.
+	err = clusterIPStore.DeleteClusterIP(ctx, clusterIP)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
 func CreateService(c *gin.Context) {
+	// Bind the JSON request body to the Service struct.
 	var svc object.Service
 	if err := c.BindJSON(&svc); err != nil {
 		c.JSON(http.StatusBadRequest, "Invalid JSON: "+err.Error())
 		return
 	}
 
+	// Set the default namespace if not provided.
 	if svc.Metadata.Namespace == "" {
 		svc.Metadata.Namespace = DefaultNamespace
 	}
 
+	// Create a new ServiceStore instance.
 	st, _ := object.NewServiceStore([]string{})
 
+	// Ensure the ServiceStore is closed after use.
 	defer func() {
 		if closeErr := st.Close(); closeErr != nil {
 			c.JSON(
@@ -45,8 +125,8 @@ func CreateService(c *gin.Context) {
 		}
 	}()
 
-	// Check if the service already exists
-	reply, err := st.GetService(
+	// Check if the service already exists.
+	reply, err := st.GetServiceWithoutStatus(
 		c.Request.Context(),
 		svc.Metadata.Namespace,
 		svc.Metadata.Name,
@@ -69,68 +149,59 @@ func CreateService(c *gin.Context) {
 		return
 	}
 
-	// Create a new ClusterIP
-	var clusterIPStore *object.ClusterIPStore
-	clusterIPStore, _ = object.NewClusterIPStore([]string{})
-
-	defer func() {
-		if closeErr := clusterIPStore.Close(); closeErr != nil {
-			c.JSON(
-				http.StatusInternalServerError,
-				"Failed to close cluster IP store: "+closeErr.Error(),
-			)
-		}
-	}()
-
-	var clusterIP string
-	// 反复生成ClusterIP，直到生成的ClusterIP不在etcd中
-	for {
-		clusterIP = GenClusterIP()
-		res, _ := clusterIPStore.GetClusterIP(
-			c.Request.Context(),
-			clusterIP,
+	// Generate a new ClusterIP for the service.
+	clusterIP, err := genClusterIP()
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			"Failed to generate cluster IP: "+err.Error(),
 		)
 
-		if res != clusterIP {
-			// 存储ClusterIP
-			_ = clusterIPStore.SetClusterIP(
-				c.Request.Context(),
-				clusterIP,
-			)
-			// 存储成功，跳出循环
-			break
-		}
+		return
 	}
 
 	svc.Status.ClusterIP = clusterIP
 
 	// Apply the service to etcd
-	_ = st.AddService(c.Request.Context(), &svc)
+	err = st.AddService(c.Request.Context(), &svc, false)
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			"Failed to add service: "+err.Error(),
+		)
 
-	// 发送给消息队列
-	jsonData, _ := json.Marshal(svc)
-	_ = mqtemplate.SendMessageToQueue(
-		mqtemplate.CreateServiceQueueName,
-		string(jsonData),
-	)
+		return
+	}
 
 	path := path.Join(etcd.ClusterIPPrefix, clusterIP)
 	c.JSON(http.StatusOK, "Service created: "+path)
 }
 
 func DeleteService(c *gin.Context) {
+	// Bind the JSON request body to the Service struct.
 	var svc object.Service
 	if err := c.BindJSON(&svc); err != nil {
 		c.JSON(http.StatusBadRequest, "Invalid JSON: "+err.Error())
 		return
 	}
 
+	// Set the default namespace if not provided.
 	if svc.Metadata.Namespace == "" {
 		svc.Metadata.Namespace = DefaultNamespace
 	}
 
-	st, _ := object.NewServiceStore([]string{})
+	// Create a new ServiceStore instance.
+	st, err := object.NewServiceStore([]string{})
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			"Failed to create service store: "+err.Error(),
+		)
 
+		return
+	}
+
+	// Ensure the ServiceStore is closed after use.
 	defer func() {
 		if closeErr := st.Close(); closeErr != nil {
 			c.JSON(
@@ -140,7 +211,8 @@ func DeleteService(c *gin.Context) {
 		}
 	}()
 
-	reply, err := st.GetService(
+	// Check if the service exists.
+	reply, err := st.GetServiceWithoutStatus(
 		c.Request.Context(),
 		svc.Metadata.Namespace,
 		svc.Metadata.Name,
@@ -154,6 +226,7 @@ func DeleteService(c *gin.Context) {
 		return
 	}
 
+	// If the service does not exist, return a 404 error.
 	if reply == nil {
 		c.JSON(
 			http.StatusNotFound,
@@ -163,7 +236,7 @@ func DeleteService(c *gin.Context) {
 		return
 	}
 
-	err = st.DeleteService(
+	err = st.DeleteServiceWithoutStatus(
 		c.Request.Context(),
 		svc.Metadata.Namespace,
 		svc.Metadata.Name,
@@ -177,58 +250,33 @@ func DeleteService(c *gin.Context) {
 		return
 	}
 
+	// Release the ClusterIP.
+	err = removeClusterIP(svc.Status.ClusterIP)
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			"Failed to remove cluster IP: "+err.Error(),
+		)
+
+		return
+	}
+
 	c.JSON(http.StatusOK, "Service deleted: "+svc.Metadata.Name)
 }
 
-// func GetService(c *gin.Context) {
-// 	var svc object.Service
-// 	if err := c.BindJSON(&svc); err != nil {
-// 		c.JSON(http.StatusBadRequest, "Invalid JSON: "+err.Error())
-// 		return
-// 	}
-
-// 	if svc.Metadata.Namespace == "" {
-// 		svc.Metadata.Namespace = "default"
-// 	}
-
-// 	st, _ := object.NewServiceStore([]string{})
-
-// 	defer func() {
-// 		if closeErr := st.Close(); closeErr != nil {
-// 			c.JSON(
-// 				http.StatusInternalServerError,
-// 				"Failed to close service store: "+closeErr.Error(),
-// 			)
-// 		}
-// 	}()
-
-// 	pods, err := st.GetService(
-// 		c.Request.Context(),
-// 		svc.Metadata.Namespace,
-// 		svc.Metadata.Name,
-// 	)
-// 	if err != nil {
-// 		c.JSON(
-// 			http.StatusInternalServerError,
-// 			"Failed to get service: "+err.Error(),
-// 		)
-
-// 		return
-// 	}
-
-// 	if pods == nil {
-// 		c.JSON(
-// 			http.StatusNotFound,
-// 			"Service not found: "+svc.Metadata.Name,
-// 		)
-
-// 		return
-// 	}
-// }
-
 func GetAllService(c *gin.Context) {
-	st, _ := object.NewServiceStore([]string{})
+	// Create a new ServiceStore instance.
+	st, err := object.NewServiceStore([]string{})
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			"Failed to create service store: "+err.Error(),
+		)
 
+		return
+	}
+
+	// Ensure the ServiceStore is closed after use.
 	defer func() {
 		if closeErr := st.Close(); closeErr != nil {
 			c.JSON(
@@ -238,7 +286,8 @@ func GetAllService(c *gin.Context) {
 		}
 	}()
 
-	svcs, err := st.ListServices(c.Request.Context())
+	// Get all services from etcd.
+	svcs, err := st.ListServicesWithoutStatus(c.Request.Context())
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,

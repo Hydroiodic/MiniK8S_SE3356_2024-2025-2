@@ -20,39 +20,14 @@ type Kubelet struct {
 	Runtime   time.Duration `yaml:"runtime"   json:"runtime"`
 	Pods      []Pod         `yaml:"pods"      json:"pods"`
 
+	// We will combine the functionality of kubelet and kubeproxy in the future.
+	Services []Service `yaml:"services" json:"services"`
+
 	// We need to record the last update time of the kubelet for heartbeat.
 	LastUpdateTime time.Time `yaml:"lastUpdateTime" json:"lastUpdateTime"`
 
 	// A mutex to protect the kubelet instance.
 	Mu sync.RWMutex
-}
-
-type KubeletCopy struct {
-	Config    KubeletConfig `yaml:"config"    json:"config"`
-	Status    string        `yaml:"status"    json:"status"`
-	StartTime time.Time     `yaml:"startTime" json:"startTime"`
-	Runtime   time.Duration `yaml:"runtime"   json:"runtime"`
-	Pods      []Pod         `yaml:"pods"      json:"pods"`
-
-	// We need to record the last update time of the kubelet for heartbeat.
-	LastUpdateTime time.Time `yaml:"lastUpdateTime" json:"lastUpdateTime"`
-}
-
-func (k *Kubelet) GetKubeletCopy() KubeletCopy {
-	k.Mu.Lock()
-	defer k.Mu.Unlock()
-
-	return k.GetKubeletCopyWithoutLock()
-}
-
-func (k *Kubelet) GetKubeletCopyWithoutLock() KubeletCopy {
-	return KubeletCopy{
-		Config:         k.Config,
-		Status:         k.Status,
-		StartTime:      k.StartTime,
-		Pods:           k.Pods,
-		LastUpdateTime: k.LastUpdateTime,
-	}
 }
 
 func (k *Kubelet) Heartbeat() {

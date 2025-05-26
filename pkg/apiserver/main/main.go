@@ -30,6 +30,13 @@ func declareGinServer() *gin.Engine {
 	r.POST(apiserver.DNSDeleteURL, interfaces.DeleteSingleDNS)
 	r.GET(apiserver.DNSGetResolveURL, interfaces.GetDNSResolve)
 
+	r.GET(apiserver.ReplicasetGetURL, interfaces.GetReplicasets)
+	r.POST(apiserver.ReplicasetCreateURL, interfaces.CreateReplicaset)
+	r.POST(apiserver.ReplicasetDeleteURL, interfaces.DeleteReplicasetFromEtcd)
+	r.POST(apiserver.ReplicasetUpdateURL, interfaces.UpdateReplicaset)
+
+	r.GET(apiserver.HpaGetURL, interfaces.GetHpas)
+	r.POST(apiserver.HpaCreateURL, interfaces.CreateHpa)
 	// r.POST("/getOnePod", interfaces.GetOnePod)
 
 	// r.POST("/updateHost", interfaces.HandleUpdateHost)
@@ -89,13 +96,27 @@ func checkTimeout() {
 	}
 }
 
+func checkService() {
+	// An infinite loop to check for service status.
+	for {
+		// Check if the service has timed out.
+		if err := interfaces.SyncEtcdServices(); err != nil {
+			// If there is an error, print it.
+			log.Println(err)
+		}
+
+		// Sleep for 3 seconds before checking again.
+		time.Sleep(3 * time.Second)
+	}
+}
+
 func main() {
 	// Create a new Gin router.
 	r := declareGinServer()
 
 	// Go routine to check for some status.
 	go checkTimeout()
-	// go interfaces.CalculateServiceAndEps()
+	go checkService()
 
 	// Start the Gin server on port 8080.
 	if err := r.Run(":8080"); err != nil {

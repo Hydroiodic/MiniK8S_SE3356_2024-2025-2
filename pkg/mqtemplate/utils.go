@@ -18,6 +18,17 @@ func CreatePodMessage(pod object.Pod) (string, error) {
 	return string(jsonData), nil
 }
 
+func CreateServiceMessage(service object.Service) (string, error) {
+	// Create a message for creating a service.
+	jsonData, err := json.Marshal(service)
+	if err != nil {
+		fmt.Println("Failed to marshal service: ", err)
+		return "", err
+	}
+
+	return string(jsonData), nil
+}
+
 func SendMessageToQueue(queueName string, body string) error {
 	// Create connection to RabbitMQ server.
 	conn, err := Connect(RabbitMQUrl)
@@ -117,8 +128,7 @@ func ConsumeMessageOnQueue(
 	go func() {
 		for d := range msgs {
 			// Print the message.
-			fmt.Println("Received a message: ", string(d.Body))
-
+			// fmt.Println("Received a message: ", string(d.Body))
 			// Consume the message and handle it.
 			var msg map[string]interface{}
 			if err := json.Unmarshal(d.Body, &msg); err != nil {

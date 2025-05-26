@@ -10,6 +10,7 @@ import (
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/container"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/pod"
+	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubeproxy/utils"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
 )
 
@@ -18,6 +19,16 @@ func main() {
 	config := object.KubeletConfig{
 		Name: "myNode",
 		// 其他字段...
+	}
+
+	// 获取NodeIP
+	if config.NodeIP == "" {
+		ip, err := utils.GetEnInterfaceIP()
+		if err != nil {
+			log.Fatalf("failed to get NodeIP: %v", err)
+		}
+
+		config.NodeIP = ip
 	}
 
 	// 初始化 PodServiceInterface 的实际实现
@@ -30,10 +41,9 @@ func main() {
 
 	// 初始化 APIServerClient 的实际实现
 	var client = apiserver.NewAPIClient("")
-	apiClient := kubelet.NewAPIServerClient(client)
 
 	// 创建 KubeletService
-	kubeletService := kubelet.NewKubeletService(config, podService, apiClient)
+	kubeletService := kubelet.NewKubeletService(config, podService, client)
 
 	// 创建一个 stopCh，用于优雅关闭服务
 	stopCh := make(chan struct{})

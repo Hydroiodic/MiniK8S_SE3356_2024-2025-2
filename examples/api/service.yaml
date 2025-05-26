@@ -15,10 +15,3 @@ spec:
       port: 80
       targetPort: 80
       nodePort: 30080
-status:
-  clusterIP: 10.96.123.45
-  endpoints:
-    - ip: 172.17.0.2
-      port: 80
-    - ip: 172.17.0.3
-      port: 80

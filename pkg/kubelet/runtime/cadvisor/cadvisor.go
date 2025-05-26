@@ -70,6 +70,8 @@ func calculateCpuUsage(container info.ContainerInfo) (float64, float64) {
 			container.Stats[i].Cpu.Usage.Total-container.Stats[i-1].Cpu.Usage.Total,
 		) / 1e9
 
+		fmt.Printf("cpucpu : %f\n", cpuUsage)
+
 		if cpuDuration > 0 {
 			cpuNums += 1
 			totalCpuUtilization += (cpuUsage / cpuDuration)
