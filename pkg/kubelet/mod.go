@@ -14,7 +14,6 @@ func NewKubelet(config object.KubeletConfig) *object.Kubelet {
 		Config:         config,
 		StartTime:      time.Now(),
 		LastUpdateTime: time.Now(),
-		// CachedPods:     []object.Pod{},
 	}
 }
 
@@ -58,7 +57,7 @@ func (s *KubeletService) Run(stopCh <-chan struct{}) {
 		log.Printf("Failed to register kubelet: %v", err)
 	}
 
-	// 先恢复本地状态
+	// Only once: restore local pods status.
 	localPods, err := s.podController.podService.ListPods()
 	if err != nil {
 		log.Printf("Failed to fetch pods: %v", err)

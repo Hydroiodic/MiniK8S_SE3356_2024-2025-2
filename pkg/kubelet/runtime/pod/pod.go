@@ -29,7 +29,6 @@ func (p *PodService) CreatePod(pod *object.Pod) error {
 	pauseId, err := CreatePauseContainer(p.CtrService, pod)
 	if err != nil {
 		log.Printf("Failed to create pause container: %v", err)
-		// 如果创建 Pause Container 失败，后面创建也没有意义了，返回错误！
 		return err
 	}
 
@@ -58,7 +57,8 @@ func (p *PodService) CreatePod(pod *object.Pod) error {
 			Labels: utils.NewLabelForOtherContainer(
 				pod.Metadata.Namespace,
 				pod.Metadata.Name,
-				pod.Metadata.Labels),
+				pod.Metadata.Labels,
+			),
 		}
 
 		// 普通容器在创建时会通过 Docker 的
@@ -304,7 +304,7 @@ func (p *PodService) GetPodStatus(pod *object.Pod) (string, error) {
 		}
 	}
 
-	// 如果所有容器都是 Created 状态，则 Pod 处于 Pending 状态
+	// 如果所有容器都是 Created 状态，则 Pod 处于 Creating 状态
 	if allCreated {
 		return object.PodCreating, nil
 	}
@@ -318,7 +318,7 @@ func (p *PodService) GetPodStatus(pod *object.Pod) (string, error) {
 }
 
 // 获取当前节点正在运行的 Pod （包含一些状态字段）
-// 可以在Kubelet重启时调用？
+// 可以在Kubelet重启时调用
 func (p *PodService) ListPods() ([]object.Pod, error) {
 	// 1. 获取所有 Pause 容器，搞清楚有多少个 Pod
 	pauseCtrs, err := p.CtrService.GetContainersByLabels(

@@ -23,8 +23,6 @@ type PodController struct {
 
 // PodController 是一个控制器，用于管理 Pod 的生命周期
 // 它会定期检查 Pod 的状态，并在需要时创建、删除或更新 Pod
-// 它还会从 API Server 获取最新的 Pod 配置，并与本地缓存进行比较
-// 以确保本地 Pod 的状态与 API Server 上的 Pod 状态一致
 func NewPodController(
 	kubelet *object.Kubelet,
 	podService pod.PodServiceInterface,
@@ -58,7 +56,6 @@ func (c *PodController) CreatePodHandler(msg map[string]any) error {
 	c.kubelet.Mu.Lock()
 	// 设置 Pod 的状态为 PodCreating
 	pod.Status.Phase = object.PodCreating // NOTE: Pod Phase
-	pod.Status.StartTime = time.Now()
 	// 添加到 Kubelet 的 Pod 列表中
 	c.kubelet.Pods = append(c.kubelet.Pods, pod)
 	c.kubelet.Mu.Unlock()
@@ -79,14 +76,14 @@ func (c *PodController) CreatePodHandler(msg map[string]any) error {
 	log.Printf("Pod started: %s", pod.Metadata.Name)
 
 	c.kubelet.Mu.Lock()
-	// 更改 Pod 的状态为 Running
-	pod.Status.Phase = object.PodRunning
-	pod.Status.StartTime = time.Now()
-	// 找到 Pod 并执行修改
+	// Iterate over the Pods to find the one that matches the name and namespace.
 	for i, p := range c.kubelet.Pods {
 		if p.Metadata.Name == pod.Metadata.Name &&
 			p.Metadata.Namespace == pod.Metadata.Namespace {
-			c.kubelet.Pods[i] = pod
+			// Update the status of the Pod.
+			c.kubelet.Pods[i].Status.Phase = object.PodRunning
+			c.kubelet.Pods[i].Status.StartTime = time.Now()
+
 			break
 		}
 	}
@@ -146,12 +143,12 @@ func (c *PodController) DeletePodHandler(msg map[string]interface{}) error {
 		return err
 	}
 
-	// 从 Kubelet 的 Pod 列表中删除
+	// Delete the Pod from the Kubelet's Pod list.
 	c.kubelet.Mu.Lock()
 	for i, p := range c.kubelet.Pods {
 		if p.Metadata.Name == pod.Metadata.Name &&
 			p.Metadata.Namespace == pod.Metadata.Namespace {
-			// 删除 Pod
+			// Delete the Pod.
 			c.kubelet.Pods = slices.Delete(
 				c.kubelet.Pods, i,
 				i+1,
