@@ -289,6 +289,11 @@ func SyncEtcdServices() error {
 
 		// Iterate through all pods and find their endpoints.
 		for _, pod := range pods {
+			// Only Running pods are considered.
+			if pod.Status.Phase != object.PodRunning {
+				continue
+			}
+
 			// Get all exposed ports of the pod.
 			for _, container := range pod.Spec.Containers {
 				for _, port := range container.Ports {

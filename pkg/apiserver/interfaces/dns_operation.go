@@ -12,10 +12,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func getNginxIPAddress() string {
-	// TODO: Currently not supported.
-	//       In the future, we should access the Nginx IP address from the etcd.
-	return "127.0.0.1"
+func getProxyIPAddress() string {
+	// If one domain has multiple service paths,
+	// we need to redirect to our HTTP proxy server.
+	return object.ProxyClusterIP
 }
 
 func resolveDNS(dns *object.DNS) (string, error) {
@@ -23,7 +23,7 @@ func resolveDNS(dns *object.DNS) (string, error) {
 	if len(dns.Spec.Paths) == 1 {
 		return dns.Spec.Paths[0].ServiceIP, nil
 	} else if len(dns.Spec.Paths) > 1 {
-		return getNginxIPAddress(), nil
+		return getProxyIPAddress(), nil
 	}
 
 	// If the domain has no path, we need to return an error.

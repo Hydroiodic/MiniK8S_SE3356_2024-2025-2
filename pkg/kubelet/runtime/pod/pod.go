@@ -114,6 +114,11 @@ func (p *PodService) StartPod(pod *object.Pod) error {
 		log.Printf("Failed to get pause container info: %v", err)
 	}
 
+	pauseIP := info.NetworkSettings.Networks["flannel"].IPAddress
+	if pauseIP == "" {
+		log.Printf("Fuck No IP")
+	}
+
 	// 获取 Pause Container 的 IP 地址
 	(*pod).Status.IP = info.NetworkSettings.Networks["flannel"].IPAddress
 	log.Printf(

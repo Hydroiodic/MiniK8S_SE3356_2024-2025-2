@@ -410,6 +410,16 @@ func (ops *IpvsOps) AddService(svc *object.Service) {
 
 		// 为每一个匹配选择器的Pod创建一个IPVS规则
 		for _, endpoint := range svc.Status.Endpoints {
+			if endpoint.IP == "" {
+				log.Printf(
+					"Endpoint IP is empty, skipping service %s:%d",
+					clusterIP,
+					port.Port,
+				)
+
+				continue
+			}
+
 			// 需要保证PodPort与TargetPort一致，才对应于这个前端虚服务添加IPVS目标
 			if port.TargetPort != endpoint.Port {
 				continue
@@ -435,7 +445,7 @@ func (ops *IpvsOps) AddService(svc *object.Service) {
 
 	/** NodePort 的 IPVS 规则 */
 	if svc.Type == object.SERVICE_TYPE_NODEPORT_STR {
-		nodeIP, _ := utils.GetNodeIP()
+		nodeIP, _ := utils.GetEnInterfaceIP()
 
 		for _, port := range ports { // 也许有一些服务没有暴露NodePort
 			if port.NodePort == 0 {

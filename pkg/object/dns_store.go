@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"path"
 	"slices"
+	"strings"
 
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/etcd"
 )
@@ -32,6 +33,8 @@ func (s *DNSStore) Close() error {
 
 // key returns the key for DNS in etcd using its host.
 func (s *DNSStore) key(host string) string {
+	// Trim the dot at the end of the host if it exists.
+	host = strings.TrimSuffix(host, ".")
 	return path.Join(etcd.DNSPrefix, host)
 }
 
