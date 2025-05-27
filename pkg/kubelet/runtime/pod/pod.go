@@ -466,14 +466,33 @@ func (p *PodService) AutoRestartPod(
 
 	// 如果PodIP为空，尝试重新获取
 	if pod.Status.IP == "" {
+		pauseLabels := utils.NewLabelForPauseContainer(
+			pod.Metadata.Namespace,
+			pod.Metadata.Name,
+			map[string]string{},
+		)
+
+		pauseInpects, err := p.CtrService.GetContainerInspectsByLabels(
+			pauseLabels,
+		)
+		if err != nil {
+			log.Printf("Failed to get pause container inspect: %v", err)
+		}
+
+		if len(pauseInpects) == 0 {
+			log.Printf("No pause container found for pod %s", pod.Metadata.Name)
+		}
+		// 获取 Pause Container 的 ID
+		pod.Spec.PauseContainerID = pauseInpects[0].ID
+
 		info, err := p.CtrService.GetContainerInfo(pod.Spec.PauseContainerID)
 
 		if err == nil {
 			pod.Status.IP = info.NetworkSettings.Networks["flannel"].IPAddress
 			log.Printf("Pod IP: %s", pod.Status.IP)
+		} else {
+			log.Printf("Failed to get pause container info: %v", err)
 		}
-
-		log.Printf("Failed to get pause container info: %v", err)
 	}
 
 	// TODO: 处理重启策略
