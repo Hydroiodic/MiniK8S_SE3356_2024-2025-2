@@ -93,8 +93,8 @@ func CheckKubeletTimeout() error {
  *	   If the service is ready to be applied to the cluster,
  *     move it from pending to valid.
  */
+//  Deprecated: This function should not be used now.
 func SyncEtcd() error {
-	// NOTE: Not used now.
 	return nil
 }
 
@@ -233,6 +233,7 @@ func SyncEtcdPods() error {
 	return nil
 }
 
+// `SyncEtcdServices` will update the service endpoints by checking the pods.
 func SyncEtcdServices() error {
 	// Create a context used for the etcd connection.
 	ctx := context.Background()
@@ -286,7 +287,9 @@ func SyncEtcdServices() error {
 	for _, service := range services {
 		// NOTE: Because DNSService and ProxyService are internal services,
 		// 	     there're no pods related, so we should skip them.
-		if service.Type == object.SERVICE_TYPE_CLUSTERIP_STR {
+		// Check if the labels of the service contains `internal`.
+		if _, ok := service.Metadata.Labels[object.SERVICE_INTERNEL_LABEL]; ok {
+			// This is an internal service, skip it.
 			continue
 		}
 

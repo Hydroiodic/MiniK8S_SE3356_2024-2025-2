@@ -11,6 +11,7 @@ type Service struct {
 const (
 	SERVICE_TYPE_CLUSTERIP_STR = "ClusterIP"
 	SERVICE_TYPE_NODEPORT_STR  = "NodePort"
+	SERVICE_INTERNEL_LABEL     = "internal"
 )
 
 type ServiceSpec struct {
