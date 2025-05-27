@@ -35,6 +35,20 @@ func (p *PodService) CreatePod(pod *object.Pod) error {
 	// 将 Pause Container 的 ID 储存到 Pod
 	(*pod).Spec.PauseContainerID = pauseId
 
+	// TODO: 获取Pod里面Volume的信息
+	// 处理 HostPath Volume
+	nameHostPathMap := make(map[string]string)
+
+	for _, volume := range pod.Spec.Volumes {
+		if volume.HostPath != nil {
+			// 获取 HostPath 的路径
+			hostPath := volume.HostPath.Path
+			// 将 HostPath 的路径存储到 map 中
+			nameHostPathMap[volume.Name] = hostPath
+		}
+		// TODO: 处理 PVC
+	} //nolint
+
 	// Create Pod Containers
 	pauseNsArg := "container:" + pauseId
 
@@ -42,6 +56,33 @@ func (p *PodService) CreatePod(pod *object.Pod) error {
 	// 容器间可以通过 localhost 通信。
 	// 容器共享进程视图和 IPC 资源。
 	for i, ctrConfig := range pod.Spec.Containers {
+		// TODO: 处理VolumeMounts
+		ctrPathHostPathMap := make(
+			map[string]string,
+			len(ctrConfig.VolumeMounts),
+		)
+
+		for _, mount := range ctrConfig.VolumeMounts {
+			if hostPath, ok := nameHostPathMap[mount.Name]; ok {
+				// 将 HostPath 的路径存储到容器的挂载路径中
+				ctrPathHostPathMap[mount.MountPath] = hostPath
+			} else {
+				// TODO: Name到HostPath的映射不存在时怎么办？
+				log.Printf(
+					"HostPath for volume %s not found in Pod %s/%s",
+					mount.Name,
+					pod.Metadata.Namespace,
+					pod.Metadata.Name,
+				)
+			}
+		}
+
+		binds := make([]string, 0)
+		for containerPath, hostPath := range ctrPathHostPathMap {
+			// 格式为 "hostPath:containerPath"
+			binds = append(binds, hostPath+":"+containerPath)
+		}
+
 		// 无需端口映射
 		ctr := object.Container{
 			Name: utils.FormatContainerName(
@@ -68,6 +109,8 @@ func (p *PodService) CreatePod(pod *object.Pod) error {
 			NetworkMode: container.NetworkMode(pauseNsArg),
 			IpcMode:     container.IpcMode(pauseNsArg),
 			PidMode:     container.PidMode(pauseNsArg),
+			// 处理 VolumeMounts
+			Binds: binds,
 		}
 
 		// 创建容器
