@@ -1,0 +1,26 @@
+kind: Pod
+metadata:
+  name: ubuntu
+  namespace: default
+  labels:
+    app: ubuntu
+    tier: test
+spec:
+  securityContext:
+    runAsUser: 1000
+    runAsGroup: 1000
+    fsGroup: 2000
+    supplementalGroups: [4000]
+  containers:
+    - id: ubuntu-root-container
+      name: ubuntu-root
+      image: ubuntu:latest
+      command: ["sleep", "infinity"]
+      securityContext:
+        runAsUser: root
+        runAsGroup: root
+        fsGroup: 2000
+    - id: ubuntu-default-container
+      name: ubuntu-default
+      image: ubuntu:latest
+      command: ["sleep", "infinity"]

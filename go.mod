@@ -7,9 +7,9 @@ require (
 	github.com/docker/docker v28.1.1+incompatible
 	github.com/docker/go-connections v0.5.0
 	github.com/google/cadvisor v0.52.1
+	github.com/google/uuid v1.6.0
 	github.com/miekg/dns v1.1.66
 	github.com/moby/ipvs v1.1.0
-	github.com/google/uuid v1.6.0
 	github.com/rabbitmq/amqp091-go v1.10.0
 	github.com/shirou/gopsutil v2.21.11+incompatible
 	github.com/spf13/cobra v1.9.1

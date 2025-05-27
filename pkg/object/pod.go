@@ -20,10 +20,11 @@ type Metadata struct {
 }
 
 type PodSpec struct {
-	PauseContainerID string      `yaml:"pauseContainerId"` // Pause 容器 ID（哈希值）
-	RestartPolicy    string      `yaml:"restartPolicy"`    // 重启策略：Always, OnFailure, Never
-	Containers       []Container `yaml:"containers"`       // 容器列表
-	Volumes          []Volume    `yaml:"volumes"`          // 共享卷
+	PauseContainerID string          `yaml:"pauseContainerId"`          // Pause 容器 ID（哈希值）
+	RestartPolicy    string          `yaml:"restartPolicy"`             // 重启策略：Always, OnFailure, Never
+	Containers       []Container     `yaml:"containers"`                // 容器列表
+	Volumes          []Volume        `yaml:"volumes"`                   // 共享卷
+	SecurityContexts SecurityContext `yaml:"securityContext,omitempty"` // 安全上下文
 }
 
 type Container struct {
@@ -38,6 +39,8 @@ type Container struct {
 	Labels       map[string]string `yaml:"labels"`       // 容器标签
 	VolumeMounts []VolumeMount     `yaml:"volumeMounts"` // 挂载的卷
 	IP           string            `yaml:"ip"`           // TODO: 容器 IP 地址，能删除吗？Pod本机重启恢复时使用
+
+	SecurityContexts SecurityContext `yaml:"securityContext,omitempty"` // 安全上下文
 
 	ExposedPorts nat.PortSet `yaml:"-"` // FIXME：这是干什么的？
 }
@@ -59,6 +62,17 @@ type PodStatus struct {
 	IP         string    `yaml:"ip"`         // Pod IP 地址
 }
 
+type PodMetrics struct {
+	Resources map[string]float64 `yaml:"-"`
+}
+
+type SecurityContext struct {
+	RunAsUser          string   `yaml:"runAsUser,omitempty"`          // 运行容器的用户 ID
+	RunAsGroup         string   `yaml:"runAsGroup,omitempty"`         // 运行容器的组 ID
+	FsGroup            string   `yaml:"fsGroup,omitempty"`            // 文件系统组 ID
+	SupplementalGroups []string `yaml:"supplementalGroups,omitempty"` // 补充组列表
+}
+
 const (
 	PodUnknown  = "Unknown"
 	PodCreating = "Creating"
@@ -67,7 +81,3 @@ const (
 	PodDeleted  = "Deleted"
 	PodFailed   = "Failed"
 )
-
-type PodMetrics struct {
-	Resources map[string]float64 `yaml:"-"`
-}

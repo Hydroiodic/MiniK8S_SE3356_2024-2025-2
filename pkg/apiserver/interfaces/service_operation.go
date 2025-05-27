@@ -89,7 +89,7 @@ func CreateService(c *gin.Context) {
 
 	// Check if the labels of the service are valid.
 	// NOTE: It should not contain `internal` because it is reserved.
-	if _, ok := svc.Metadata.Labels["internal"]; ok {
+	if _, ok := svc.Metadata.Labels[object.SERVICE_INTERNEL_LABEL]; ok {
 		c.JSON(
 			http.StatusBadRequest,
 			"Invalid label: 'internal' is reserved and cannot be used.",

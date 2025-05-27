@@ -101,6 +101,10 @@ func (p *PodService) CreatePod(pod *object.Pod) error {
 				pod.Metadata.Name,
 				pod.Metadata.Labels,
 			),
+			SecurityContexts: combineSecurityContexts(
+				pod.Spec.SecurityContexts,
+				ctrConfig.SecurityContexts,
+			),
 		}
 
 		// 普通容器在创建时会通过 Docker 的
@@ -429,11 +433,7 @@ func (p *PodService) ListPods() ([]object.Pod, error) {
 	return pods, nil
 }
 
-func (p *PodService) AutoRestartPod(
-	pod *object.Pod,
-) error {
-	/** 检查Pause容器 */
-
+func (p *PodService) AutoRestartPod(pod *object.Pod) error {
 	// 更新 Pod 的 Pause Container ID
 	pauseLabels := utils.NewLabelForPauseContainer(
 		pod.Metadata.Namespace,

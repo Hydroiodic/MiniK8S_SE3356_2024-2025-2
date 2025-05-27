@@ -110,6 +110,10 @@ func (cs *ContainerService) CreateContainer(
 		Cmd:          ctr.Command,
 		Labels:       ctr.Labels,
 		ExposedPorts: ctr.ExposedPorts,
+		User: combineUserAndGroup(
+			ctr.SecurityContexts.RunAsUser,
+			ctr.SecurityContexts.RunAsGroup,
+		),
 	}
 
 	if hostConfig == nil {
