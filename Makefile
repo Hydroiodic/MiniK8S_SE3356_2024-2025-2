@@ -21,7 +21,7 @@ controller:
 	@bash scripts/launch/controller.sh
 
 kubelet:
-	@bash scripts/launch/kubelet.sh
+	@sudo bash scripts/launch/kubelet.sh
 
 nameserver:
 	@bash scripts/launch/nameserver.sh

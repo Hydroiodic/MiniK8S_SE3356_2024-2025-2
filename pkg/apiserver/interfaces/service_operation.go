@@ -87,6 +87,17 @@ func CreateService(c *gin.Context) {
 		return
 	}
 
+	// Check if the labels of the service are valid.
+	// NOTE: It should not contain `internal` because it is reserved.
+	if _, ok := svc.Metadata.Labels["internal"]; ok {
+		c.JSON(
+			http.StatusBadRequest,
+			"Invalid label: 'internal' is reserved and cannot be used.",
+		)
+
+		return
+	}
+
 	// Generate a new ClusterIP for the service.
 	clusterIP, err := object.GenClusterIP()
 	if err != nil {

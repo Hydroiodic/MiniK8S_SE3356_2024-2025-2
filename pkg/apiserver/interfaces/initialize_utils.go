@@ -15,10 +15,12 @@ var (
 		Metadata: object.Metadata{
 			Name:      "dns-service",
 			Namespace: "default",
-			Labels:    map[string]string{"internal": "dns"},
+			Labels: map[string]string{
+				object.SERVICE_INTERNEL_LABEL: "dns",
+			},
 		},
 		Spec: object.ServiceSpec{
-			Selector: map[string]string{"internal": "dns"},
+			Selector: map[string]string{},
 			Ports: []object.ServicePort{
 				{
 					Name:       "http",
@@ -43,10 +45,12 @@ var (
 		Metadata: object.Metadata{
 			Name:      "proxy-service",
 			Namespace: "default",
-			Labels:    map[string]string{"internal": "proxy"},
+			Labels: map[string]string{
+				object.SERVICE_INTERNEL_LABEL: "proxy",
+			},
 		},
 		Spec: object.ServiceSpec{
-			Selector: map[string]string{"internal": "proxy"},
+			Selector: map[string]string{},
 			Ports: []object.ServicePort{
 				{
 					Name:       "http",
