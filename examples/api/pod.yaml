@@ -16,6 +16,11 @@ spec:
       resources:
         cpu: "1"
         memory: "128Mi"
+      volumeMounts:
+        - name: nginx-volume
+          mountPath: /usr/share/nginx/html # Pod 中的挂载路径
   volumes:
     - name: nginx-volume
-      path: /usr/share/nginx/html
+      hostPath: 
+        - path: /tmp/nginx # 主机上的路径
+          type: Directory

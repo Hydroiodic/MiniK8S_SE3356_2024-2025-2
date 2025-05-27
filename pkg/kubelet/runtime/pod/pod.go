@@ -47,6 +47,7 @@ func (p *PodService) CreatePod(pod *object.Pod) error {
 			// 将 HostPath 的路径存储到 map 中
 			nameHostPathMap[volume.Name] = hostPath
 		}
+		// TODO: 处理 PVC
 	}
 
 	// Create Pod Containers
