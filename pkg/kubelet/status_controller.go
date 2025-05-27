@@ -90,6 +90,8 @@ func (c *PodStatusController) updatePodStatus() {
 
 		// 填写Pod的状态
 		c.kubelet.Pods[i].Status.Phase = status
+		c.kubelet.Pods[i].Status.IP = pod.Status.IP
+		c.kubelet.Pods[i].Spec.PauseContainerID = pod.Spec.PauseContainerID
 	}
 
 	if err := c.apiClient.HeartbeatKubelet(c.kubelet); err != nil {
