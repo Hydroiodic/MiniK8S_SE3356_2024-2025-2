@@ -42,7 +42,8 @@ func CreatePauseContainer(
 	}
 
 	// 创建Pause容器
-	pauseId, err := c.CreateContainer(ctr, hostConfig)
+	// TODO: 强制启动
+	pauseId, err := c.ForceCreateContainer(ctr, hostConfig)
 	if err != nil {
 		return "", err
 	}

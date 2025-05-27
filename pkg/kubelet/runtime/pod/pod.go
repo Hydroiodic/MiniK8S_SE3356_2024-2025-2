@@ -1,6 +1,7 @@
 package pod
 
 import (
+	"fmt"
 	"log"
 	"time"
 
@@ -431,6 +432,37 @@ func (p *PodService) ListPods() ([]object.Pod, error) {
 func (p *PodService) AutoRestartPod(
 	pod *object.Pod,
 ) error {
+	/** 检查Pause容器 */
+
+	// 更新 Pod 的 Pause Container ID
+	pauseLabels := utils.NewLabelForPauseContainer(
+		pod.Metadata.Namespace,
+		pod.Metadata.Name,
+		map[string]string{},
+	)
+
+	pauseInpects, err := p.CtrService.GetContainerInspectsByLabels(
+		pauseLabels,
+	)
+	if err != nil {
+		log.Printf("Failed to get pause container inspect: %v", err)
+	}
+
+	if len(pauseInpects) == 0 {
+		log.Printf("No pause container found for pod %s", pod.Metadata.Name)
+		_ = p.DeletePod(pod)
+		_ = p.CreatePod(pod)
+		_ = p.StartPod(pod)
+
+		return fmt.Errorf(
+			"no pause container found for pod %s, try restarting",
+			pod.Metadata.Name,
+		)
+	}
+
+	// 获取 Pause Container 的 ID
+	pod.Spec.PauseContainerID = pauseInpects[0].ID
+
 	// 构建 Pod 内容器的标签
 	ctrLabels := utils.NewLabelForOtherContainer(
 		pod.Metadata.Namespace,
@@ -454,37 +486,19 @@ func (p *PodService) AutoRestartPod(
 	// TODO: 其实挺难发生的
 	for ctr := range pod.Spec.Containers {
 		if pod.Spec.Containers[ctr].ID == "" {
-			log.Printf(
-				"Container %s is not created yet",
-				pod.Spec.Containers[ctr].Name,
-			)
-
 			_ = p.DeletePod(pod)
 			_ = p.CreatePod(pod)
+			_ = p.StartPod(pod)
+
+			return fmt.Errorf(
+				"container %s is not created yet, try restarting",
+				pod.Spec.Containers[ctr].Name,
+			)
 		}
 	}
 
 	// 如果PodIP为空，尝试重新获取
 	if pod.Status.IP == "" {
-		pauseLabels := utils.NewLabelForPauseContainer(
-			pod.Metadata.Namespace,
-			pod.Metadata.Name,
-			map[string]string{},
-		)
-
-		pauseInpects, err := p.CtrService.GetContainerInspectsByLabels(
-			pauseLabels,
-		)
-		if err != nil {
-			log.Printf("Failed to get pause container inspect: %v", err)
-		}
-
-		if len(pauseInpects) == 0 {
-			log.Printf("No pause container found for pod %s", pod.Metadata.Name)
-		}
-		// 获取 Pause Container 的 ID
-		pod.Spec.PauseContainerID = pauseInpects[0].ID
-
 		info, err := p.CtrService.GetContainerInfo(pod.Spec.PauseContainerID)
 
 		if err == nil {
@@ -529,7 +543,7 @@ func (p *PodService) AutoRestartPod(
 		case "Never":
 			// TODO: Stop if created?
 			if status == ctr_runtime.ContainerStateCreated {
-				_ = p.CtrService.StopContainer(inspect.ID)
+				_ = p.CtrService.StartContainer(inspect.ID)
 			}
 		}
 	}
