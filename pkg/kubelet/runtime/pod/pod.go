@@ -483,9 +483,10 @@ func (p *PodService) AutoRestartPod(
 	}
 
 	// 若Pod中存在尚未创建的容器，删除Pod并重新创建
-	// TODO: 其实挺难发生的
 	for ctr := range pod.Spec.Containers {
-		if pod.Spec.Containers[ctr].ID == "" {
+		// 未创建或者被暴力删除
+		_, err := p.CtrService.GetContainerInfo(pod.Spec.Containers[ctr].ID)
+		if err != nil {
 			_ = p.DeletePod(pod)
 			_ = p.CreatePod(pod)
 			_ = p.StartPod(pod)
