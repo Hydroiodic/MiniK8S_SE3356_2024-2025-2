@@ -47,7 +47,7 @@ func (p *PodService) CreatePod(pod *object.Pod) error {
 			nameHostPathMap[volume.Name] = hostPath
 		}
 		// TODO: 处理 PVC
-	}
+	} //nolint
 
 	// Create Pod Containers
 	pauseNsArg := "container:" + pauseId
