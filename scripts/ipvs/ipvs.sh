@@ -3,7 +3,7 @@
 # 这个脚本记录一些杂项，在安装完成所有依赖后执行它
 # 这个脚本启动的内核模块，但关机后可能又丢掉了，待修改
 # 安装ipset工具，用于管理IP集合
-if ! command -v ipset &> /dev/null; then
+if ! command -v ipset &>/dev/null; then
     echo "ipset未安装，正在安装..."
     sudo apt-get update
     sudo apt-get install -y ipset
@@ -11,13 +11,14 @@ else
     echo "ipset已安装"
 fi
 # 安装ipvsadm工具，用于管理IP虚拟服务器
-if ! command -v ipvsadm &> /dev/null; then
+if ! command -v ipvsadm &>/dev/null; then
     echo "ipvsadm未安装，正在安装..."
     sudo apt-get update
     sudo apt-get install -y ipvsadm
 else
     echo "ipvsadm已安装"
 fi
+
 # 开启Linux的IP转发功能。当IP转发被开启时，Linux系统可以将收到的数据包转发给其他网络设备，从而充当路由器的角色
 sudo sysctl --write net.ipv4.ip_forward=1
 # 启动内核模块br_netfilter，这个模块允许iptables的规则应用到桥接的数据包上，从而实现对桥接网络的过滤和控制。
@@ -28,7 +29,6 @@ sudo modprobe -- ip_vs_rr
 sudo modprobe -- ip_vs_wrr
 sudo modprobe -- ip_vs_sh
 sudo modprobe -- nf_conntrack
-
 
 # 让桥接设备在进行二层转发时也去调用iptables配置的三层规则。这样可以解决在同一节点上，一个Pod去访问不包含该Pod的Service的问题。
 sudo sysctl --write net.bridge.bridge-nf-call-iptables=1

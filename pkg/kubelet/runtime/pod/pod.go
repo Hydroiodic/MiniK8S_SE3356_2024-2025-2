@@ -29,7 +29,6 @@ func (p *PodService) CreatePod(pod *object.Pod) error {
 	pauseId, err := CreatePauseContainer(p.CtrService, pod)
 	if err != nil {
 		log.Printf("Failed to create pause container: %v", err)
-		// 如果创建 Pause Container 失败，后面创建也没有意义了，返回错误！
 		return err
 	}
 
@@ -99,7 +98,8 @@ func (p *PodService) CreatePod(pod *object.Pod) error {
 			Labels: utils.NewLabelForOtherContainer(
 				pod.Metadata.Namespace,
 				pod.Metadata.Name,
-				pod.Metadata.Labels),
+				pod.Metadata.Labels,
+			),
 		}
 
 		// 普通容器在创建时会通过 Docker 的
@@ -155,6 +155,11 @@ func (p *PodService) StartPod(pod *object.Pod) error {
 	info, err := p.CtrService.GetContainerInfo(pod.Spec.PauseContainerID)
 	if err != nil {
 		log.Printf("Failed to get pause container info: %v", err)
+	}
+
+	pauseIP := info.NetworkSettings.Networks["flannel"].IPAddress
+	if pauseIP == "" {
+		log.Printf("Fuck No IP")
 	}
 
 	// 获取 Pause Container 的 IP 地址
@@ -339,7 +344,7 @@ func (p *PodService) GetPodStatus(pod *object.Pod) (string, error) {
 		}
 	}
 
-	// 如果所有容器都是 Created 状态，则 Pod 处于 Pending 状态
+	// 如果所有容器都是 Created 状态，则 Pod 处于 Creating 状态
 	if allCreated {
 		return object.PodCreating, nil
 	}
@@ -353,7 +358,7 @@ func (p *PodService) GetPodStatus(pod *object.Pod) (string, error) {
 }
 
 // 获取当前节点正在运行的 Pod （包含一些状态字段）
-// 可以在Kubelet重启时调用？
+// 可以在Kubelet重启时调用
 func (p *PodService) ListPods() ([]object.Pod, error) {
 	// 1. 获取所有 Pause 容器，搞清楚有多少个 Pod
 	pauseCtrs, err := p.CtrService.GetContainersByLabels(
@@ -377,6 +382,11 @@ func (p *PodService) ListPods() ([]object.Pod, error) {
 		podNs, podName := utils.ParsePodNsNameLabel(
 			pauseCtr.Labels[utils.PodNsNameLabelKey],
 		)
+
+		// 获取 Pod 的 IP 地址
+		podIp := pauseCtr.IP
+
+		log.Printf("Pod IP: %s", podIp)
 
 		// 找到这个Pod的所有容器（Pause以外）
 		ctrConfigs, err := p.CtrService.GetContainersByLabels(
@@ -408,6 +418,7 @@ func (p *PodService) ListPods() ([]object.Pod, error) {
 			},
 			Status: object.PodStatus{
 				StartTime: time.Now(), // 这个东西是应该Kubelet一直存着的？？
+				IP:        podIp,
 			},
 		}
 
@@ -451,6 +462,18 @@ func (p *PodService) AutoRestartPod(
 			_ = p.DeletePod(pod)
 			_ = p.CreatePod(pod)
 		}
+	}
+
+	// 如果PodIP为空，尝试重新获取
+	if pod.Status.IP == "" {
+		info, err := p.CtrService.GetContainerInfo(pod.Spec.PauseContainerID)
+
+		if err == nil {
+			pod.Status.IP = info.NetworkSettings.Networks["flannel"].IPAddress
+			log.Printf("Pod IP: %s", pod.Status.IP)
+		}
+
+		log.Printf("Failed to get pause container info: %v", err)
 	}
 
 	// TODO: 处理重启策略

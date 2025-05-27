@@ -862,7 +862,7 @@ func (c *APIClient) AddDNS(dns *object.DNS) error {
 	return nil
 }
 
-func (c *APIClient) DeleteSingleDNS(dns *object.DNS) error {
+func (c *APIClient) DeleteDNS(dns *object.DNS) error {
 	// Construct the URL for the DNS deletion endpoint.
 	url := c.BaseURL + DNSDeleteURL
 
@@ -902,22 +902,43 @@ func (c *APIClient) DeleteSingleDNS(dns *object.DNS) error {
 	return nil
 }
 
-func (c *APIClient) GetDNSResolve() ([]object.DNSResolveInfo, error) {
-	// Get DNSResolveInfo from the API server.
-	var dns []object.DNSResolveInfo
-	err := c.getAndUnmarshalList(DNSGetResolveURL, &dns)
+func (c *APIClient) GetForwardingInfo() (*object.ForwardingInfo, error) {
+	// Construct the URL for the DNS resolve information endpoint.
+	url := c.BaseURL + DNSGetForwardingInfoURL
 
-	// If the request fails, return an empty slice and the error.
+	// Create a new HTTP GET request.
+	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		return []object.DNSResolveInfo{}, err
+		return nil, err
 	}
 
-	// If any of the domain does not end with ".", add it.
-	for i := range dns {
-		if dns[i].Host[len(dns[i].Host)-1] != '.' {
-			dns[i].Host += "."
+	// Send the request and return the response.
+	resp, err := c.Client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	// Ensure the response body is closed after use.
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			// Log the error if closing the response body fails.
+			log.Println("Failed to close response body: ", cerr)
 		}
+	}()
+
+	// Check if the response status code is OK (200).
+	if resp.StatusCode != http.StatusOK {
+		// If not, read the response body and return an error.
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("%s", string(bodyBytes))
 	}
 
-	return dns, nil
+	// Parse the response body as a ForwardingInfo object.
+	var info object.ForwardingInfo
+	if err := json.NewDecoder(resp.Body).Decode(&info); err != nil {
+		// If parsing fails, return an error.
+		return nil, err
+	}
+
+	return &info, nil
 }

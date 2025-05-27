@@ -11,8 +11,7 @@ spec:
       name: nginx
       image: nginx:latest
       command: ["nginx", "-g", "daemon off;"]
-      ports:
-        - containerPort: 80
+      ports: [80]
       resources:
         cpu: "1"
         memory: "128Mi"

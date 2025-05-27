@@ -17,7 +17,6 @@ func NewKubelet(config object.KubeletConfig) *object.Kubelet {
 		Config:         config,
 		StartTime:      time.Now(),
 		LastUpdateTime: time.Now(),
-		// CachedPods:     []object.Pod{},
 	}
 }
 
@@ -35,17 +34,11 @@ func NewKubeletService(
 	apiClient *apiserver.APIClient,
 ) *KubeletService {
 	kubelet := NewKubelet(config)
+
 	podController := NewPodController(
 		kubelet,
 		podService,
 		apiClient,
-		30*time.Second,
-	)
-	statusController := NewPodStatusController(
-		kubelet,
-		podService,
-		apiClient,
-		10*time.Second,
 	)
 
 	// TODO: 改变Client
@@ -53,7 +46,14 @@ func NewKubeletService(
 		kubelet,
 		ipvs_ops.NewIpvsOps(ipvs_ops.CLUSTER_CIDR_DEFAULT),
 		apiClient,
-		10*time.Second,
+	)
+
+	// Routine: heartbeat every 10 seconds to API Server
+	statusController := NewPodStatusController(
+		kubelet,
+		podService,
+		apiClient,
+		5*time.Second,
 	)
 
 	return &KubeletService{
@@ -71,15 +71,15 @@ func (s *KubeletService) Run(stopCh <-chan struct{}) {
 		log.Printf("Failed to register kubelet: %v", err)
 	}
 
-	// 先恢复本地状态
+	// Only once: restore local pods status.
 	localPods, err := s.podController.podService.ListPods()
 	if err != nil {
 		log.Printf("Failed to fetch pods: %v", err)
 	}
 
 	// 清理 KubeProxy 本地状态
-	s.serviceController.IpvsOps.Init()
 	s.serviceController.IpvsOps.Clear()
+	s.serviceController.IpvsOps.Init()
 
 	log.Printf("Restoring local pods: %v", utils.ExtractPodNames(localPods))
 	s.kubelet.Mu.Lock()
@@ -88,5 +88,6 @@ func (s *KubeletService) Run(stopCh <-chan struct{}) {
 
 	go s.podController.Run(stopCh)
 	go s.statusController.Run(stopCh)
+	go s.serviceController.Run(stopCh)
 	<-stopCh
 }

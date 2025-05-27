@@ -36,8 +36,10 @@ type Container struct {
 	Resources ResourceLimits `yaml:"resources"` // 资源限制
 
 	Labels       map[string]string `yaml:"labels"`       // 容器标签
-	ExposedPorts nat.PortSet       `yaml:"-"`            // FIXME：这是干什么的？
 	VolumeMounts []VolumeMount     `yaml:"volumeMounts"` // 挂载的卷
+	IP           string            `yaml:"ip"`           // TODO: 容器 IP 地址，能删除吗？Pod本机重启恢复时使用
+
+	ExposedPorts nat.PortSet `yaml:"-"` // FIXME：这是干什么的？
 }
 
 type ResourceLimits struct {

@@ -49,10 +49,10 @@ func (c *PodStatusController) Run(stopCh <-chan struct{}) {
 }
 
 func (c *PodStatusController) updatePodStatus() {
-	// Get a copy of the pods to avoid holding the lock for too long.
 	c.kubelet.Mu.Lock()
 	defer c.kubelet.Mu.Unlock()
 
+	// Get a copy of the pods to avoid holding the lock for too long.
 	pods := c.kubelet.Pods
 
 	log.Printf("Updating pod status for pods: %v", utils.ExtractPodNames(pods))
@@ -92,18 +92,7 @@ func (c *PodStatusController) updatePodStatus() {
 		c.kubelet.Pods[i].Status.Phase = status
 	}
 
-	// TODO：上报状态到 API Server
-	// 上报 kubelet 状态
-	kubeletCopy := &object.Kubelet{
-		Config:         c.kubelet.Config,
-		Pods:           c.kubelet.Pods,
-		StartTime:      c.kubelet.StartTime,
-		LastUpdateTime: time.Now(),
-		// Copy other fields as needed, excluding the Mu
-	}
-
-	// TODO: 发送心跳可行吗
-	if err := c.apiClient.HeartbeatKubelet(kubeletCopy); err != nil {
+	if err := c.apiClient.HeartbeatKubelet(c.kubelet); err != nil {
 		log.Printf("Failed to update node status to API Server: %v", err)
 	}
 }

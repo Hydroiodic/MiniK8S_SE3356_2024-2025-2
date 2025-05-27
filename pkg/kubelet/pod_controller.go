@@ -19,7 +19,6 @@ type PodController struct {
 	kubelet    *object.Kubelet
 	podService pod.PodServiceInterface
 	apiClient  *apiserver.APIClient
-	syncPeriod time.Duration
 }
 
 // PodController 是一个控制器，用于管理 Pod 的生命周期
@@ -30,13 +29,11 @@ func NewPodController(
 	kubelet *object.Kubelet,
 	podService pod.PodServiceInterface,
 	apiClient *apiserver.APIClient,
-	syncPeriod time.Duration,
 ) *PodController {
 	return &PodController{
 		kubelet:    kubelet,
 		podService: podService,
 		apiClient:  apiClient,
-		syncPeriod: syncPeriod,
 	}
 }
 
@@ -70,7 +67,6 @@ func (c *PodController) CreatePodHandler(msg map[string]any) error {
 	// 将 Pod 对象添加到 Kubelet 的 Pod 列表中
 	// 设置 Pod 的状态为 PodCreating
 	pod.Status.Phase = object.PodCreating // NOTE: Pod Phase
-	pod.Status.StartTime = time.Now()
 	// 添加到 Kubelet 的 Pod 列表中
 	c.kubelet.Pods = append(c.kubelet.Pods, pod)
 
@@ -89,14 +85,13 @@ func (c *PodController) CreatePodHandler(msg map[string]any) error {
 
 	log.Printf("Pod started: %s", pod.Metadata.Name)
 
-	// 更改 Pod 的状态为 Running
-	pod.Status.Phase = object.PodRunning
-	pod.Status.StartTime = time.Now()
-	// 找到 Pod 并执行修改
 	for i, p := range c.kubelet.Pods {
 		if p.Metadata.Name == pod.Metadata.Name &&
 			p.Metadata.Namespace == pod.Metadata.Namespace {
-			c.kubelet.Pods[i] = pod
+			// Update the status of the Pod.
+			c.kubelet.Pods[i].Status.Phase = object.PodRunning
+			c.kubelet.Pods[i].Status.StartTime = time.Now()
+
 			break
 		}
 	}
@@ -156,11 +151,10 @@ func (c *PodController) DeletePodHandler(msg map[string]interface{}) error {
 		return err
 	}
 
-	// 从 Kubelet 的 Pod 列表中删除
 	for i, p := range c.kubelet.Pods {
 		if p.Metadata.Name == pod.Metadata.Name &&
 			p.Metadata.Namespace == pod.Metadata.Namespace {
-			// 删除 Pod
+			// Delete the Pod.
 			c.kubelet.Pods = slices.Delete(
 				c.kubelet.Pods, i,
 				i+1,

@@ -3,75 +3,13 @@ package interfaces
 import (
 	"context"
 	"log"
-	"math/rand"
 	"net/http"
 	"path"
-	"strconv"
 
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/etcd"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
 	"github.com/gin-gonic/gin"
 )
-
-func randomGenClusterIP() string {
-	cip := "222.111." + strconv.Itoa(
-		rand.Intn(256),
-	) + "." + strconv.Itoa(
-		rand.Intn(256),
-	)
-
-	return cip
-}
-
-func genClusterIP() (string, error) {
-	// Create a new context for the request.
-	ctx := context.Background()
-
-	// Create a new ClusterIP
-	clusterIPStore, err := object.NewClusterIPStore([]string{})
-	if err != nil {
-		return "", err
-	}
-
-	// Ensure the ClusterIPStore is closed after use.
-	defer func() {
-		if closeErr := clusterIPStore.Close(); closeErr != nil {
-			log.Printf("Failed to close cluster IP store: %v", closeErr)
-		}
-	}()
-
-	var clusterIP string
-	// Repeatedly generate a random ClusterIP until it is not already in use.
-	for {
-		// Generate a random ClusterIP.
-		clusterIP = randomGenClusterIP()
-
-		// Check if the ClusterIP is already in use.
-		res, err := clusterIPStore.GetClusterIP(ctx, clusterIP)
-		if err != nil {
-			log.Printf("Failed to get cluster IP: %v", err)
-			continue
-		}
-
-		// If the ClusterIP is already in use, continue to the next iteration.
-		if res != "" {
-			log.Printf("Cluster IP %s is already in use, continue", clusterIP)
-			continue
-		}
-
-		// Store the generated ClusterIP in etcd.
-		err = clusterIPStore.SetClusterIP(ctx, clusterIP)
-		if err != nil {
-			log.Printf("Failed to set cluster IP: %v", err)
-			continue
-		}
-
-		// Jump out of the loop if no error occurred.
-		break
-	}
-
-	return clusterIP, nil
-}
 
 func removeClusterIP(clusterIP string) error {
 	// Create a new context for the request.
@@ -149,8 +87,19 @@ func CreateService(c *gin.Context) {
 		return
 	}
 
+	// Check if the labels of the service are valid.
+	// NOTE: It should not contain `internal` because it is reserved.
+	if _, ok := svc.Metadata.Labels["internal"]; ok {
+		c.JSON(
+			http.StatusBadRequest,
+			"Invalid label: 'internal' is reserved and cannot be used.",
+		)
+
+		return
+	}
+
 	// Generate a new ClusterIP for the service.
-	clusterIP, err := genClusterIP()
+	clusterIP, err := object.GenClusterIP()
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,

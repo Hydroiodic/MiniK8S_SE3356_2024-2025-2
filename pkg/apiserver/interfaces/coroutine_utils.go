@@ -36,9 +36,9 @@ func CheckKubeletTimeout() error {
 		return err
 	}
 
-	// NOTE: In `kubelet/runtime/status_controller.go`, the interval of heartbeat is 10s.
+	// NOTE: In `kubelet/runtime/status_controller.go`, the interval of heartbeat is 5s.
 	//       Here we use three times of that as the timeout.
-	timeout := 3 * 10 * time.Second
+	timeout := 5 * 5 * time.Second
 
 	// We use an array to store kubelets that have timed out.
 	timeout_kubelets := make([]*object.Kubelet, 0)
@@ -93,8 +93,8 @@ func CheckKubeletTimeout() error {
  *	   If the service is ready to be applied to the cluster,
  *     move it from pending to valid.
  */
+//  Deprecated: This function should not be used now.
 func SyncEtcd() error {
-	// NOTE: Not used now.
 	return nil
 }
 
@@ -233,6 +233,7 @@ func SyncEtcdPods() error {
 	return nil
 }
 
+// `SyncEtcdServices` will update the service endpoints by checking the pods.
 func SyncEtcdServices() error {
 	// Create a context used for the etcd connection.
 	ctx := context.Background()
@@ -266,7 +267,7 @@ func SyncEtcdServices() error {
 	}()
 
 	// Get all ready services objects from etcd.
-	services, err := st.ListServices(ctx, true)
+	services, err := st.ListServicesWithoutStatus(ctx)
 	if err != nil {
 		// Failed to list services, report error.
 		return err
@@ -284,11 +285,24 @@ func SyncEtcdServices() error {
 
 	// Iterate through all services and find their endpoints.
 	for _, service := range services {
+		// NOTE: Because DNSService and ProxyService are internal services,
+		// 	     there're no pods related, so we should skip them.
+		// Check if the labels of the service contains `internal`.
+		if _, ok := service.Metadata.Labels[object.SERVICE_INTERNEL_LABEL]; ok {
+			// This is an internal service, skip it.
+			continue
+		}
+
 		// Make a list to save valid pods for this service.
 		endpoints := make([]object.Endpoint, 0)
 
 		// Iterate through all pods and find their endpoints.
 		for _, pod := range pods {
+			// Only Running pods are considered.
+			if pod.Status.Phase != object.PodRunning {
+				continue
+			}
+
 			// Get all exposed ports of the pod.
 			for _, container := range pod.Spec.Containers {
 				for _, port := range container.Ports {
@@ -317,6 +331,14 @@ func SyncEtcdServices() error {
 				}
 			}
 		}
+	}
+
+	// If there's any services that need to be updated,
+	// DNS and proxy will be updated later.
+	if len(servicesToUpdate) != 0 {
+		forwardingInfoMutex.Lock()
+		forwardingInfoNeedUpdate = true
+		forwardingInfoMutex.Unlock()
 	}
 
 	// Update the services.

@@ -23,7 +23,7 @@ var topCmd = &cobra.Command{
 		}
 
 		switch strings.ToLower(resourceType) {
-		case "pods", PodResource:
+		case "pods":
 			if resourceName != "" {
 				getPodMetrics(resourceName)
 			} else {
