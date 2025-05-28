@@ -22,8 +22,8 @@ func NewPodService(ctrService *ctr_runtime.ContainerService) *PodService {
 }
 
 /**
- * NOTE: Pod内的数据结构会被修改
- * Container的ID会在创建后被赋值
+ * NOTE: Pod 内的数据结构会被修改
+ * Container 的ID会在创建后被赋值
  */
 func (p *PodService) CreatePod(pod *object.Pod) error {
 	// Create Pause Container
@@ -36,7 +36,7 @@ func (p *PodService) CreatePod(pod *object.Pod) error {
 	// 将 Pause Container 的 ID 储存到 Pod
 	(*pod).Spec.PauseContainerID = pauseId
 
-	// TODO: 获取Pod里面Volume的信息
+	// TODO: 获取 Pod 里面 Volume 的信息
 	// 处理 HostPath Volume
 	nameHostPathMap := make(map[string]string)
 
@@ -84,6 +84,31 @@ func (p *PodService) CreatePod(pod *object.Pod) error {
 			binds = append(binds, hostPath+":"+containerPath)
 		}
 
+		// Before checking security contexts, we should pull the image.
+		err = p.CtrService.ImgService.PullImage(ctrConfig.Image)
+		if err != nil {
+			// TODO: use `continue` instead of `return`?
+			return fmt.Errorf(
+				"failed to pull image %s: %v",
+				ctrConfig.Image,
+				err,
+			)
+		}
+
+		// Security Contexts: combine Pod and Container.
+		var combinedSecurityContexts *object.SecurityContext
+
+		// Choose the processing method based on the SupplementalGroupsPolicy.
+		combinedSecurityContexts, err = processSecurityContexts(
+			pod.Spec.SecurityContexts,
+			ctrConfig.SecurityContexts,
+			ctrConfig.Image,
+		)
+		if err != nil {
+			log.Printf("Failed to process security contexts: %v", err)
+			return err
+		}
+
 		// 无需端口映射
 		ctr := object.Container{
 			Name: utils.FormatContainerName(
@@ -101,10 +126,7 @@ func (p *PodService) CreatePod(pod *object.Pod) error {
 				pod.Metadata.Name,
 				pod.Metadata.Labels,
 			),
-			SecurityContexts: combineSecurityContexts(
-				pod.Spec.SecurityContexts,
-				ctrConfig.SecurityContexts,
-			),
+			SecurityContexts: *combinedSecurityContexts,
 		}
 
 		// 普通容器在创建时会通过 Docker 的
@@ -115,10 +137,11 @@ func (p *PodService) CreatePod(pod *object.Pod) error {
 			IpcMode:     container.IpcMode(pauseNsArg),
 			PidMode:     container.PidMode(pauseNsArg),
 			// 处理 VolumeMounts
-			Binds: binds,
+			Binds:    binds,
+			GroupAdd: combinedSecurityContexts.SupplementalGroups,
 		}
 
-		// 创建容器
+		// Create the container.
 		ctrId, err := p.CtrService.CreateContainer(ctr, hostConfig)
 		if err != nil {
 			log.Printf("Failed to create container %s: %v", ctr.Name, err)

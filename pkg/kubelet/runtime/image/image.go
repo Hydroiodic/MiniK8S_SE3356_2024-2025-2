@@ -39,26 +39,10 @@ func NewImageService() (*ImageService, error) {
 // TODO: What if Image Already Exists?
 // BUG: 镜像名称似乎不支持域名
 func (is *ImageService) PullImage(imageName string) error {
+	// Create a context for the image pull operation.
 	ctx := context.Background()
-	out, err := is.Cli.ImagePull(ctx, imageName, image.PullOptions{})
 
-	if err != nil {
-		return fmt.Errorf("无法拉取镜像 %s: %v", imageName, err)
-	}
-
-	defer func() {
-		if err := out.Close(); err != nil {
-			log.Printf("Failed to close image pull output: %v", err)
-		}
-	}()
-
-	_, err = io.Copy(os.Stderr, out)
-
-	if err != nil {
-		return fmt.Errorf("读取镜像 %s 拉取输出失败: %v", imageName, err)
-	}
-
-	// 验证镜像存在
+	// Check if the image already exists in the local Docker registry.
 	images, err := is.Cli.ImageList(ctx, image.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("列出镜像失败: %v", err)
@@ -73,14 +57,34 @@ func (is *ImageService) PullImage(imageName string) error {
 		imageName = fmt.Sprintf("%s/%s:%s", repo, img, version)
 	}
 
+	// If the image already exists, we can skip pulling it.
 	for _, img := range images {
 		if slices.Contains(img.RepoTags, imageName) {
-			log.Printf("镜像 %s 拉取成功", imageName)
+			log.Printf("镜像 %s 已经存在，跳过拉取", imageName)
 			return nil
 		}
 	}
 
-	return fmt.Errorf("镜像 %s 拉取后未找到", imageName)
+	// Pull the image from the Docker registry.
+	out, err := is.Cli.ImagePull(ctx, imageName, image.PullOptions{})
+	if err != nil {
+		return fmt.Errorf("无法拉取镜像 %s: %v", imageName, err)
+	}
+
+	// Ensure the output stream is closed after reading.
+	defer func() {
+		if err := out.Close(); err != nil {
+			log.Printf("Failed to close image pull output: %v", err)
+		}
+	}()
+
+	// Read the output stream to get the pull progress.
+	_, err = io.Copy(os.Stderr, out)
+	if err != nil {
+		return fmt.Errorf("读取镜像 %s 拉取输出失败: %v", imageName, err)
+	}
+
+	return nil
 }
 
 // FIXME: Image Chain Dependency

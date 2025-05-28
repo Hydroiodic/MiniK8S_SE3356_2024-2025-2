@@ -67,10 +67,11 @@ type PodMetrics struct {
 }
 
 type SecurityContext struct {
-	RunAsUser          string   `yaml:"runAsUser,omitempty"`          // 运行容器的用户 ID
-	RunAsGroup         string   `yaml:"runAsGroup,omitempty"`         // 运行容器的组 ID
-	FsGroup            string   `yaml:"fsGroup,omitempty"`            // 文件系统组 ID
-	SupplementalGroups []string `yaml:"supplementalGroups,omitempty"` // 补充组列表
+	RunAsUser                string   `yaml:"runAsUser,omitempty"`                // 运行容器的用户 ID
+	RunAsGroup               string   `yaml:"runAsGroup,omitempty"`               // 运行容器的组 ID
+	FsGroup                  string   `yaml:"fsGroup,omitempty"`                  // 文件系统组 ID
+	SupplementalGroups       []string `yaml:"supplementalGroups,omitempty"`       // 补充组列表
+	SupplementalGroupsPolicy string   `yaml:"supplementalGroupsPolicy,omitempty"` // 补充组策略
 }
 
 const (
@@ -80,4 +81,9 @@ const (
 	PodDeleting = "Deleting"
 	PodDeleted  = "Deleted"
 	PodFailed   = "Failed"
+)
+
+const (
+	SupplementalGroupsMerge  = "Merge"  // 合并模式
+	SupplementalGroupsStrict = "Strict" // 严格模式
 )

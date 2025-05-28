@@ -11,16 +11,15 @@ spec:
     runAsGroup: 1000
     fsGroup: 2000
     supplementalGroups: [4000]
+    supplementalGroupsPolicy: Strict
   containers:
-    - id: ubuntu-root-container
-      name: ubuntu-root
+    - id: ubuntu-container-merge
+      name: ubuntu-merge
       image: ubuntu:latest
       command: ["sleep", "infinity"]
       securityContext:
-        runAsUser: root
-        runAsGroup: root
-        fsGroup: 2000
-    - id: ubuntu-default-container
-      name: ubuntu-default
+        supplementalGroupsPolicy: Merge
+    - id: ubuntu-container-strict
+      name: ubuntu-strict
       image: ubuntu:latest
       command: ["sleep", "infinity"]
