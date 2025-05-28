@@ -29,8 +29,8 @@ EOF
     systemctl restart etcd
 
     # 存放网络配置，flanneld运行后读取
-    etcdctl put /coreos.com/network/config '{"Network": "10.5.0.0/16", "SubnetLen": 24, "SubnetMin": "10.5.11.0","SubnetMax": "10.5.19.0", "Backend": {"Type": "vxlan"}}'
-
+    # 改为IP-IP模式
+    etcdctl put /coreos.com/network/config '{"Network": "101.6.0.0/16", "SubnetLen": 24, "SubnetMin": "101.6.11.0","SubnetMax": "101.6.19.0", "Backend": {"Type": "ipip"}}'
     # 下载flannel安装包，解压并复制到 /usr/local/bin/目录下（这个目录已经在PATH里，方便在任何地方启动可执行文件），添加脚本执行权限
     wget https://github.com/flannel-io/flannel/releases/download/v0.26.7/flannel-v0.26.7-linux-amd64.tar.gz
     mkdir ./flannel_install
@@ -92,6 +92,10 @@ EOF
 
     sudo systemctl daemon-reload
     sudo systemctl restart docker
+
+    # 添加iptables规则，允许flannel网络的流量转发
+    # 贼逆天，非得要不可。不然跨容器通信就不通！
+    sudo iptables -I FORWARD -j FLANNEL-FWD
 
     ip addr show mini-cni0 # 查看flannel网络的网桥设备
 fi
