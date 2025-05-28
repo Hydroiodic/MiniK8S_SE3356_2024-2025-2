@@ -2,6 +2,7 @@ package pod
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -43,24 +44,22 @@ func createDirIfNotExist(dirPath string) error {
 	_, err := os.Stat(dirPath)
 	if err == nil {
 		// Directory exists, return nil.
-		fmt.Printf("Directory %s already exists.\n", dirPath)
+		log.Printf("Directory %s already exists.\n", dirPath)
 		return nil
 	}
 
 	if !os.IsNotExist(err) {
 		// An error occurred other than "not exists".
-		fmt.Printf("Failed to stat directory %s: %v\n", dirPath, err)
+		log.Printf("Failed to stat directory %s: %v\n", dirPath, err)
 		return err
 	}
 
 	// Create the directory.
 	err = os.MkdirAll(dirPath, 0755)
 	if err != nil {
-		fmt.Printf("Failed to create directory %s: %v\n", dirPath, err)
+		log.Printf("Failed to create directory %s: %v\n", dirPath, err)
 		return err
 	}
-
-	fmt.Printf("Directory %s created successfully.\n", dirPath)
 
 	return nil
 }

@@ -181,13 +181,13 @@ func processSecurityContexts(
 	imgRef string,
 ) (*object.SecurityContext, error) {
 	// If the `SupplementalGroupsPolicy` is not set, we should use the default one.
-	supplymentalGroupsPolicy := containerSecurityContext.SupplementalGroupsPolicy
-	if supplymentalGroupsPolicy == "" {
-		supplymentalGroupsPolicy = podSecurityContext.SupplementalGroupsPolicy
+	supplementalGroupsPolicy := containerSecurityContext.SupplementalGroupsPolicy
+	if supplementalGroupsPolicy == "" {
+		supplementalGroupsPolicy = podSecurityContext.SupplementalGroupsPolicy
 	}
 
 	// Process the security contexts based on the policy.
-	switch supplymentalGroupsPolicy {
+	switch supplementalGroupsPolicy {
 	case object.SupplementalGroupsStrict:
 		return processSecurityContextsStrict(
 			podSecurityContext,
