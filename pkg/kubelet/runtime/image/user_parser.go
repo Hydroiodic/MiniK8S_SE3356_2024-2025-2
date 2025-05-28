@@ -1,6 +1,9 @@
 package image
 
-import "strings"
+import (
+	"slices"
+	"strings"
+)
 
 // `GetCurrentUserGroup` retrieves the GID of the user specified by
 // `usernameOrID` from the `/etc/passwd` file in the specified image.
@@ -94,12 +97,10 @@ func GetCurrentUserSupplymentalGroups(
 		gid := parts[2]                       // GID is the third field.
 		users := strings.Split(parts[3], ",") // Users are in the fourth field.
 
-		for _, user := range users {
-			if user == username {
-				// GID instead of Group Name is ok.
-				groups = append(groups, gid)
-				break // No need to check other users in this group.
-			}
+		// Check if the username is in the list of users.
+		if slices.Contains(users, username) {
+			// GID instead of Group Name is ok.
+			groups = append(groups, gid)
 		}
 	}
 

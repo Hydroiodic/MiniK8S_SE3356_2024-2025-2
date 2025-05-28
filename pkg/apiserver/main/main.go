@@ -45,10 +45,6 @@ func declareGinServer() *gin.Engine {
 	r.POST(apiserver.ServiceDeleteURL, interfaces.DeleteService)
 	r.GET(apiserver.ServiceGetURL, interfaces.GetAllService)
 
-	// r.POST("/createCRFromFile", interfaces.CreateCR)
-	// r.POST("/deleteCRFromFile", interfaces.DeleteCR)
-	// r.POST("/getOneCR", interfaces.GetOneCR)
-
 	// r.POST("/createFunctionFromFile", interfaces.CreateFunction)
 	// r.POST("/deleteFunctionFromFile", interfaces.DeleteFunction)
 
