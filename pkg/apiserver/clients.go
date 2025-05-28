@@ -146,7 +146,9 @@ func (c *APIClient) GetPodByName(
 		}
 	}
 
-	return object.Pod{}, fmt.Errorf("not pod named" + podName + "found")
+	return object.Pod{}, fmt.Errorf(
+		"pod %s not found in namespace %s", podName, namespace,
+	)
 }
 
 func (c *APIClient) GeHpayName(
