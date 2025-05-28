@@ -1,6 +1,7 @@
 package pod
 
 import (
+	"fmt"
 	"log"
 	"time"
 
@@ -111,6 +112,10 @@ func (p *PodService) CreatePod(pod *object.Pod) error {
 				pod.Metadata.Namespace,
 				pod.Metadata.Name,
 				pod.Metadata.Labels,
+			),
+			SecurityContexts: combineSecurityContexts(
+				pod.Spec.SecurityContexts,
+				ctrConfig.SecurityContexts,
 			),
 		}
 
@@ -433,9 +438,36 @@ func (p *PodService) ListPods() ([]object.Pod, error) {
 	return pods, nil
 }
 
-func (p *PodService) AutoRestartPod(
-	pod *object.Pod,
-) error {
+func (p *PodService) AutoRestartPod(pod *object.Pod) error {
+	// 更新 Pod 的 Pause Container ID
+	pauseLabels := utils.NewLabelForPauseContainer(
+		pod.Metadata.Namespace,
+		pod.Metadata.Name,
+		map[string]string{},
+	)
+
+	pauseInpects, err := p.CtrService.GetContainerInspectsByLabels(
+		pauseLabels,
+	)
+	if err != nil {
+		log.Printf("Failed to get pause container inspect: %v", err)
+	}
+
+	if len(pauseInpects) == 0 {
+		log.Printf("No pause container found for pod %s", pod.Metadata.Name)
+		_ = p.DeletePod(pod)
+		_ = p.CreatePod(pod)
+		_ = p.StartPod(pod)
+
+		return fmt.Errorf(
+			"no pause container found for pod %s, try restarting",
+			pod.Metadata.Name,
+		)
+	}
+
+	// 获取 Pause Container 的 ID
+	pod.Spec.PauseContainerID = pauseInpects[0].ID
+
 	// 构建 Pod 内容器的标签
 	ctrLabels := utils.NewLabelForOtherContainer(
 		pod.Metadata.Namespace,
@@ -456,16 +488,18 @@ func (p *PodService) AutoRestartPod(
 	}
 
 	// 若Pod中存在尚未创建的容器，删除Pod并重新创建
-	// TODO: 其实挺难发生的
 	for ctr := range pod.Spec.Containers {
-		if pod.Spec.Containers[ctr].ID == "" {
-			log.Printf(
-				"Container %s is not created yet",
-				pod.Spec.Containers[ctr].Name,
-			)
-
+		// 未创建或者被暴力删除
+		_, err := p.CtrService.GetContainerInfo(pod.Spec.Containers[ctr].ID)
+		if err != nil {
 			_ = p.DeletePod(pod)
 			_ = p.CreatePod(pod)
+			_ = p.StartPod(pod)
+
+			return fmt.Errorf(
+				"container %s is not created yet, try restarting",
+				pod.Spec.Containers[ctr].Name,
+			)
 		}
 	}
 
@@ -476,9 +510,9 @@ func (p *PodService) AutoRestartPod(
 		if err == nil {
 			pod.Status.IP = info.NetworkSettings.Networks["flannel"].IPAddress
 			log.Printf("Pod IP: %s", pod.Status.IP)
+		} else {
+			log.Printf("Failed to get pause container info: %v", err)
 		}
-
-		log.Printf("Failed to get pause container info: %v", err)
 	}
 
 	// TODO: 处理重启策略
@@ -515,7 +549,7 @@ func (p *PodService) AutoRestartPod(
 		case "Never":
 			// TODO: Stop if created?
 			if status == ctr_runtime.ContainerStateCreated {
-				_ = p.CtrService.StopContainer(inspect.ID)
+				_ = p.CtrService.StartContainer(inspect.ID)
 			}
 		}
 	}
