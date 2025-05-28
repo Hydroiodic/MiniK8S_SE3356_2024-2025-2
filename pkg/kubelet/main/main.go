@@ -15,7 +15,11 @@ import (
 )
 
 func main() {
-	// 初始化 KubeletConfig，根据需要修改
+	controlPlaneIP := os.Getenv("APISERVER_URL")
+	if controlPlaneIP == "" {
+		log.Fatalf("APISERVER_URL environment variable must be set")
+	}
+
 	config := object.KubeletConfig{
 		Name: "myNode",
 		// 其他字段...
@@ -39,13 +43,11 @@ func main() {
 
 	podService := pod.NewPodService(containerService)
 
-	// 初始化 APIServerClient 的实际实现
-	var client = apiserver.NewAPIClient("")
+	// 使用环境变量创建 APIServerClient
+	client := apiserver.NewAPIClient("http://" + controlPlaneIP + ":8080")
 
-	// 创建 KubeletService
 	kubeletService := kubelet.NewKubeletService(config, podService, client)
 
-	// 创建一个 stopCh，用于优雅关闭服务
 	stopCh := make(chan struct{})
 	go func() {
 		sigCh := make(chan os.Signal, 1)

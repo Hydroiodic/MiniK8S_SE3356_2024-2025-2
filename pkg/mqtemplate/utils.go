@@ -3,6 +3,7 @@ package mqtemplate
 import (
 	"encoding/json"
 	"fmt"
+	"os"
 
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
 )
@@ -31,7 +32,12 @@ func CreateServiceMessage(service object.Service) (string, error) {
 
 func SendMessageToQueue(queueName string, body string) error {
 	// Create connection to RabbitMQ server.
-	conn, err := Connect(RabbitMQUrl)
+	rabbitMQUrl := os.Getenv("RABBITMQ_URL")
+	if rabbitMQUrl == "" {
+		panic("RABBITMQ_URL environment variable is not set")
+	}
+
+	conn, err := Connect(rabbitMQUrl)
 	if err != nil {
 		fmt.Println("Failed to connect to RabbitMQ: ", err)
 		return err
@@ -79,7 +85,12 @@ func ConsumeMessageOnQueue(
 	handler func(msg map[string]any) error,
 ) error {
 	// Create connection to RabbitMQ server.
-	conn, err := Connect(RabbitMQUrl)
+	rabbitMQUrl := os.Getenv("RABBITMQ_URL")
+	if rabbitMQUrl == "" {
+		panic("RABBITMQ_URL environment variable is not set")
+	}
+
+	conn, err := Connect(rabbitMQUrl)
 	if err != nil {
 		fmt.Println("Failed to connect to RabbitMQ: ", err)
 		return err

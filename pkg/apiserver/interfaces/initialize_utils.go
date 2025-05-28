@@ -2,6 +2,7 @@ package interfaces
 
 import (
 	"context"
+	"os"
 
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
 )
@@ -70,6 +71,16 @@ var (
 		},
 	}
 )
+
+func GetInternalDNSService() *object.Service {
+	internalDNSService.Status.Endpoints[0].IP = os.Getenv("APISERVER_URL")
+	return internalDNSService
+}
+
+func GetInternalProxyService() *object.Service {
+	internalProxyService.Status.Endpoints[0].IP = os.Getenv("APISERVER_URL")
+	return internalProxyService
+}
 
 func InitializeInternalServices() {
 	// Create a new ServiceStore instance.
