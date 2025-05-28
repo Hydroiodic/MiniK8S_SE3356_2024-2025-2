@@ -9,6 +9,7 @@ import (
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/utils"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
 	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/mount"
 )
 
 type PodService struct {
@@ -57,33 +58,6 @@ func (p *PodService) CreatePod(pod *object.Pod) error {
 	// 容器间可以通过 localhost 通信。
 	// 容器共享进程视图和 IPC 资源。
 	for i, ctrConfig := range pod.Spec.Containers {
-		// TODO: 处理VolumeMounts
-		ctrPathHostPathMap := make(
-			map[string]string,
-			len(ctrConfig.VolumeMounts),
-		)
-
-		for _, mount := range ctrConfig.VolumeMounts {
-			if hostPath, ok := nameHostPathMap[mount.Name]; ok {
-				// 将 HostPath 的路径存储到容器的挂载路径中
-				ctrPathHostPathMap[mount.MountPath] = hostPath
-			} else {
-				// TODO: Name到HostPath的映射不存在时怎么办？
-				log.Printf(
-					"HostPath for volume %s not found in Pod %s/%s",
-					mount.Name,
-					pod.Metadata.Namespace,
-					pod.Metadata.Name,
-				)
-			}
-		}
-
-		binds := make([]string, 0)
-		for containerPath, hostPath := range ctrPathHostPathMap {
-			// 格式为 "hostPath:containerPath"
-			binds = append(binds, hostPath+":"+containerPath)
-		}
-
 		// Before checking security contexts, we should pull the image.
 		err = p.CtrService.ImgService.PullImage(ctrConfig.Image)
 		if err != nil {
@@ -109,7 +83,69 @@ func (p *PodService) CreatePod(pod *object.Pod) error {
 			return err
 		}
 
-		// 无需端口映射
+		// Handle VolumeMounts here.
+		ctrPathHostPathMap := make(
+			map[string]string,
+			len(ctrConfig.VolumeMounts),
+		)
+
+		for _, mount := range ctrConfig.VolumeMounts {
+			if hostPath, ok := nameHostPathMap[mount.Name]; ok {
+				// 将 HostPath 的路径存储到容器的挂载路径中
+				ctrPathHostPathMap[mount.MountPath] = hostPath
+			} else {
+				// TODO: Name 到 HostPath 的映射不存在时怎么办？
+				log.Printf(
+					"HostPath for volume %s not found in Pod %s/%s",
+					mount.Name,
+					pod.Metadata.Namespace,
+					pod.Metadata.Name,
+				)
+			}
+		}
+
+		// Iterate over the ctrPathHostPathMap to create bind mounts.
+		for _, hostPath := range ctrPathHostPathMap {
+			// Create the directory on the host if it doesn't exist.
+			if err := createDirIfNotExist(hostPath); err != nil {
+				return fmt.Errorf(
+					"failed to create directory %s: %v", hostPath, err,
+				)
+			}
+
+			// If the Pod's SecurityContext has a fsGroup,
+			// we should change the ownership of the hostPath.
+			if combinedSecurityContexts.FsGroup == "" {
+				continue
+			}
+
+			// Setgid for the hostPath to the fsGroup.
+			err := directorySetgid(hostPath, combinedSecurityContexts.FsGroup)
+			if err != nil {
+				return fmt.Errorf(
+					"failed to setgid for directory %s: %v", hostPath, err,
+				)
+			}
+		}
+
+		// Prepare the bind mounts for the container.
+		binds := make([]mount.Mount, 0)
+		// Iterate over the container's VolumeMounts and create bind mounts.
+		for containerPath, hostPath := range ctrPathHostPathMap {
+			// Construct the bind mount for the container.
+			mountConfig := mount.Mount{
+				Type:   mount.TypeBind,
+				Source: hostPath,
+				Target: containerPath,
+			}
+
+			// TODO: If `fsGroup` is set in the Pod's SecurityContext,
+			//       change the ownership of the hostPath to the fsGroup.
+
+			binds = append(binds, mountConfig)
+		}
+
+		// No port mapping needed.
 		ctr := object.Container{
 			Name: utils.FormatContainerName(
 				pod.Metadata.Namespace,
@@ -136,9 +172,8 @@ func (p *PodService) CreatePod(pod *object.Pod) error {
 			NetworkMode: container.NetworkMode(pauseNsArg),
 			IpcMode:     container.IpcMode(pauseNsArg),
 			PidMode:     container.PidMode(pauseNsArg),
-			// 处理 VolumeMounts
-			Binds:    binds,
-			GroupAdd: combinedSecurityContexts.SupplementalGroups,
+			Mounts:      binds, // Handle VolumeMounts here.
+			GroupAdd:    combinedSecurityContexts.SupplementalGroups,
 		}
 
 		// Create the container.

@@ -20,6 +20,11 @@ func combineRunAsUser(podUser, containerUser string) string {
 }
 
 func combineRunAsGroup(podGroup, containerGroup string) string {
+	// If both of them are empty, return "0" (root group).
+	if podGroup == "" && containerGroup == "" {
+		return "0"
+	}
+
 	// Use the container group if it is set, otherwise use the pod group.
 	if containerGroup != "" {
 		return containerGroup
@@ -100,6 +105,7 @@ func processSecurityContextsMerge(
 
 	// If the field `RunAsGroup` is not set, there's nothing else to do.
 	if combinedSecurityContext.RunAsGroup == "" {
+		// NOTE: actually, this would never happen now.
 		return &combinedSecurityContext, nil
 	}
 
