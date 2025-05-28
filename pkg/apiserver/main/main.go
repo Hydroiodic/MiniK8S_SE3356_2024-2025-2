@@ -56,7 +56,9 @@ func declareGinServer() *gin.Engine {
 	// r.POST("/deletePVFromFile", interfaces.DeletePV)
 	// r.POST("/createPVCFromFile", interfaces.CreatePVC)
 	// r.POST("/deletePVCFromFile", interfaces.DeletePVC)
-	// r.POST("/getPVC", interfaces.GetPVC)
+
+	r.GET("/pvc/:namespace/:name", interfaces.GetPersistentVolumeClaim)
+	r.GET("/pv/:name", interfaces.GetPersistentVolume)
 
 	// r.POST("/createJobFromFile", interfaces.CreateJob)
 

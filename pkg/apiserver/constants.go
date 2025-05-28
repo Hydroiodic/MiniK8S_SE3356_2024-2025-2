@@ -33,4 +33,7 @@ const (
 	// HPA operations.
 	HpaGetURL    = "/hpa/getHpas"
 	HpaCreateURL = "/hpa/createHpa"
+
+	PVGetURL  = "/pv"
+	PVCGetURL = "/pvc"
 )

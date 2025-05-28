@@ -11,9 +11,7 @@ type PersistentVolume struct {
 // PersistentVolumeSpec 定义 PV 规格
 type PersistentVolumeSpec struct {
 	Capacity                      ResourceList          `json:"capacity"`
-	AccessModes                   []string              `json:"accessModes"`
 	PersistentVolumeReclaimPolicy string                `json:"persistentVolumeReclaimPolicy"`
-	StorageClassName              string                `json:"storageClassName,omitempty"`
 	NFS                           *NFSVolumeSource      `json:"nfs,omitempty"`
 	HostPath                      *HostPathVolumeSource `json:"hostPath,omitempty"`
 }
@@ -45,14 +43,8 @@ type ObjectMeta struct {
 
 // PersistentVolumeClaimSpec 定义 PVC 规格
 type PersistentVolumeClaimSpec struct {
-	AccessModes      []string             `json:"accessModes"`
-	Resources        ResourceRequirements `json:"resources"`
-	StorageClassName string               `json:"storageClassName,omitempty"`
-}
-
-// ResourceRequirements 定义资源请求
-type ResourceRequirements struct {
-	Requests ResourceList `json:"requests"`
+	Capacity   ResourceList `json:"resources"`            // 期望的存储容量
+	VolumeName string       `json:"volumeName,omitempty"` // 绑定的 PV 名称
 }
 
 // ResourceList 定义存储容量

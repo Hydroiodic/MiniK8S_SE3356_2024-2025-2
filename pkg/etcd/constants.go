@@ -5,13 +5,15 @@ package etcd
 import "time"
 
 const (
-	PodPrefix        = "/minik8s/pods/"
-	KubeletPrefix    = "/minik8s/kubelets/"
-	ResourcePrefix   = "/minik8s/resources/"
-	ClusterIPPrefix  = "/minik8s/clusterip/"
-	DNSPrefix        = "/minik8s/dns/"
-	ReplicasetPrefix = "/minik8s/replicaset"
-	HpaPrefix        = "/minik8s/hpa"
+	PodPrefix                   = "/minik8s/pods/"
+	KubeletPrefix               = "/minik8s/kubelets/"
+	ResourcePrefix              = "/minik8s/resources/"
+	ClusterIPPrefix             = "/minik8s/clusterip/"
+	DNSPrefix                   = "/minik8s/dns/"
+	ReplicasetPrefix            = "/minik8s/replicaset"
+	HpaPrefix                   = "/minik8s/hpa"
+	PersistentVolumePrefix      = "/minik8s/pv/"
+	PersistentVolumeClaimPrefix = "/minik8s/pvc/"
 
 	// The services in etcd will diff in the following two states:
 	// 1. Pending: The service is created but not yet applied to the cluster.
