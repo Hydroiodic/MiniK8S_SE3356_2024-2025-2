@@ -4,9 +4,8 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"time"
 
-	client "github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/apiserver"
+	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/apiserver"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
@@ -83,95 +82,65 @@ func parseYaml(fileAddr string) {
 }
 
 func handlePodRaw(rawData []byte) error {
-	// 1. 解析 YAML 到 map
-	var data map[string]interface{}
-	if err := yaml.Unmarshal(rawData, &data); err != nil {
-		panic(err)
-	}
-	// 获取当前时间
-	currentTime := time.Now().UTC().Format(time.RFC3339)
-	// 2. 添加 status 字段
-	data["status"] = map[string]string{
-		"phase":     "Running",
-		"startTime": currentTime,
-	}
-	// 3. 重新生成 YAML
-	newYAML, err := yaml.Marshal(data)
-	if err != nil {
-		panic(err)
-	}
-
+	// Parse the raw YAML data into a Pod object.
 	var pod object.Pod
-	if err = yaml.Unmarshal(newYAML, &pod); err != nil {
+	if err := yaml.Unmarshal(rawData, &pod); err != nil {
 		log.Fatalf("error unmarshaling YAML: %v", err)
 	}
 
-	ci := client.NewAPIClient("http://localhost:8080")
-
-	fmt.Println(pod)
-
-	err = ci.CreatePod(&pod)
+	// Add the Pod configuration.
+	err := apiserver.NewAPIClient("").CreatePod(&pod)
 	if err != nil {
 		fmt.Println(err)
+		return err
 	}
 
 	return nil
 }
 
 func handleServiceRaw(rawData []byte) error {
-	fmt.Println("Raw Service JSON/YAML:", string(rawData))
-	// 1. 解析 YAML 到 map
+	// Parse the raw YAML data into a Service object.
 	var s object.Service
 	if err := yaml.Unmarshal(rawData, &s); err != nil {
 		log.Fatalf("error unmarshaling YAML: %v", err)
 	}
 
-	ci := client.NewAPIClient("http://localhost:8080")
-
-	fmt.Println(s)
-
-	err := ci.CreateService(&s)
+	// Add the Service configuration.
+	err := apiserver.NewAPIClient("").CreateService(&s)
 	if err != nil {
 		fmt.Println(err)
+		return err
 	}
 
 	return nil
 }
 
 func handleReplicaSetRaw(rawData []byte) error {
-	// 1. 解析 YAML 到 map
+	// Parse the raw YAML data into a ReplicaSet object.
 	var r object.ReplicaSet
 	if err := yaml.Unmarshal(rawData, &r); err != nil {
 		log.Fatalf("error unmarshaling YAML: %v", err)
 	}
 
-	ci := client.NewAPIClient("http://localhost:8080")
-
-	fmt.Println(r)
-
-	err := ci.CreateReplicaset(&r)
+	// Add the ReplicaSet configuration.
+	err := apiserver.NewAPIClient("").CreateReplicaset(&r)
 	if err != nil {
 		fmt.Println(err)
+		return err
 	}
 
 	return nil
 }
 
 func handleDNSConfigRaw(rawData []byte) error {
-	// 1. 解析 YAML 到 map
+	// Parse the raw YAML data into a DNS object.
 	var DNS object.DNS
 	if err := yaml.Unmarshal(rawData, &DNS); err != nil {
 		log.Fatalf("error unmarshaling YAML: %v", err)
-		return err
 	}
 
-	// Create a new API client.
-	ci := client.NewAPIClient("")
-
-	// Print the DNS configuration.
-	fmt.Println(DNS)
 	// Add the DNS configuration.
-	err := ci.AddDNS(&DNS)
+	err := apiserver.NewAPIClient("").AddDNS(&DNS)
 	if err != nil {
 		log.Printf("error adding DNS: %v", err)
 		return err
@@ -181,18 +150,17 @@ func handleDNSConfigRaw(rawData []byte) error {
 }
 
 func handleHPARaw(rawData []byte) error {
+	// Parse the raw YAML data into a HorizontalPodAutoscaler object.
 	var hpa object.HorizontalPodAutoscaler
 	if err := yaml.Unmarshal(rawData, &hpa); err != nil {
 		log.Fatalf("error unmarshaling YAML: %v", err)
 	}
 
-	ci := client.NewAPIClient("http://localhost:8080")
-
-	fmt.Println(hpa)
-
-	err := ci.CreateHpa(&hpa)
+	// Add the HorizontalPodAutoscaler configuration.
+	err := apiserver.NewAPIClient("").CreateHpa(&hpa)
 	if err != nil {
 		fmt.Println(err)
+		return err
 	}
 
 	return nil

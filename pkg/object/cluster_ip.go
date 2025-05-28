@@ -50,6 +50,16 @@ func randomClusterIP(existingClusterIPs map[string]any) (string, error) {
 				rand.Intn(256),
 			)
 
+		// Check if the generated ClusterIP is reserved.
+		if clusterIP == DNSClusterIP || clusterIP == ProxyClusterIP {
+			log.Printf(
+				"ClusterIP %s is reserved, generating a new one...",
+				clusterIP,
+			)
+
+			continue
+		}
+
 		// Check if the generated ClusterIP is already in use.
 		if _, exists := existingClusterIPs[clusterIP]; !exists {
 			// If not, return the generated ClusterIP.

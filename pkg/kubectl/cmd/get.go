@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	client "github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/apiserver"
+	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/apiserver"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
 	"github.com/spf13/cobra"
 )
@@ -84,12 +84,14 @@ func getPod(name string, resourceNamespace string) string {
 }
 
 func printPods(pods []object.Pod) {
+	// 根据 Pod 的启动时间进行排序
 	sort.Slice(pods, func(i, j int) bool {
 		ageI := time.Since(pods[i].Status.StartTime)
 		ageJ := time.Since(pods[j].Status.StartTime)
 
 		return ageI < ageJ // 降序排列
 	})
+
 	// 打印表头，增加了NAMESPACE和LABELS列
 	fmt.Printf("%-30s %-15s %-10s %-10s %-10s %-30s\n",
 		"NAME", "NAMESPACE", "READY", "STATUS", "AGE", "LABELS")
@@ -102,7 +104,7 @@ func printPods(pods []object.Pod) {
 		)
 		age := time.Since(pod.Status.StartTime).Truncate(time.Second)
 
-		// 将labels map转换为字符串
+		// 将 labels map 转换为字符串
 		labels := ""
 		for k, v := range pod.Metadata.Labels {
 			if labels != "" {
@@ -115,17 +117,17 @@ func printPods(pods []object.Pod) {
 		fmt.Printf(
 			"%-30s %-15s %-10s %-10s %-10s %-30s\n",
 			pod.Metadata.Name,
-			pod.Metadata.Namespace, // 添加namespace
+			pod.Metadata.Namespace, // 添加 namespace
 			ready,
 			pod.Status.Phase,
 			age,
-			labels, // 添加labels
+			labels, // 添加 labels
 		)
 	}
 }
 
 func getAllPods() {
-	ci := client.NewAPIClient("http://localhost:8080")
+	ci := apiserver.NewAPIClient("")
 	results, err := ci.GetPods()
 
 	if err != nil {
