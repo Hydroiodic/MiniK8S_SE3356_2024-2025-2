@@ -8,13 +8,12 @@ COPY . .
 
 RUN mkdir -p ./func
 
-# 设置proxy
+# 设置 proxy
 RUN go env -w GOPROXY="https://goproxy.io,direct"
 
-
-# 构建Go程序
+# 构建 Go 程序
 RUN mkdir -p /root/.ssh 
-COPY  ./ssh-config/*  /root/.ssh/
+COPY ./ssh-config/* /root/.ssh/
 
 RUN apk add --no-cache openssh-client
 RUN chmod +x /app/start.sh
@@ -22,10 +21,11 @@ RUN go build -o /app/job-server /app/main.go
 
 CMD ["/app/start.sh"]
 
-
-
 # 构建镜像
 # 要构建容器，可以使用以下命令：
 # 需要在项目的根路径执行
 # docker build -t job-server:latest .
-# docker run --entrypoint /bin/job-server musicminion/minik8s-gpu -jobName job-example1 -jobNamespace test-job-namespace -apiServerAddr http://192.168.126.130:8090
+# docker run --entrypoint /bin/job-server musicminion/minik8s-gpu \
+#    -jobName job-example1 \
+#    -jobNamespace test-job-namespace \
+#    -apiServerAddr http://192.168.126.130:8090
