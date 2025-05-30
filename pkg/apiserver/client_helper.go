@@ -10,8 +10,8 @@ import (
 
 // `getAndUnmarshalList` is a helper function to
 // GET a resource and unmarshal a double-encoded JSON list.
+// Comcat the base URL with the URL suffix.
 func (c *APIClient) getAndUnmarshalList(urlSuffix string, out any) error {
-	// Comcat the base URL with the URL suffix.
 	url := c.BaseURL + urlSuffix
 
 	// Create a new HTTP GET request.

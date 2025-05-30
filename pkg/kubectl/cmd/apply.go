@@ -4,9 +4,12 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path/filepath"
+	"time"
 
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/apiserver"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
+	"github.com/mholt/archiver"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v3"
 )
@@ -69,6 +72,9 @@ func parseYaml(fileAddr string) {
 		"HorizontalPodAutoscaler": func(rawData []byte) error {
 			return handleHPARaw(rawData)
 		},
+		"GpuJob": func(rawData []byte) error {
+			return handleGPUJOBRaw(rawData)
+		},
 	}
 
 	// 根据 kind 处理相应的资源
@@ -79,6 +85,54 @@ func parseYaml(fileAddr string) {
 	} else {
 		_, _ = fmt.Println("不支持的资源类型:", kindStruct.Kind)
 	}
+}
+
+func handleGPUJOBRaw(rawData []byte) error {
+	fmt.Println("Raw GpuJob JSON/YAML:", string(rawData))
+	// 1. 解析 YAML 到 map
+	var s object.Job
+	if err := yaml.Unmarshal(rawData, &s); err != nil {
+		log.Fatalf("error unmarshaling YAML: %v", err)
+	}
+
+	ci := client.NewAPIClient("http://localhost:8080")
+	// 检查目录是否存在
+	_, err := os.Stat(s.Spec.UploadPath)
+	fmt.Println("file path:", s.Spec.UploadPath)
+	if err != nil {
+		fmt.Println(err.Error())
+		return err
+	}
+	//获取所有目录下的文件
+	z := archiver.NewZip()
+	z.OverwriteExisting = true
+	files, err := filepath.Glob(filepath.Join(s.Spec.UploadPath, "*"))
+
+	if err != nil {
+		return err
+	}
+	fmt.Println("目录下的文件数量：%d", len(files))
+	// 压缩，将文件直接放在 ZIP 根目录
+	err = z.Archive(files, s.Spec.UploadPath+".zip")
+	if err != nil {
+		return err
+	}
+	//将zip文件转化成byte
+	fileByte, err := os.ReadFile(s.Spec.UploadPath + ".zip")
+	if err != nil {
+		fmt.Println("read file failed")
+		return err
+	}
+
+	s.Spec.UserUploadFile = fileByte
+
+	fmt.Println(s)
+	err = ci.CreateGpujob(s)
+	if err != nil {
+		fmt.Println(err)
+	}
+
+	return nil
 }
 
 func handlePodRaw(rawData []byte) error {
