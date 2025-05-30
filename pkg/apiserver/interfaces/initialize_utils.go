@@ -34,7 +34,7 @@ var (
 			ClusterIP: object.DNSClusterIP,
 			Endpoints: []object.Endpoint{
 				{
-					IP:   "192.168.1.5", // Must be the node's IP address
+					IP:   os.Getenv("APISERVER_URL"),
 					Port: 5300,
 				},
 			},
@@ -64,7 +64,7 @@ var (
 			ClusterIP: object.ProxyClusterIP,
 			Endpoints: []object.Endpoint{
 				{
-					IP:   "192.168.1.5",
+					IP:   os.Getenv("APISERVER_URL"),
 					Port: 5301,
 				},
 			},
