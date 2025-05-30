@@ -79,7 +79,7 @@ func (s *KubeletService) Run(stopCh <-chan struct{}) {
 
 	// 清理 KubeProxy 本地状态
 	s.serviceController.IpvsOps.Clear()
-	s.serviceController.IpvsOps.Init()
+	// s.serviceController.IpvsOps.Init()
 
 	log.Printf("Restoring local pods: %v", utils.ExtractPodNames(localPods))
 	s.kubelet.Mu.Lock()
