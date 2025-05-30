@@ -3,12 +3,9 @@ package mqtemplate
 import (
 	"encoding/json"
 	"fmt"
-<<<<<<< HEAD
 	"os"
 
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
-=======
->>>>>>> origin/main
 )
 
 func SendMessageToQueue(queueName string, body string) error {

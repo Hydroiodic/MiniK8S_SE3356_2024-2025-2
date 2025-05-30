@@ -1,12 +1,9 @@
 package mqtemplate
 
 const (
-<<<<<<< HEAD
-	UpdatePodQueueName = "updatePod"
-=======
 	RabbitMQUrl = "amqp://guest:guest@localhost:5672/"
 
->>>>>>> origin/main
+	UpdatePodQueueName = "updatePod"
 	CreatePodQueueName = "createPod"
 
 	KubeletCreatePodQueue = "kubeletCreatePodQueue"
