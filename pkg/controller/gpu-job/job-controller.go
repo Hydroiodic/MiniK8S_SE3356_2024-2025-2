@@ -44,7 +44,7 @@ func NewJobController() *JobController {
 }
 
 func (fc *JobController) Start() {
-	//每10s进行一次routine操作
+	// 每10s进行一次routine操作
 	fmt.Println("JobController Run")
 
 	fc = NewJobController()
@@ -89,7 +89,7 @@ func (fc *JobController) CreateJob(job object.Job) {
 	fmt.Println("检查到未创建gpujob,开始创建")
 	// 任务的文件夹路径
 	JobFilePath := WorkDir + "/jobs/" + job.Metadata.Namespace + "/" + job.Metadata.Name
-	//解析.cu文件
+	// 解析.cu文件
 	fmt.Println("开始解析.cu文件")
 
 	err := os.RemoveAll(JobFilePath)
@@ -124,7 +124,7 @@ func (fc *JobController) CreateJob(job object.Job) {
 	}
 	// 写slurm文件
 	fc.writeSlurm(job, JobFilePath)
-	//构建dockerfile
+	// 构建dockerfile
 	fmt.Println("开始构建dockerfile")
 
 	dockerfile, err := os.Create(JobFilePath + "/Dockerfile")
@@ -193,7 +193,7 @@ func (fc *JobController) CreateJob(job object.Job) {
 		return
 	}
 
-	//构建docker上下文，需要将依赖文件打包成tar格式
+	// 构建docker上下文，需要将依赖文件打包成tar格式
 	fmt.Println("开始打包tar")
 
 	z2 := archiver.NewTar()
@@ -212,7 +212,7 @@ func (fc *JobController) CreateJob(job object.Job) {
 		return
 	}
 
-	//构建docker镜像
+	// 构建docker镜像
 	fmt.Println("开始构建镜像")
 
 	var cli *client.Client
@@ -301,7 +301,7 @@ func (fc *JobController) CreateJob(job object.Job) {
 		return
 	}
 
-	//创建pod
+	// 创建pod
 	fc.createPod(job)
 }
 
