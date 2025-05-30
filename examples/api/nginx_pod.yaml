@@ -1,7 +1,7 @@
 apiversion: v1
 kind: Pod
 metadata:
-  name: nginx_pod3
+  name: nginx_pod
   namespace: default
   labels:
     app: nginx
@@ -9,8 +9,7 @@ spec:
   containers:
   - name: nginx
     image: nginx:stable-alpine
-    ports:
-    - containerPort: 80
+    ports: [80]
     volumeMounts:
     - name: nginx-conf
       mountPath: /etc/nginx/conf.d

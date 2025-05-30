@@ -1,6 +1,6 @@
 kind: Pod
 metadata:
-  name: nginx2
+  name: nginx
   namespace: default
   labels:
     app: nginx
