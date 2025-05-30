@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"path/filepath"
 
@@ -14,124 +13,123 @@ import (
 )
 
 var execCmd = &cobra.Command{
-	Use:   "apply",
-	Short: "Interactive exec into a resource",
+	Use:     "apply",
+	Short:   "Create a Kubernetes instance from a YAML file",
+	Example: "kubectl apply -f config.yaml",
 	Run: func(cmd *cobra.Command, _ []string) {
-		fileFlag, _ := cmd.Flags().GetString("file") // 获取 `-f` 参数的值
-		if fileFlag != "" {
-			_, _ = fmt.Println("Using file:", fileFlag)
-			parseYaml(fileFlag)
-		} else {
-			_, _ = fmt.Println("No file provided.")
+		// Get the flag value for `-f` or `--file`.
+		fileFlag, err := cmd.Flags().GetString("file")
+		if err != nil {
+			fmt.Printf("Error retrieving flag value: %v\n", err)
+			return
 		}
-		// **手动重置 flag**
-		if err := cmd.Flags().Lookup("file").Value.Set(""); err != nil {
-			// 处理错误或打印日志
-			_, _ = fmt.Println("Failed to set flag value:", err)
+
+		// If the flag not set or empty, print a message.
+		if fileFlag == "" {
+			fmt.Println("Usage: kubectl apply -f <yaml-file>")
+			return
 		}
+
+		// Parse the YAML file and handle the instances.
+		fmt.Printf("Using file: %s\n", fileFlag)
+		parseYaml(fileFlag)
 	},
 }
 
-// 在 `init()` 里添加 `-f` flag.
+// Add the `-f` flag to the execCmd command.
 func init() {
 	execCmd.Flags().StringP("file", "f", "", "Specify the configuration file")
 	rootCmd.AddCommand(execCmd)
 }
 
+// parseYaml reads a YAML file and processes its contents based on the `kind` field.
 func parseYaml(fileAddr string) {
-	data, err := os.ReadFile(fileAddr) // #nosec G304
+	// Read the YAML file from the file system.
+	data, err := os.ReadFile(fileAddr)
 	if err != nil {
-		_, _ = fmt.Println("读取文件失败:", err)
+		fmt.Printf("Error reading file %s: %v\n", fileAddr, err)
 		return
 	}
 
-	var kindStruct struct {
-		Kind string `yaml:"kind"`
-	}
-
-	marshalErr := yaml.Unmarshal(data, &kindStruct)
-	if marshalErr != nil {
-		_, _ = fmt.Println("解析 YAML 结构失败:", marshalErr)
+	// Unmarshal the YAML data into a struct to extract the `kind` field.
+	err = yaml.Unmarshal(data, &kindStruct)
+	if err != nil {
+		fmt.Printf("Error unmarshaling YAML: %v\n", err)
 		return
 	}
 
-	resourceHandlers := map[string]func([]byte) error{
-		"Pod": func(rawData []byte) error {
-			return handlePodRaw(rawData)
-		},
-		"Service": func(rawData []byte) error {
-			return handleServiceRaw(rawData)
-		},
-		"ReplicaSet": func(rawData []byte) error {
-			return handleReplicaSetRaw(rawData)
-		},
-		"DNS": func(rawData []byte) error {
-			return handleDNSConfigRaw(rawData)
-		},
-		"HorizontalPodAutoscaler": func(rawData []byte) error {
-			return handleHPARaw(rawData)
-		},
-		"GpuJob": func(rawData []byte) error {
-			return handleGPUJOBRaw(rawData)
-		},
+	// Check the kind and call the appropriate handler.
+	switch kindStruct.Kind {
+	case PodKind:
+		err = handlePodRaw(data)
+	case ServiceKind:
+		err = handleServiceRaw(data)
+	case ReplicaSetKind:
+		err = handleReplicaSetRaw(data)
+	case DNSKind:
+		err = handleDNSConfigRaw(data)
+	case HorizontalPodAutoscalerKind:
+		err = handleHPARaw(data)
+	case GPUJobKind:
+		err = handleGPUJOBRaw(data)
+	default:
+		fmt.Printf("Unsupported resource kind: %s\n", kindStruct.Kind)
+		return
 	}
 
-	// 根据 kind 处理相应的资源
-	if handler, exists := resourceHandlers[kindStruct.Kind]; exists {
-		if err := handler(data); err != nil {
-			_, _ = fmt.Println(err)
-		}
-	} else {
-		_, _ = fmt.Println("不支持的资源类型:", kindStruct.Kind)
+	// If any error occurred during processing, print it.
+	if err != nil {
+		fmt.Printf(
+			"Error occurred during applying %s: %v\n",
+			kindStruct.Kind,
+			err,
+		)
+
+		return
 	}
 }
 
 func handleGPUJOBRaw(rawData []byte) error {
-	fmt.Println("Raw GpuJob JSON/YAML:", string(rawData))
-	// 1. 解析 YAML 到 map
+	// Parse the raw YAML data into a GpuJob object.
 	var s object.Job
 	if err := yaml.Unmarshal(rawData, &s); err != nil {
-		log.Fatalf("error unmarshaling YAML: %v", err)
-	}
-
-	ci := apiserver.NewAPIClient("http://localhost:8080")
-	// 检查目录是否存在
-	_, err := os.Stat(s.Spec.UploadPath)
-	fmt.Println("file path:", s.Spec.UploadPath)
-
-	if err != nil {
-		fmt.Println(err.Error())
 		return err
 	}
-	//获取所有目录下的文件
+
+	// Check if the upload path exists.
+	_, err := os.Stat(s.Spec.UploadPath)
+	if err != nil {
+		return err
+	}
+
+	// Get every file in the upload path and compress them into a ZIP file.
 	z := archiver.NewZip()
 	z.OverwriteExisting = true
-	files, err := filepath.Glob(filepath.Join(s.Spec.UploadPath, "*"))
 
+	// Get all files in the specified upload path.
+	files, err := filepath.Glob(filepath.Join(s.Spec.UploadPath, "*"))
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("目录下的文件数量：%d\n", len(files))
-	// 压缩，将文件直接放在 ZIP 根目录
+	// Compress the files into a ZIP archive.
 	err = z.Archive(files, s.Spec.UploadPath+".zip")
 	if err != nil {
 		return err
 	}
-	//将zip文件转化成byte
+
+	// Read the ZIP file into a byte slice.
 	fileByte, err := os.ReadFile(s.Spec.UploadPath + ".zip")
 	if err != nil {
-		fmt.Println("read file failed")
 		return err
 	}
 
 	s.Spec.UserUploadFile = fileByte
-
 	fmt.Println(s)
-	err = ci.CreateGpujob(s)
 
+	err = apiserver.NewAPIClient("").CreateGpujob(s)
 	if err != nil {
-		fmt.Println(err)
+		return err
 	}
 
 	return nil
@@ -141,13 +139,12 @@ func handlePodRaw(rawData []byte) error {
 	// Parse the raw YAML data into a Pod object.
 	var pod object.Pod
 	if err := yaml.Unmarshal(rawData, &pod); err != nil {
-		log.Fatalf("error unmarshaling YAML: %v", err)
+		return err
 	}
 
 	// Add the Pod configuration.
 	err := apiserver.NewAPIClient("").CreatePod(&pod)
 	if err != nil {
-		fmt.Println(err)
 		return err
 	}
 
@@ -158,13 +155,12 @@ func handleServiceRaw(rawData []byte) error {
 	// Parse the raw YAML data into a Service object.
 	var s object.Service
 	if err := yaml.Unmarshal(rawData, &s); err != nil {
-		log.Fatalf("error unmarshaling YAML: %v", err)
+		return err
 	}
 
 	// Add the Service configuration.
 	err := apiserver.NewAPIClient("").CreateService(&s)
 	if err != nil {
-		fmt.Println(err)
 		return err
 	}
 
@@ -175,13 +171,12 @@ func handleReplicaSetRaw(rawData []byte) error {
 	// Parse the raw YAML data into a ReplicaSet object.
 	var r object.ReplicaSet
 	if err := yaml.Unmarshal(rawData, &r); err != nil {
-		log.Fatalf("error unmarshaling YAML: %v", err)
+		return err
 	}
 
 	// Add the ReplicaSet configuration.
 	err := apiserver.NewAPIClient("").CreateReplicaset(&r)
 	if err != nil {
-		fmt.Println(err)
 		return err
 	}
 
@@ -192,13 +187,12 @@ func handleDNSConfigRaw(rawData []byte) error {
 	// Parse the raw YAML data into a DNS object.
 	var DNS object.DNS
 	if err := yaml.Unmarshal(rawData, &DNS); err != nil {
-		log.Fatalf("error unmarshaling YAML: %v", err)
+		return err
 	}
 
 	// Add the DNS configuration.
 	err := apiserver.NewAPIClient("").AddDNS(&DNS)
 	if err != nil {
-		log.Printf("error adding DNS: %v", err)
 		return err
 	}
 
@@ -209,13 +203,12 @@ func handleHPARaw(rawData []byte) error {
 	// Parse the raw YAML data into a HorizontalPodAutoscaler object.
 	var hpa object.HorizontalPodAutoscaler
 	if err := yaml.Unmarshal(rawData, &hpa); err != nil {
-		log.Fatalf("error unmarshaling YAML: %v", err)
+		return err
 	}
 
 	// Add the HorizontalPodAutoscaler configuration.
 	err := apiserver.NewAPIClient("").CreateHpa(&hpa)
 	if err != nil {
-		fmt.Println(err)
 		return err
 	}
 

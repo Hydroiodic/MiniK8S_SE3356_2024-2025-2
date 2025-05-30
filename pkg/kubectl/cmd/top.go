@@ -12,7 +12,7 @@ var topCmd = &cobra.Command{
 	Short: "Display resource usage metrics",
 	Run: func(_ *cobra.Command, args []string) {
 		if len(args) < 1 {
-			_, _ = fmt.Println("Usage: minik8s kubectl top <pod|node> [<name>]")
+			_, _ = fmt.Println("Usage: kubectl top <pod|node> [<name>]")
 			return
 		}
 
@@ -23,14 +23,14 @@ var topCmd = &cobra.Command{
 		}
 
 		switch strings.ToLower(resourceType) {
-		case "pods":
+		case PodCmdName, PodCmdName + "s":
 			if resourceName != "" {
 				getPodMetrics(resourceName)
 			} else {
 				getAllPodMetrics()
 			}
 		default:
-			_, _ = fmt.Println("Unsupported resource type:", resourceType)
+			fmt.Println("Unsupported resource type:", resourceType)
 		}
 	},
 }
@@ -41,14 +41,14 @@ func init() {
 
 // 获取单个 Pod 的资源指标.
 func getPodMetrics(name string) string {
-	_, _ = fmt.Printf("Metrics for Pod: %s\n", name)
+	fmt.Printf("Metrics for Pod: %s\n", name)
 	// 调用 cAdvisor API 获取 CPU/Memory 数据
 	return ""
 }
 
 // 获取所有 Pod 的资源指标.
 func getAllPodMetrics() string {
-	_, _ = fmt.Println("Metrics for all Pods")
+	fmt.Println("Metrics for all Pods")
 	// 批量获取指标并格式化输出
 	return ""
 }

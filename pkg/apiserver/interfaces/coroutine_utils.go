@@ -303,6 +303,11 @@ func SyncEtcdServices() error {
 				continue
 			}
 
+			// If the labels of the pod does not match the service selector, skip it.
+			if !service.MatchLabels(pod.Metadata.Labels) {
+				continue
+			}
+
 			// Get all exposed ports of the pod.
 			for _, container := range pod.Spec.Containers {
 				for _, port := range container.Ports {

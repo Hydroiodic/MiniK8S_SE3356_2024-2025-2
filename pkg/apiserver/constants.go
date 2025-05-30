@@ -23,6 +23,7 @@ const (
 
 	// DNS operations.
 	DNSAddURL               = "/dns/addDNS"
+	DNSGetURL               = "/dns/getDNS"
 	DNSDeleteURL            = "/dns/deleteDNS"
 	DNSGetForwardingInfoURL = "/dns/getForwardingInfo"
 
