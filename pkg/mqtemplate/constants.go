@@ -1,25 +1,17 @@
 package mqtemplate
 
 const (
+<<<<<<< HEAD
 	UpdatePodQueueName = "updatePod"
+=======
+	RabbitMQUrl = "amqp://guest:guest@localhost:5672/"
+
+>>>>>>> origin/main
 	CreatePodQueueName = "createPod"
 
-	KubeletCreatePodQueue    = "kubeletCreatePodQueue"
-	KubeletStopPodQueue      = "kubeletStopPodQueue"
-	KubeletDeletePodQueue    = "kubeletDeletePodQueue"
-	KubeletCheckNowQueueName = "kubeletCheckNowQueue"
+	KubeletCreatePodQueue = "kubeletCreatePodQueue"
+	KubeletDeletePodQueue = "kubeletDeletePodQueue"
 
 	KubeProxyCreateServiceQueue = "kubeProxyCreateServiceQueue"
 	KubeProxyDeleteServiceQueue = "kubeProxyDeleteServiceQueue"
-
-	DnsCreatePod        = "DnsCreatePodQueue"
-	DnsDeletePod        = "DnsDeletePodQueue"
-	CreateDnsQueueName  = "createDns"
-	UpdateDnsQueueName  = "updateDns"
-	DeleteDnsQueueName  = "deleteDns"
-	UpdateHostQueueName = "updateHost"
-
-	CreateReplicasetQueueName   = "createReplicasetQueue"
-	DeleteReplicasetQueueName   = "deleteReplicasetQueue"
-	ReplicasetCheckNowQueueName = "replicasetCheckNowQueue"
 )

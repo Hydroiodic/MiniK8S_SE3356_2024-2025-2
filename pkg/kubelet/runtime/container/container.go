@@ -55,8 +55,8 @@ type ContainerServiceInterface interface {
 }
 
 type ContainerService struct {
-	client      *client.Client
-	img_service *image.ImageService
+	client     *client.Client
+	ImgService *image.ImageService
 }
 
 func NewContainerService() (*ContainerService, error) {
@@ -74,7 +74,7 @@ func NewContainerService() (*ContainerService, error) {
 		return nil, fmt.Errorf("无法创建镜像服务: %v", err)
 	}
 
-	return &ContainerService{client: cli, img_service: imgService}, nil
+	return &ContainerService{client: cli, ImgService: imgService}, nil
 }
 
 func (cs *ContainerService) CreateContainer(
@@ -82,8 +82,8 @@ func (cs *ContainerService) CreateContainer(
 ) (string, error) {
 	ctx := context.Background()
 
-	// 拉取镜像
-	err := cs.img_service.PullImage(ctr.Image)
+	// Pull the image if it does not exist.
+	err := cs.ImgService.PullImage(ctr.Image)
 	if err != nil {
 		return "", fmt.Errorf("无法拉取镜像 %s: %v", ctr.Image, err)
 	}

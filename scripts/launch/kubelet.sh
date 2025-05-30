@@ -1,6 +1,7 @@
 #!/bin/bash
 
 # This script is used to start the `kubelet` component.
+# NOTE: This script should be run with root privileges.
 
 # Get the path of the current script
 SCRIPT_DIR=$(dirname "$(realpath "$0")")
