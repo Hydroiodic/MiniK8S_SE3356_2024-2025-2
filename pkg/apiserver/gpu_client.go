@@ -51,3 +51,10 @@ func (c *APIClient) CreateGpujob(job object.Job) error {
 
 	return nil
 }
+
+func (c *APIClient) GetAllGpuJob() ([]object.Job, error) {
+	var jobs []object.Job
+	err := c.getAndUnmarshalList(GpuJobsGetUrl, &jobs)
+
+	return jobs, err
+}
