@@ -22,7 +22,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-
 	cli, err := goph.NewUnknown(
 		"stu1156",
 		"pilogin.hpc.sjtu.edu.cn",

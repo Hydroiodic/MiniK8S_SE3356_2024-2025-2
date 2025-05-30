@@ -7,7 +7,6 @@ import (
 	"path/filepath"
 
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/apiserver"
-	client "github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/apiserver"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
 	"github.com/mholt/archiver"
 	"github.com/spf13/cobra"
@@ -95,10 +94,11 @@ func handleGPUJOBRaw(rawData []byte) error {
 		log.Fatalf("error unmarshaling YAML: %v", err)
 	}
 
-	ci := client.NewAPIClient("http://localhost:8080")
+	ci := apiserver.NewAPIClient("http://localhost:8080")
 	// 检查目录是否存在
 	_, err := os.Stat(s.Spec.UploadPath)
 	fmt.Println("file path:", s.Spec.UploadPath)
+
 	if err != nil {
 		fmt.Println(err.Error())
 		return err
@@ -111,7 +111,8 @@ func handleGPUJOBRaw(rawData []byte) error {
 	if err != nil {
 		return err
 	}
-	fmt.Println("目录下的文件数量：%d", len(files))
+
+	fmt.Printf("目录下的文件数量：%d\n", len(files))
 	// 压缩，将文件直接放在 ZIP 根目录
 	err = z.Archive(files, s.Spec.UploadPath+".zip")
 	if err != nil {
@@ -128,6 +129,7 @@ func handleGPUJOBRaw(rawData []byte) error {
 
 	fmt.Println(s)
 	err = ci.CreateGpujob(s)
+
 	if err != nil {
 		fmt.Println(err)
 	}

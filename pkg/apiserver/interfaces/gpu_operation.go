@@ -47,6 +47,7 @@ func GetGpuJobs(c *gin.Context) {
 	c.JSON(http.StatusOK, gpujobs)
 }
 
+//nolint:dupl
 func CreateGpujob(c *gin.Context) {
 	// Parse the JSON body into a hpa object.
 	var job object.Job
@@ -55,7 +56,6 @@ func CreateGpujob(c *gin.Context) {
 		return
 	}
 
-	// Create HpaStore and check for errors.
 	st, err := object.NewGPUJOBStore([]string{})
 	if err != nil {
 		c.JSON(
@@ -66,14 +66,12 @@ func CreateGpujob(c *gin.Context) {
 		return
 	}
 
-	// Ensure the HpaStore is closed after use.
 	defer func() {
 		if closeErr := st.Close(); closeErr != nil {
 			fmt.Printf("Failed to close Job store: %v\n", closeErr)
 		}
 	}()
 
-	// Check if the HPA already exists in etcd.
 	reply, err := st.GetGpuJob(
 		c.Request.Context(),
 		job.Metadata.Namespace,
@@ -89,7 +87,6 @@ func CreateGpujob(c *gin.Context) {
 		return
 	}
 
-	// If the HPA already exists, return an error.
 	if reply != nil {
 		fmt.Println("Create Job from file failed: same Job namespace & name")
 		c.JSON(
@@ -143,7 +140,12 @@ func UpdateResult(c *gin.Context) {
 	if err != nil {
 		panic(err)
 	}
-	defer file.Close()
+
+	defer func() {
+		if closeErr := file.Close(); closeErr != nil {
+			fmt.Printf("Failed to close file: %v\n", closeErr)
+		}
+	}()
 
 	_, err = file.WriteString(body.Output)
 	if err != nil {
