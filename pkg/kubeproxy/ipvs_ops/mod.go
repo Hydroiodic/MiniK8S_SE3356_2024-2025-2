@@ -15,18 +15,6 @@ type IpvsOpsInterface interface {
 	AddService(svc *object.Service)
 	DelService(svc *object.Service)
 	UpdateServiceEps(oldSvc *object.Service, newSvc *object.Service)
-
-	// 以下两个是方便DEBUG查看的方法，实际应该不会用到
-	SaveToFile(
-		iptablesFilePath string,
-		ipvsFilePath string,
-		ipsetFilePath string,
-	) error
-	RestoreFromFile(
-		iptablesFilePath string,
-		ipvsFilePath string,
-		ipsetFilePath string,
-	) error
 }
 
 // 这一层只处理给定Service信息后的操作，如果需要保存一些状态，放在kube-proxy的状态结构体中

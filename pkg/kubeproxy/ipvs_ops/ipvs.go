@@ -3,9 +3,7 @@ package ipvs_ops
 import (
 	"fmt"
 	"log"
-	"os"
 	"os/exec"
-	"path/filepath"
 
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubeproxy/utils"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
@@ -16,25 +14,6 @@ import (
 
 	"github.com/vishvananda/netlink"
 )
-
-func init() {
-	// 获取当前用户的主目录
-	homeDir, err := os.UserHomeDir()
-	if err != nil {
-		fmt.Println("Failed to get the user home directory:", err)
-		return
-	}
-
-	IPTABLES_FILE_PATH = filepath.Join(
-		homeDir,
-		IPTABLES_FILE_PATH,
-	)
-	IPVS_FILE_PATH = filepath.Join(homeDir, IPVS_FILE_PATH)
-	IPSET_FILE_PATH = filepath.Join(homeDir, IPSET_FILE_PATH)
-
-	// 创建备份文件的目录
-	_ = os.MkdirAll(filepath.Dir(IPTABLES_FILE_PATH), 0750)
-}
 
 func NewIpvsOps(clusterIPCIDR string) *IpvsOps {
 	ops := &IpvsOps{
@@ -55,270 +34,22 @@ func (ops *IpvsOps) Close() {
 func (ops *IpvsOps) Init() {
 	// 创建ipvs模式需要的dummy网卡
 	_ = createDummyInterface(KUBE_DUMMY_INTERFACE_NAME)
-
-	// 创建表与链名的添加关系
-	iptTable2Chains := map[string][]string{}
-	iptTable2Chains["nat"] = []string{
-		KUBE_SERVICE_CHAIN_NAME,
-		KUBE_NODEPORT_CHAIN_NAME,
-		KUBE_MARK_MASQ_CHAIN_NAME,
-		KUBE_MARK_DROP_CHAIN_NAME,
-		KUBE_POSTROUTING_CHAIN_NAME,
-		KUBE_FIREWALL_CHAIN_NAME,
-	}
-
-	// 创建链，不需要检查是否存在，多次创建幂等
-	for table, chains := range iptTable2Chains {
-		for _, chain := range chains {
-			_ = ops.IptablesClient.NewChain(table, chain)
-		}
-	}
-
-	// 创建ipset集合，注意每个类型都不同
-	// 第一个KUBE-CLUSTER-IP是ClusterIP:port的集合
-	// 第二个KUBE-NODE-PORT-TCP是NodePort tcp的集合，为了简单我们只管tcp
-	// 第三个KUBE-LOOP-BACK存放endpoints信息，
-	// 直接创建出来，不做检查，应该保证命令行输入正确即可
-
-	// ClusterIP:port
-	_, err := exec.Command("ipset", "create", KUBE_CLUSTER_IP_SET_NAME, "hash:ip,port").
-		Output()
-	if err != nil {
-		// log.Printf("Failed to execute command: %v", err)
-		fmt.Printf(
-			"Error in create ipset %s\n",
-			KUBE_CLUSTER_IP_SET_NAME,
-		)
-	}
-
-	// NodePort端口
-	_, err = exec.Command("ipset", "create", KUBE_NODE_PORT_TCP_SET_NAME, "bitmap:port", "range", "0-65535").
-		Output()
-	if err != nil {
-		// log.Printf("Failed to execute command: %v", err)
-		fmt.Printf(
-			"Error in create ipset %s\n",
-			KUBE_NODE_PORT_TCP_SET_NAME,
-		)
-	}
-
-	// 目标IP:目标端口:源IP
-	// 存储每个 Endpoint 的三元组：PodIP:PodPort:PodIP。
-	// 用于识别 hairpin 场景：当数据包的目标 IP:Port（dstIP:dstPort）是 Pod 自身，且源 IP（srcIP）也是该 Pod IP。
-	// 将执行 MASQUERADE，将源 IP 改为节点 IP（如 192.168.1.1）。
-	_, err = exec.Command("ipset", "create", KUBE_LOOP_BACK_SET_NAME, "hash:ip,port,ip").
-		Output()
-	if err != nil {
-		fmt.Printf(
-			"Error in create ipset %s\n",
-			KUBE_LOOP_BACK_SET_NAME,
-		)
-	}
-
-	/** 请求到达宿主机的网络栈（外部客户端访问ClusterIP:Port或者本机通过OUTPUT访问Service） */
-	_ = ops.IptablesClient.AppendUnique(
-		"nat",
-		"PREROUTING",
-		"-j",
-		KUBE_SERVICE_CHAIN_NAME,
-		"-m",
-		"comment",
-		"--comment",
-		"mini-k8s service portals",
-	)
-	_ = ops.IptablesClient.AppendUnique(
-		"nat",
-		"OUTPUT",
-		"-j",
-		KUBE_SERVICE_CHAIN_NAME,
-		"-m",
-		"comment",
-		"--comment",
-		"mini-k8s service portals",
-	)
-
-	/** KUBE-SERVICES */
-	// 非 ClusterIP 来源的 ClusterIP 流量，标记 SNAT
-	// 跳转到 KUBE-MARK-MASQ 打标记
-	// 保证数据返回时能正确从ClusterIP而不是PodIP回到客户端
-	_ = ops.IptablesClient.AppendUnique(
-		"nat",
-		KUBE_SERVICE_CHAIN_NAME,
-		"!",
-		"-s",
-		ops.ClusterIPCIDR,
-		"-m",
-		"set",
-		"--match-set",
-		KUBE_CLUSTER_IP_SET_NAME,
-		"dst,dst",
-		"-j",
-		KUBE_MARK_MASQ_CHAIN_NAME,
-		"-m",
-		"comment",
-		"--comment",
-		"mini-k8s service cluster ip + port for masquerade purpose",
-	)
-
-	// 目标IP是本节点IP
-	// 如本机Node（Port）访问
-	// 跳转到 KUBE-NODEPORT
-	_ = ops.IptablesClient.AppendUnique(
-		"nat",
-		KUBE_SERVICE_CHAIN_NAME,
-		"-m",
-		"addrtype",
-		"--dst-type",
-		"LOCAL",
-		"-j",
-		KUBE_NODEPORT_CHAIN_NAME,
-	)
-
-	// ClusterIP下的流量进入IPVS
-	_ = ops.IptablesClient.AppendUnique(
-		"nat",
-		KUBE_SERVICE_CHAIN_NAME,
-		"-m",
-		"set",
-		"--match-set",
-		KUBE_CLUSTER_IP_SET_NAME,
-		"dst,dst",
-		"-j",
-		"ACCEPT",
-	)
-
-	/** KUBE-NODE-PORT */
-	// 如果符合dstPort也符合（Node）Port的访问
-	// 那么跳转到KUBE_MARK_MASQ打上0x10000标记
-	_ = ops.IptablesClient.AppendUnique(
-		"nat",
-		KUBE_NODEPORT_CHAIN_NAME,
-		"-m",
-		"set",
-		"--match-set",
-		KUBE_NODE_PORT_TCP_SET_NAME,
-		"dst",
-		"-j",
-		KUBE_MARK_MASQ_CHAIN_NAME,
-		"-m",
-		"comment",
-		"--comment",
-		"mini-k8s nodeport TCP port for masquerade purpose",
-	)
-
-	/** MARK-MASQ */
-	// 添加KUBE-MARK-MASQ链的规则，只需要打上0x10000标记
-	_ = ops.IptablesClient.AppendUnique(
-		"nat",
-		KUBE_MARK_MASQ_CHAIN_NAME,
-		"-j",
-		"MARK",
-		"--set-xmark",
-		KUBE_MARK_MASQ_VALUE+"/"+KUBE_MARK_MASQ_VALUE,
-	)
-
-	// 添加POSTROUTING主链的规则，无条件跳转到KUBE-POSTROUTING链
-	_ = ops.IptablesClient.AppendUnique(
-		"nat",
-		"POSTROUTING",
-		"-j",
-		KUBE_POSTROUTING_CHAIN_NAME,
-		"-m",
-		"comment",
-		"--comment",
-		"mini-k8s postrouting rules",
-	)
-
-	/** KUBE-POSTROUTING */
-	// 添加KUBE-POSTROUTING链的规则
-	// 此处已经由ipvs做好了DNAT
-	// 对于所有0x10000标记的包，做SNAT；
-	// 如果这个包没有被打上0x10000标记，不管它，直接返回即可
-	// 准备发往EndPoint
-
-	// 1. Hairpin 流量 属于回环，采取MASQUERADE进行SNAT
-	_ = ops.IptablesClient.AppendUnique(
-		"nat",
-		KUBE_POSTROUTING_CHAIN_NAME,
-		"-m",
-		"set",
-		"--match-set",
-		KUBE_LOOP_BACK_SET_NAME,
-		"dst,dst,src",
-		"-j",
-		"MASQUERADE",
-		"-m",
-		"comment",
-		"--comment",
-		"mini-k8s endpoints dst ip:port, source ip for solving hairpin purpose",
-	)
-
-	// 2. 无标记，返回主链进行下一条匹配
-	_ = ops.IptablesClient.AppendUnique(
-		"nat",
-		KUBE_POSTROUTING_CHAIN_NAME,
-		"-m",
-		"mark",
-		"!",
-		"--mark",
-		KUBE_MARK_MASQ_VALUE+"/"+KUBE_MARK_MASQ_VALUE,
-		"-j",
-		"RETURN",
-	)
-
-	// 在NodePort方式下，Kubernetes需要在IP包离开宿主机发往目的Pod时，对源IP进行SNAT处理。
-	// 防止拥有Pod的节点直接返回给Client，而不是通过Client访问的NodeIP。
-	// 对发往其他Node的网络包去除Tag，对源IP进行SNAT
-	_ = ops.IptablesClient.AppendUnique(
-		"nat",
-		KUBE_POSTROUTING_CHAIN_NAME,
-		"-j",
-		"MARK",
-		"--xor-mark",
-		KUBE_MARK_MASQ_VALUE,
-	)
-	_ = ops.IptablesClient.AppendUnique(
-		"nat",
-		KUBE_POSTROUTING_CHAIN_NAME,
-		"-j",
-		"MASQUERADE",
-		"-m",
-		"comment",
-		"--comment",
-		"mini-k8s service traffic requiring SNAT",
-	)
 }
 
-func (ops *IpvsOps) Clear() { // 只删除必要的部分！
-	_ = ops.IptablesClient.ClearChain("nat", KUBE_SERVICE_CHAIN_NAME)
-	_ = ops.IptablesClient.ClearChain("nat", KUBE_NODEPORT_CHAIN_NAME)
-	_ = ops.IptablesClient.ClearChain("nat", KUBE_MARK_MASQ_CHAIN_NAME)
-	_ = ops.IptablesClient.ClearChain("nat", KUBE_MARK_DROP_CHAIN_NAME)
-	_ = ops.IptablesClient.ClearChain("nat", KUBE_POSTROUTING_CHAIN_NAME)
-
-	// 清除所有ipset
-	ipsetSets := []string{
-		"mini-KUBE-CLUSTER-IP",
-		"mini-KUBE-NODE-PORT-TCP",
-		"mini-KUBE-LOOP-BACK",
-	}
-
-	for _, set := range ipsetSets {
-		cmd := exec.Command("ipset", "flush", set)
-		_ = cmd.Run()
-		// 删除set
-		cmd = exec.Command("ipset", "destroy", set)
-		_ = cmd.Run()
-	}
-
-	// 清除所有ipvs规则
-	_ = ops.IpvsClient.Flush()
-
-	// 清除dummy网卡绑定的所有IP
+func (ops *IpvsOps) Clear() { // 只删除必要的部分！	// 清除dummy网卡绑定的所有IP
 	_ = clearAllIPsFromDummyInterface(KUBE_DUMMY_INTERFACE_NAME)
+
+	// 清除所有的IPVS规则
+	output, err := exec.Command(
+		"ipvsadm",
+		"--clear",
+	).Output()
+	if err != nil {
+		log.Print(string(output))
+	}
 }
 
-// 添加一个新的Service、配置相关的iptables, ipvs, ipset
+// 添加一个新的Service、配置相关的ipvs
 func (ops *IpvsOps) AddService(svc *object.Service) {
 	data, _ := yaml.Marshal(&svc)
 	fmt.Printf("Add Service \n%s\n\n", string(data))
@@ -328,73 +59,6 @@ func (ops *IpvsOps) AddService(svc *object.Service) {
 		KUBE_DUMMY_INTERFACE_NAME,
 		svc.Status.ClusterIP,
 	)
-
-	// 添加ClusterIP:port到KUBE-CLUSTER-IP这个ipset
-	for _, port := range svc.Spec.Ports {
-		cmd := exec.Command(
-			"ipset",
-			"add",
-			KUBE_CLUSTER_IP_SET_NAME,
-			svc.Status.ClusterIP+",tcp:"+fmt.Sprint(port.Port),
-		)
-		fmt.Printf(cmd.String() + "\n")
-		err := cmd.Run()
-
-		if err != nil {
-			log.Printf(
-				"Failed to add clusterIP %s:%d to ipset %s: %v",
-				svc.Status.ClusterIP,
-				port.Port,
-				KUBE_CLUSTER_IP_SET_NAME,
-				err,
-			)
-		}
-	}
-
-	// 如果需要，添加NodePort到KUBE-NODE-PORT-TCP这个ipset
-	if svc.Type == object.SERVICE_TYPE_NODEPORT_STR {
-		for _, port := range svc.Spec.Ports {
-			cmd := exec.Command(
-				"ipset",
-				"add",
-				KUBE_NODE_PORT_TCP_SET_NAME,
-				fmt.Sprint(port.NodePort),
-			)
-			err := cmd.Run()
-
-			if err != nil {
-				// log.Printf("Failed to add nodePort %d to ipset %s: %v", port.NodePort, KUBE_NODE_PORT_TCP_SET_NAME, err)
-				fmt.Printf("")
-			}
-		}
-	}
-
-	// 添加Endpoints到KUBE-LOOP-BACK这个ipset
-	for _, ep := range svc.Status.Endpoints {
-		if ep.IP == "" {
-			continue
-		}
-
-		cmd := exec.Command(
-			"ipset",
-			"add",
-			KUBE_LOOP_BACK_SET_NAME,
-			ep.IP+",tcp:"+fmt.Sprint(ep.Port)+","+ep.IP,
-		)
-		fmt.Printf(cmd.String() + "\n")
-
-		err := cmd.Run()
-		if err != nil {
-			log.Printf(
-				"Failed to add endpoint %s:%s:%s to ipset %s: %v",
-				ep.IP,
-				"tcp:"+fmt.Sprint(ep.Port),
-				ep.IP,
-				KUBE_LOOP_BACK_SET_NAME,
-				err,
-			)
-		}
-	}
 
 	/**配置 ClusterIP 的 ipvs 规则 */
 	clusterIP := svc.Status.ClusterIP
@@ -494,69 +158,6 @@ func (ops *IpvsOps) DelService(svc *object.Service) {
 		svc.Status.ClusterIP,
 	)
 
-	// 从KUBE-CLUSTER-IP这个ipset中删除ClusterIP:port
-	for _, port := range svc.Spec.Ports {
-		cmd := exec.Command(
-			"ipset",
-			"del",
-			KUBE_CLUSTER_IP_SET_NAME,
-			svc.Status.ClusterIP+",tcp:"+fmt.Sprint(port.Port),
-		)
-		fmt.Printf(cmd.String() + "\n")
-		err := cmd.Run()
-
-		if err != nil {
-			log.Printf(
-				"Failed to delete clusterIP %s:%d from ipset %s: %v",
-				svc.Status.ClusterIP,
-				port.Port,
-				KUBE_CLUSTER_IP_SET_NAME,
-				err,
-			)
-		}
-	}
-
-	// 如果需要，从KUBE-NODE-PORT-TCP这个ipset中删除NodePort
-	if svc.Type == object.SERVICE_TYPE_NODEPORT_STR {
-		for _, port := range svc.Spec.Ports {
-			cmd := exec.Command(
-				"ipset",
-				"del",
-				KUBE_NODE_PORT_TCP_SET_NAME,
-				fmt.Sprint(port.NodePort),
-			)
-
-			err := cmd.Run()
-			if err != nil {
-				// log.Printf("Failed to delete nodePort %d from ipset %s: %v", port.NodePort, KUBE_NODE_PORT_TCP_SET_NAME, err)
-				fmt.Printf("")
-			}
-		}
-	}
-
-	// 从KUBE-LOOP-BACK这个ipset中删除Endpoints
-	for _, ep := range svc.Status.Endpoints {
-		cmd := exec.Command(
-			"ipset",
-			"del",
-			KUBE_LOOP_BACK_SET_NAME,
-			ep.IP+",tcp:"+fmt.Sprint(ep.Port)+","+ep.IP,
-		)
-		fmt.Printf(cmd.String() + "\n")
-		err := cmd.Run()
-
-		if err != nil {
-			log.Printf(
-				"Failed to delete endpoint %s:%s:%s from ipset %s: %v",
-				ep.IP,
-				"tcp:"+fmt.Sprint(ep.Port),
-				ep.IP,
-				KUBE_LOOP_BACK_SET_NAME,
-				err,
-			)
-		}
-	}
-
 	// 删除关于ClusterIP:port的DNAT规则，此处删除只需要指定ClusterIP:port，而无需对应的Endpoints
 	clusterIP := svc.Status.ClusterIP
 	ports := svc.Spec.Ports
@@ -646,17 +247,6 @@ func (ops *IpvsOps) UpdateServiceEps(oldSvc, newSvc *object.Service) {
 			continue
 		}
 
-		// 从KUBE-LOOP-BACK这个ipset中删除Endpoint
-		err := exec.Command(
-			"ipset",
-			"del",
-			KUBE_LOOP_BACK_SET_NAME,
-			ep.IP+",tcp:"+fmt.Sprint(ep.Port)+","+ep.IP,
-		).Run()
-		if err != nil {
-			fmt.Printf("")
-		}
-
 		servicePort := targetPortMap[ep.Port]
 
 		// 在ipvs删除ClusterIP:port关于这个ep的DNAT规则
@@ -685,15 +275,6 @@ func (ops *IpvsOps) UpdateServiceEps(oldSvc, newSvc *object.Service) {
 		if ep.IP == "" {
 			continue
 		}
-
-		// 添加到KUBE-LOOP-BACK这个ipset中
-		cmd := exec.Command(
-			"ipset",
-			"add",
-			KUBE_LOOP_BACK_SET_NAME,
-			ep.IP+",tcp:"+fmt.Sprint(ep.Port)+","+ep.IP,
-		)
-		_ = cmd.Run()
 
 		servicePort := targetPortMap[ep.Port]
 
@@ -736,97 +317,6 @@ func (ops *IpvsOps) UpdateServiceEps(oldSvc, newSvc *object.Service) {
 			}
 		}
 	}
-}
-
-// 执行以下命令行时需要sudo权限
-func (ops *IpvsOps) SaveToFile(
-	iptablesFilePath string,
-	ipvsFilePath string,
-	ipsetFilePath string,
-) error {
-	if iptablesFilePath != "" {
-		// 保存iptables配置
-		iptablesCmd := exec.Command(
-			"sh",
-			"-c",
-			"iptables-save > "+iptablesFilePath,
-		)
-		err := iptablesCmd.Run()
-
-		if err != nil {
-			log.Printf("Failed to save iptables config: %v", err)
-			return err
-		}
-	}
-
-	if ipvsFilePath != "" {
-		// 保存ipvs配置
-		ipvsCmd := exec.Command("sh", "-c", "ipvsadm -S > "+ipvsFilePath)
-		err := ipvsCmd.Run()
-
-		if err != nil {
-			log.Printf("Failed to save ipvs config: %v", err)
-			return err
-		}
-	}
-
-	if ipsetFilePath != "" {
-		// 保存ipset配置
-		ipsetCmd := exec.Command("sh", "-c", "ipset save > "+ipsetFilePath)
-		err := ipsetCmd.Run()
-
-		if err != nil {
-			log.Printf("Failed to save ipset config: %v", err)
-			return err
-		}
-	}
-
-	return nil
-}
-
-func (ops *IpvsOps) RestoreFromFile(
-	iptablesFilePath string,
-	ipvsFilePath string,
-	ipsetFilePath string,
-) error {
-	// 恢复iptables配置
-	if ipsetFilePath != "" {
-		iptablesCmd := exec.Command(
-			"sh",
-			"-c",
-			"iptables-restore < "+iptablesFilePath,
-		)
-		err := iptablesCmd.Run()
-
-		if err != nil {
-			log.Printf("Failed to restore iptables config: %v", err)
-			return err
-		}
-	}
-
-	// 恢复ipvs配置
-	if ipvsFilePath != "" {
-		ipvsCmd := exec.Command("sh", "-c", "ipvsadm -R < "+ipvsFilePath)
-		err := ipvsCmd.Run()
-
-		if err != nil {
-			log.Printf("Failed to restore ipvs config: %v", err)
-			return err
-		}
-	}
-
-	// 恢复ipset配置
-	if ipsetFilePath != "" {
-		ipsetCmd := exec.Command("sh", "-c", "ipset restore < "+ipsetFilePath)
-		err := ipsetCmd.Run()
-
-		if err != nil {
-			log.Printf("Failed to restore ipset config: %v", err)
-			return err
-		}
-	}
-
-	return nil
 }
 
 // 创建ipvs模式需要的dummy网卡设备，需要root权限
@@ -975,6 +465,12 @@ func clearAllIPsFromDummyInterface(name string) error {
 
 			return err
 		}
+
+		log.Printf(
+			"Removed IP %s from dummy interface %s",
+			addr.IPNet.String(),
+			name,
+		)
 	}
 
 	return nil
