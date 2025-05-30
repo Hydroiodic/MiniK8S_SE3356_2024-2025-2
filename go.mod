@@ -12,6 +12,7 @@ require (
 	github.com/gin-gonic/gin v1.10.1
 	github.com/google/cadvisor v0.52.1
 	github.com/google/uuid v1.6.0
+	github.com/jedib0t/go-pretty/v6 v6.6.7
 	github.com/mholt/archiver v3.1.1+incompatible
 	github.com/miekg/dns v1.1.66
 	github.com/moby/ipvs v1.1.0
@@ -76,6 +77,7 @@ require (
 	github.com/klauspost/pgzip v1.2.6 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
+	github.com/mattn/go-runewidth v0.0.16 // indirect
 	github.com/mistifyio/go-zfs/v3 v3.0.1 // indirect
 	github.com/moby/docker-image-spec v1.3.1 // indirect
 	github.com/moby/sys/atomicwriter v0.1.0 // indirect
@@ -94,6 +96,7 @@ require (
 	github.com/pierrec/lz4 v2.6.1+incompatible // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
+	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/spf13/pflag v1.0.6 // indirect
 	github.com/sylabs/sif/v2 v2.21.1 // indirect

@@ -51,6 +51,46 @@ func (c *APIClient) AddDNS(dns *object.DNS) error {
 	return nil
 }
 
+func (c *APIClient) GetDNS() ([]object.DNS, error) {
+	// Construct the URL for the DNS retrieval endpoint.
+	url := c.BaseURL + DNSGetURL
+
+	// Create a new HTTP GET request.
+	req, err := http.NewRequest("GET", url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// Send the request and return the response.
+	resp, err := c.Client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	// Ensure the response body is closed after use.
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			// Log the error if closing the response body fails.
+			log.Println("Failed to close response body: ", cerr)
+		}
+	}()
+
+	// Check if the response status code is OK (200).
+	if resp.StatusCode != http.StatusOK {
+		// If not, read the response body and return an error.
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("%s", string(bodyBytes))
+	}
+
+	// Parse the response body as a list of DNS objects.
+	var dnsList []object.DNS
+	if err := json.NewDecoder(resp.Body).Decode(&dnsList); err != nil {
+		return nil, err
+	}
+
+	return dnsList, nil
+}
+
 func (c *APIClient) DeleteDNS(dns *object.DNS) error {
 	// Construct the URL for the DNS deletion endpoint.
 	url := c.BaseURL + DNSDeleteURL

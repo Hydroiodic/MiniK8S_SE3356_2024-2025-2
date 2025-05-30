@@ -27,6 +27,7 @@ func declareGinServer() *gin.Engine {
 
 	// DNS operations.
 	r.POST(apiserver.DNSAddURL, interfaces.AddDNS)
+	r.GET(apiserver.DNSGetURL, interfaces.GetDNS)
 	r.POST(apiserver.DNSDeleteURL, interfaces.DeleteDNS)
 	r.GET(apiserver.DNSGetForwardingInfoURL, interfaces.GetForwardingInfo)
 
