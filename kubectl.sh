@@ -1,4 +1,4 @@
-#/bin/bash
+#!/bin/bash
 
 # This script is used to run `kubectl` commands
 # without needing to specify `go run` each time.
