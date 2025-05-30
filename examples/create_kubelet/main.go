@@ -14,11 +14,10 @@ import (
 func createDefaultKubelet(name string, roles string) *object.Kubelet {
 	return &object.Kubelet{
 		Config: object.KubeletConfig{
-			ApiServerAddress: "http://localhost:8080",
-			Name:             name,
-			Roles:            roles,
-			Version:          "v1",
-			NodeIP:           "localhost",
+			Name:    name,
+			Roles:   roles,
+			Version: "v1",
+			NodeIP:  "localhost",
 		},
 		Status:         "ready",
 		StartTime:      time.Now(),

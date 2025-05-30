@@ -2,6 +2,7 @@ package interfaces
 
 import (
 	"context"
+	"os"
 
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
 )
@@ -33,7 +34,7 @@ var (
 			ClusterIP: object.DNSClusterIP,
 			Endpoints: []object.Endpoint{
 				{
-					IP:   "192.168.1.5", // Must be the node's IP address
+					IP:   os.Getenv("APISERVER_URL"),
 					Port: 5300,
 				},
 			},
@@ -63,13 +64,23 @@ var (
 			ClusterIP: object.ProxyClusterIP,
 			Endpoints: []object.Endpoint{
 				{
-					IP:   "192.168.1.5",
+					IP:   os.Getenv("APISERVER_URL"),
 					Port: 5301,
 				},
 			},
 		},
 	}
 )
+
+func GetInternalDNSService() *object.Service {
+	internalDNSService.Status.Endpoints[0].IP = os.Getenv("APISERVER_URL")
+	return internalDNSService
+}
+
+func GetInternalProxyService() *object.Service {
+	internalProxyService.Status.Endpoints[0].IP = os.Getenv("APISERVER_URL")
+	return internalProxyService
+}
 
 func InitializeInternalServices() {
 	// Create a new ServiceStore instance.
