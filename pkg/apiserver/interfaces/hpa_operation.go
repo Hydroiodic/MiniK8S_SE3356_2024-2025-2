@@ -8,6 +8,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+//nolint:dupl
 func CreateHpa(c *gin.Context) {
 	// Parse the JSON body into a hpa object.
 	var hpa object.HorizontalPodAutoscaler

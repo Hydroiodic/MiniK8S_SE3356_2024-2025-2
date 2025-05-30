@@ -40,6 +40,18 @@ func declareGinServer() *gin.Engine {
 	r.GET(apiserver.HpaGetURL, interfaces.GetHpas)
 	r.POST(apiserver.HpaCreateURL, interfaces.CreateHpa)
 
+	r.POST(apiserver.GpuJobsCreateUrl, interfaces.CreateGpujob)
+	r.GET(apiserver.GpuJobsGetUrl, interfaces.GetGpuJobs)
+	r.POST(apiserver.UploadJobOutputResult, interfaces.UpdateResult)
+	// r.POST("/getOnePod", interfaces.GetOnePod)
+
+	// r.POST("/updateHost", interfaces.HandleUpdateHost)
+
+	// r.POST("/getObjectByType", interfaces.GetObjectByType)
+
+	// r.POST("/createDnsFromFile", interfaces.HandleDnsCreate)
+	// r.POST("/deleteDnsFromFile", interfaces.HandleDnsDelete)
+
 	// Service operations.
 	r.POST(apiserver.ServiceCreateURL, interfaces.CreateService)
 	r.POST(apiserver.ServiceDeleteURL, interfaces.DeleteService)
