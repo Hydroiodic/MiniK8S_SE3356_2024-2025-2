@@ -165,7 +165,9 @@ func (fc *JobController) CreateJob(job object.Job) {
 	_, err = dockerfile.WriteString(
 		"ENV API_SERVER_IP&PORT " + "http://" + apiserver.APIServerURL + ":" + apiserver.APIServerPort + "\n",
 	)
+
 	fmt.Println(apiserver.APIServerURL)
+
 	if err != nil {
 		fmt.Println(err.Error())
 		return
