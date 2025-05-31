@@ -41,22 +41,15 @@ func declareGinServer() *gin.Engine {
 	r.GET(apiserver.HpaGetURL, interfaces.GetHpas)
 	r.POST(apiserver.HpaCreateURL, interfaces.CreateHpa)
 
-	r.POST(apiserver.GpuJobsCreateUrl, interfaces.CreateGpujob)
-	r.GET(apiserver.GpuJobsGetUrl, interfaces.GetGpuJobs)
-	r.POST(apiserver.UploadJobOutputResult, interfaces.UpdateResult)
-	// r.POST("/getOnePod", interfaces.GetOnePod)
-
-	// r.POST("/updateHost", interfaces.HandleUpdateHost)
-
-	// r.POST("/getObjectByType", interfaces.GetObjectByType)
-
-	// r.POST("/createDnsFromFile", interfaces.HandleDnsCreate)
-	// r.POST("/deleteDnsFromFile", interfaces.HandleDnsDelete)
-
 	// Service operations.
 	r.POST(apiserver.ServiceCreateURL, interfaces.CreateService)
 	r.POST(apiserver.ServiceDeleteURL, interfaces.DeleteService)
 	r.GET(apiserver.ServiceGetURL, interfaces.GetAllService)
+
+	// GPUJob operations.
+	r.POST(apiserver.GPUJobsCreateURL, interfaces.CreateGPUJob)
+	r.GET(apiserver.GPUJobsGetURL, interfaces.GetGPUJobs)
+	r.POST(apiserver.UploadResultURL, interfaces.UpdateResult)
 
 	// r.POST("/createFunctionFromFile", interfaces.CreateFunction)
 	// r.POST("/deleteFunctionFromFile", interfaces.DeleteFunction)
@@ -66,11 +59,6 @@ func declareGinServer() *gin.Engine {
 	// r.POST("/createPVCFromFile", interfaces.CreatePVC)
 	// r.POST("/deletePVCFromFile", interfaces.DeletePVC)
 	// r.POST("/getPVC", interfaces.GetPVC)
-
-	// r.POST("/createJobFromFile", interfaces.CreateJob)
-
-	// r.POST("/uploadJobOutputResult", interfaces.UploadJobOutputResult)
-	// r.POST("/uploadJobErrorResult", interfaces.UploadJobErrorResult)
 
 	return r
 }

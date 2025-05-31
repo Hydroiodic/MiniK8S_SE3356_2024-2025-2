@@ -124,7 +124,7 @@ func processSecurityContextsMerge(
 	}
 
 	// If the user is found, we should get the supplemental groups for it.
-	supplementalGroups, err := image.GetCurrentUserSupplymentalGroups(
+	supplementalGroups, err := image.GetCurrentUserSupplementalGroups(
 		username,
 		imgRef,
 	)

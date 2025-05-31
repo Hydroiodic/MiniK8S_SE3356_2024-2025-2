@@ -6,12 +6,13 @@ import (
 	"strings"
 	"time"
 
-	client "github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/apiserver"
+	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/apiserver"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
 	"github.com/google/uuid"
 )
 
 type ReplicasetController struct {
+	// TODO: Please add a field `client` to interact with the API server.
 }
 
 func (rsc *ReplicasetController) Start() {
@@ -35,7 +36,7 @@ func (rsc *ReplicasetController) CreatePod(
 	num int,
 	rs object.ReplicaSet,
 ) {
-	ci := client.NewAPIClient("")
+	ci := apiserver.NewAPIClient("")
 
 	for range num {
 		var pod object.Pod
@@ -59,7 +60,7 @@ func (rsc *ReplicasetController) DeletePod(
 	pods []object.Pod,
 	num int,
 ) {
-	ci := client.NewAPIClient("")
+	ci := apiserver.NewAPIClient("")
 	for i := range num {
 		err := ci.DeletePod(&pods[i])
 		if err != nil {
@@ -70,7 +71,7 @@ func (rsc *ReplicasetController) DeletePod(
 }
 
 func (rsc *ReplicasetController) CheckAllReplicaset() {
-	ci := client.NewAPIClient("")
+	ci := apiserver.NewAPIClient("")
 
 	var replicasets []object.ReplicaSet
 
@@ -93,7 +94,7 @@ func (rsc *ReplicasetController) CheckAllReplicaset() {
 		var matchPods []object.Pod
 
 		for _, p := range pods {
-			if HasMatchingLabels(curLabels, p.Metadata.Labels) {
+			if apiserver.HasMatchingLabels(curLabels, p.Metadata.Labels) {
 				matchPods = append(matchPods, p)
 			}
 		}
@@ -103,7 +104,7 @@ func (rsc *ReplicasetController) CheckAllReplicaset() {
 		if len(matchPods) == rs.Spec.Replicas {
 			rs.Status.AvailableReplicas = rs.Spec.Replicas
 		} else if len(matchPods) < rs.Spec.Replicas {
-			//创建新的pod
+			// 创建新的pod
 			log.Printf("数量不够 : %d", rs.Spec.Replicas-len(matchPods))
 			rsc.CreatePod(rs.Spec.Replicas-len(matchPods), rs)
 			rs.Status.AvailableReplicas = rs.Spec.Replicas
@@ -120,17 +121,4 @@ func (rsc *ReplicasetController) CheckAllReplicaset() {
 			fmt.Println(err)
 		}
 	}
-}
-
-// 判断两个 Label 是否有相同的键值对
-func HasMatchingLabels(
-	rsLabels, podLabels map[string]string,
-) bool {
-	for key, value := range rsLabels {
-		if podValue, exists := podLabels[key]; exists && podValue == value {
-			return true
-		}
-	}
-
-	return false
 }

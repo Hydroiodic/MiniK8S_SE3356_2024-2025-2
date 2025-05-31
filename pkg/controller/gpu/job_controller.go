@@ -1,4 +1,4 @@
-package gpujob
+package gpu
 
 import (
 	"context"
@@ -25,10 +25,6 @@ import (
 //         ├── Dockerfile
 //         ├── <namespace>_<job-name>.slurm
 //         ├── <zip解压后内容> (如 .cu文件 等)
-
-const WorkDir = "/home/ubuntu/wang/MiniK8S_SE3356_2024-2025-2"
-const registry_user = "useruser"
-const registry_password = "HTEQRHOAOLDN"
 
 // cache: 用于缓存已处理的 Job 对象，key 格式为 "namespace/name"
 type JobController struct {
@@ -59,7 +55,7 @@ func (fc *JobController) Start() {
 }
 
 func (fc *JobController) CheckJob() {
-	jobs, err := fc.ci.GetAllGpuJob()
+	jobs, err := fc.ci.GetAllGPUJob()
 	if err != nil {
 		fmt.Println(err.Error())
 		return
@@ -139,8 +135,11 @@ func (fc *JobController) CreateJob(job object.Job) {
 		}
 	}()
 
-	_, err = dockerfile.WriteString(
-		"FROM " + apiserver.APIServerIp + ":5000/job-server:latest\n",
+	_, err = fmt.Fprintf(
+		dockerfile,
+		"FROM %s:%d/job-server:latest\n",
+		imageRegistryURL,
+		imageRegistryPort,
 	)
 	if err != nil {
 		fmt.Println(err.Error())
@@ -164,7 +163,7 @@ func (fc *JobController) CreateJob(job object.Job) {
 	}
 
 	_, err = dockerfile.WriteString(
-		"ENV API_SERVER_IP&PORT " + apiserver.APIServerUrl + "\n",
+		"ENV API_SERVER_IP&PORT " + apiserver.APIServerURL + "\n",
 	)
 	if err != nil {
 		fmt.Println(err.Error())
@@ -239,8 +238,9 @@ func (fc *JobController) CreateJob(job object.Job) {
 			Dockerfile: job.Metadata.Name + "/Dockerfile",
 			Tags: []string{
 				fmt.Sprintf(
-					"%s:5000/job-server/%s/%s:latest",
-					apiserver.APIServerIp,
+					"%s:%d/job-server/%s/%s:latest",
+					imageRegistryURL,
+					imageRegistryPort,
 					job.Metadata.Namespace,
 					job.Metadata.Name,
 				),
@@ -276,7 +276,13 @@ func (fc *JobController) CreateJob(job object.Job) {
 	fmt.Println(authEncoded)
 	resp2, err := cli.ImagePush(
 		context.Background(),
-		apiserver.APIServerIp+":5000/job-server/"+job.Metadata.Namespace+"/"+job.Metadata.Name+":latest",
+		fmt.Sprintf(
+			"%s:%d/job-server/%s/%s:latest",
+			imageRegistryURL,
+			imageRegistryPort,
+			job.Metadata.Namespace,
+			job.Metadata.Name,
+		),
 		image.PushOptions{
 			RegistryAuth: authEncoded,
 			All:          false,
@@ -316,8 +322,14 @@ func (fc *JobController) createPod(job object.Job) {
 	pod.Spec.Containers = append(
 		pod.Spec.Containers,
 		object.Container{
-			Name:  "job_container_" + job.Metadata.Name,
-			Image: apiserver.APIServerIp + ":5000/job-server/" + job.Metadata.Namespace + "/" + job.Metadata.Name + ":latest",
+			Name: "job_container_" + job.Metadata.Name,
+			Image: fmt.Sprintf(
+				"%s:%d/job-server/%s/%s:latest",
+				imageRegistryURL,
+				imageRegistryPort,
+				job.Metadata.Namespace,
+				job.Metadata.Name,
+			),
 		},
 	)
 
@@ -333,25 +345,6 @@ func (fc *JobController) writeSlurm(job object.Job, JobFilePath string) {
 
 	scriptanme := job.Metadata.Namespace + "_" + job.Metadata.Name + ".slurm"
 	slurm, err := os.Create(JobFilePath + "/" + scriptanme)
-	// c测试已有的cpu文件
-	// _, err = slurm.WriteString("#!/bin/bash\n\n")
-	// _, err = slurm.WriteString("#SBATCH --job-name=aaaaaa" + "\n")
-	// _, err = slurm.WriteString("#SBATCH --partition=cpu\n")
-	// _, err = slurm.WriteString(
-	// 	"#SBATCH --output=" + job.Spec.OutputFile + "\n",
-	// ) // 你的需求
-	// _, err = slurm.WriteString("#SBATCH --error=" + job.Spec.ErrorFile + "\n")
-	// _, err = slurm.WriteString("#SBATCH -n 8\n")
-	// _, err = slurm.WriteString("#SBATCH --ntasks-per-node=8\n\n")
-	// _, err = slurm.WriteString("ulimit -l unlimited\n")
-	// _, err = slurm.WriteString("ulimit -s unlimited\n\n")
-	// _, err = slurm.WriteString("module load gcc\n\n")
-	// _, err = slurm.WriteString("export OMP_NUM_THREADS=8\n")
-	// _, err = slurm.WriteString("./omphello\n")
-
-	// if err != nil {
-	// 	panic(err)
-	// }
 
 	if err != nil {
 		fmt.Println(err.Error())

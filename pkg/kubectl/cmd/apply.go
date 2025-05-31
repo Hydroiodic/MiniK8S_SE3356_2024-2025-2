@@ -127,7 +127,7 @@ func handleGPUJOBRaw(rawData []byte) error {
 	s.Spec.UserUploadFile = fileByte
 	fmt.Println(s)
 
-	err = apiserver.NewAPIClient("").CreateGpujob(s)
+	err = apiserver.NewAPIClient("").CreateGPUJob(s)
 	if err != nil {
 		return err
 	}

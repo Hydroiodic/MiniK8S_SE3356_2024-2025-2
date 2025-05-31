@@ -10,18 +10,18 @@ import (
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
 )
 
-func (c *APIClient) CreateGpujob(job object.Job) error {
+func (c *APIClient) CreateGPUJob(job object.Job) error {
 	// Construct the URL for the Pod creation endpoint.
-	url := c.BaseURL + GpuJobsCreateUrl
+	url := c.BaseURL + GPUJobsCreateURL
 
 	// Convert the Pod object to JSON to be sent in the request body.
-	GpujobJSON, err := json.Marshal(job)
+	GPUJobJSON, err := json.Marshal(job)
 	if err != nil {
 		return err
 	}
 
 	// Create a new HTTP POST request with the pod as the body.
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer(GpujobJSON))
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(GPUJobJSON))
 	if err != nil {
 		return err
 	}
@@ -52,9 +52,9 @@ func (c *APIClient) CreateGpujob(job object.Job) error {
 	return nil
 }
 
-func (c *APIClient) GetAllGpuJob() ([]object.Job, error) {
+func (c *APIClient) GetAllGPUJob() ([]object.Job, error) {
 	var jobs []object.Job
-	err := c.getAndUnmarshalList(GpuJobsGetUrl, &jobs)
+	err := c.getAndUnmarshalList(GPUJobsGetURL, &jobs)
 
 	return jobs, err
 }

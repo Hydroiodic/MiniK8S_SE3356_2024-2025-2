@@ -13,7 +13,7 @@ RUN go env -w GOPROXY="https://goproxy.io,direct"
 
 # 构建 Go 程序
 RUN mkdir -p /root/.ssh 
-COPY ./ssh-config/* /root/.ssh/
+COPY ./ssh_config/* /root/.ssh/
 
 RUN apk add --no-cache openssh-client
 RUN chmod +x /app/start.sh

@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/apiserver"
-	replicasetutil "github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/controller/replicaset"
 	cadvisorutils "github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/cadvisor"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/container"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
@@ -124,7 +123,7 @@ func (hpaC *HPAController) CheckOneHPA(hpa object.HorizontalPodAutoscaler) {
 	var matchPods []object.Pod
 
 	for _, p := range pods {
-		if replicasetutil.HasMatchingLabels(
+		if apiserver.HasMatchingLabels(
 			replicaset.Metadata.Labels,
 			p.Metadata.Labels,
 		) {
