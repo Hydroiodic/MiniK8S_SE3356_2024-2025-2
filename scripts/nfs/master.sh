@@ -4,8 +4,7 @@ sudo apt update
 sudo apt install nfs-kernel-server
 
 sudo mkdir -p /nfs_share
-sudo chown nobody:nogroup /nfs_share  # Ubuntu/Debian
-sudo chown nfsnobody:nfsnobody /nfs_share  # CentOS/RHEL
+sudo chown ubuntu:ubuntu /nfs_share  # Ubuntu/Debian
 sudo chmod 755 /nfs_share
 
 echo "/nfs_share *(rw,sync,no_subtree_check)" | sudo tee -a /etc/exports
