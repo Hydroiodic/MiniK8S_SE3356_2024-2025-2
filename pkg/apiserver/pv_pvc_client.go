@@ -1,6 +1,7 @@
 package apiserver
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -88,4 +89,55 @@ func (c *APIClient) GetPVC(
 	}
 
 	return &pvc, nil
+}
+
+func (c *APIClient) CreatePVC(
+	pvc *object.PersistentVolumeClaim,
+) (*object.PersistentVolumeClaim, error) {
+	// Construct the URL for the PVC creation endpoint.
+	url := c.BaseURL + PVClaimCreateURL
+
+	// Marshal the PVC object to JSON.
+	body, err := json.Marshal(pvc)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal PVC: %v", err)
+	}
+
+	// Create a new HTTP POST request with the JSON body.
+	req, err := http.NewRequest(
+		"POST",
+		url,
+		io.NopCloser(bytes.NewReader(body)),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	// Send the request and return the response.
+	resp, err := c.Client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+
+	// Ensure the response body is closed after use.
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			log.Println("Failed to close response body: ", cerr)
+		}
+	}()
+
+	// Check if the response status code is OK (201).
+	if resp.StatusCode != http.StatusCreated {
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("%s", string(bodyBytes))
+	}
+
+	var createdPVC object.PersistentVolumeClaim
+	if err := json.NewDecoder(resp.Body).Decode(&createdPVC); err != nil {
+		return nil, fmt.Errorf("failed to decode created PVC response: %v", err)
+	}
+
+	return &createdPVC, nil
 }

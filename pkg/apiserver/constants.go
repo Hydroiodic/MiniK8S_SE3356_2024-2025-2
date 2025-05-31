@@ -39,6 +39,9 @@ const (
 	PVGetURL  = "/pv"
 	PVCGetURL = "/pvc"
 
+	PVCreateURL      = "/pv/createPV"
+	PVClaimCreateURL = "/pvc/createPVC"
+
 	// GPUJob operations
 	GPUJobsCreateURL = "/gpujob/createJobs"
 	GPUJobsGetURL    = "/gpujob/getJobs"

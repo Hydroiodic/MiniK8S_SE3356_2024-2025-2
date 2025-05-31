@@ -160,6 +160,7 @@ func (vm *VolumeManager) handlePVCVolume(
 			)
 		}
 
+		// TODO: 如果不行，就换成类似 symlink 的方式
 		err = vm.mountNFSVolume(pv, volumePath)
 		if err != nil {
 			return fmt.Errorf(
@@ -271,13 +272,19 @@ func (vm *VolumeManager) mountNFSVolume(
 	pv *object.PersistentVolume,
 	mountPoint string,
 ) error {
+	// TODO: 将NFS.Path添加前缀，确保存在
+	formattedNFSPath := filepath.Join(
+		"/nfs_share",
+		pv.Spec.NFS.Path,
+	)
+
 	cmd := exec.Command(
 		"mount",
 		"-t",
 		"nfs",
 		"-o",
 		"soft,timeo=100,retry=3",
-		pv.Spec.NFS.Server+":"+pv.Spec.NFS.Path,
+		pv.Spec.NFS.Server+":"+formattedNFSPath,
 		mountPoint,
 	)
 

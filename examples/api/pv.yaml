@@ -5,10 +5,7 @@ metadata:
 spec:
   capacity:
     storage: 5Gi
-  accessModes:
-  - ReadWriteMany
   persistentVolumeReclaimPolicy: Retain
-  storageClassName: manual
   nfs:
-    server: 192.168.1.100
-    path: /mnt/nfs
+    server: 192.168.1.6
+    path: /test-pv
