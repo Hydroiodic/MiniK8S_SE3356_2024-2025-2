@@ -60,6 +60,9 @@ func CreatePersistentVolume(c *gin.Context) {
 		return
 	}
 
+	// 设置 PV 的状态为可用
+	pv.Status = object.PersistentVolumeAvailable
+
 	// 将 PV 写入 etcd
 	if err := st.AddPersistentVolume(c.Request.Context(), &pv); err != nil {
 		c.JSON(

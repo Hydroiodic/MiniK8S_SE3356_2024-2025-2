@@ -1,6 +1,7 @@
 package interfaces
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 
@@ -73,7 +74,7 @@ func CreatePersistentVolumeClaim(c *gin.Context) {
 
 	// 确保使用后关闭 PersistentVolumeStore
 	defer func() {
-		if closeErr := st.Close(); closeErr != nil {
+		if closeErr := pvSt.Close(); closeErr != nil {
 			fmt.Printf("关闭 PersistentVolume 存储失败: %v\n", closeErr)
 		}
 	}()
@@ -88,13 +89,6 @@ func CreatePersistentVolumeClaim(c *gin.Context) {
 		return
 	}
 
-	// 检查是否有可用的 PV
-	if len(volumes) == 0 {
-		// TODO: 创建PV
-		c.JSON(http.StatusNotFound, "没有可用的 PersistentVolume")
-		return
-	}
-
 	requiredCapacity, err := object.StorageToMegabytes(
 		pvc.Spec.Capacity.Storage,
 	)
@@ -102,6 +96,8 @@ func CreatePersistentVolumeClaim(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, "无效的存储容量格式: "+err.Error())
 		return
 	}
+
+	found := false
 
 	// 将 PVC 绑定到第一个可用的 PV
 	for _, pv := range volumes {
@@ -120,14 +116,35 @@ func CreatePersistentVolumeClaim(c *gin.Context) {
 			continue // 跳过容量不足的 PV
 		}
 
+		found = true // 找到一个合适的 PV
+
 		// 如果 PV 的存储容量大于等于 PVC 的要求，则进行绑定
 		// 绑定 PVC 到 PV
 		pvc.Spec.VolumeName = pv.Metadata.Name
 		pv.Status = object.PersistentVolumeBound // 更新 PV 状态为已绑定
+
+		// 更新 PV 的状态
+		if err := pvSt.UpdatePersistentVolume(context.Background(), pv); err != nil {
+			c.JSON(
+				http.StatusInternalServerError,
+				"更新 PersistentVolume 状态失败: "+err.Error(),
+			)
+
+			return
+		}
+
+		break // 找到一个合适的 PV 后退出循环
+	}
+
+	// 检查是否有可用的 PV
+	if !found {
+		// TODO: 创建PV
+		c.JSON(http.StatusNotFound, "没有可用的 PersistentVolume")
+		return
 	}
 
 	// 将 PVC 写入 etcd
-	if err := st.AddPersistentVolumeClaim(c.Request.Context(), &pvc); err != nil {
+	if err := st.AddPersistentVolumeClaim(context.Background(), &pvc); err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
 			"向 etcd 添加 PersistentVolumeClaim 失败: "+err.Error(),
@@ -262,6 +279,7 @@ func ListPersistentVolumeClaims(c *gin.Context) {
 			http.StatusInternalServerError,
 			"从 etcd 列出 PersistentVolumeClaim 失败: "+err.Error(),
 		)
+
 		return
 	}
 
@@ -300,6 +318,7 @@ func DeletePersistentVolumeClaim(c *gin.Context) {
 			http.StatusInternalServerError,
 			"从 etcd 删除 PersistentVolumeClaim 失败: "+err.Error(),
 		)
+
 		return
 	}
 

@@ -4,11 +4,10 @@ import "fmt"
 
 // PersistentVolume 定义精简的 PV 结构体
 type PersistentVolume struct {
-	Kind       string               `json:"kind"`
-	APIVersion string               `json:"apiVersion"`
-	Metadata   Metadata             `json:"metadata"`
-	Spec       PersistentVolumeSpec `json:"spec"`
-	Status     string               `json:"status,omitempty"` // 状态字段，表示 PV 的当前状态
+	Kind     string               `json:"kind"`
+	Metadata Metadata             `json:"metadata"`
+	Spec     PersistentVolumeSpec `json:"spec"`
+	Status   string               `json:"status,omitempty"` // 状态字段，表示 PV 的当前状态
 }
 
 const (
@@ -32,7 +31,7 @@ type PersistentVolumeSpec struct {
 
 // TODO: 要不要呢？
 const (
-	// PersistentVolumeReclaimDelete 表示 PV 删除时回收
+	// PersistentVolumeReclaimDelete 表示 PVC 删除时 PV 也删除
 	PersistentVolumeReclaimDelete = "Delete"
 	// PersistentVolumeReclaimRetain 表示 PV 保留
 	PersistentVolumeReclaimRetain = "Retain"
