@@ -3,6 +3,7 @@ package apiserver
 import (
 	"net/http"
 	"os"
+	"strings"
 )
 
 type APIClient struct {
@@ -15,14 +16,21 @@ type APIClient struct {
 func NewAPIClient(baseURL string) *APIClient {
 	// If baseURL is empty, get it from the environment variable or use the default.
 	if baseURL == "" {
-		// Check if the environment variable APISERVER_URL is set.
 		if envURL := os.Getenv("APISERVER_URL"); envURL != "" {
 			baseURL = envURL
 		} else {
 			baseURL = APIServerURL
 		}
+	}
 
-		// Add the port to the base URL.
+	// Ensure it has a protocol.
+	if !strings.HasPrefix(baseURL, "http://") &&
+		!strings.HasPrefix(baseURL, "https://") {
+		baseURL = "http://" + baseURL
+	}
+
+	// Ensure it has a port.
+	if !strings.Contains(baseURL[strings.Index(baseURL, "://")+3:], ":") {
 		baseURL = baseURL + ":" + APIServerPort
 	}
 
