@@ -59,7 +59,7 @@ func GetCurrentUserGroup(usernameOrID, imgRef string) (string, string, error) {
 	return "", "", nil
 }
 
-func GetCurrentUserSupplymentalGroups(
+func GetCurrentUserSupplementalGroups(
 	username, imgRef string,
 ) ([]string, error) {
 	// Let's get the contents of the /etc/group file from the image.

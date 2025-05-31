@@ -27,3 +27,11 @@ type JobStatus struct {
 	OutputFileContent string `yaml:"outputFileContent" json:"outputFileContent"`
 	ErrorFileContent  string `yaml:"errorFileContent"  json:"errorFileContent"`
 }
+
+type JobRequestBody struct {
+	JobID        string `json:"job_id"`
+	JobName      string `json:"jobname"`
+	JobNamespace string `json:"jobnamespace"`
+	Output       string `json:"output,omitempty"`
+	Error        string `json:"error,omitempty"`
+}

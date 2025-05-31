@@ -8,28 +8,28 @@ import (
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/etcd"
 )
 
-type GPUJOBStore struct {
+type GPUJobStore struct {
 	etcdClient *etcd.Client
 }
 
 // NewDNSStore creates a new DNSStore with the given etcd endpoints.
-func NewGPUJOBStore(etcdEndpoints []string) (*GPUJOBStore, error) {
+func NewGPUJobStore(etcdEndpoints []string) (*GPUJobStore, error) {
 	client, err := etcd.NewEtcdClient(etcdEndpoints)
 	if err != nil {
 		return nil, err
 	}
 
-	return &GPUJOBStore{etcdClient: client}, nil
+	return &GPUJobStore{etcdClient: client}, nil
 }
 
-func (s *GPUJOBStore) Close() error {
+func (s *GPUJobStore) Close() error {
 	return s.etcdClient.Close()
 }
 
-func (s *GPUJOBStore) ListGpuJobs(
+func (s *GPUJobStore) ListGPUJobs(
 	ctx context.Context,
 ) ([]*Job, error) {
-	kvs, err := s.etcdClient.List(ctx, etcd.GpujobPrefix)
+	kvs, err := s.etcdClient.List(ctx, etcd.GPUJobPrefix)
 	if err != nil {
 		return nil, err
 	}
@@ -50,11 +50,11 @@ func (s *GPUJOBStore) ListGpuJobs(
 	return jobs, nil
 }
 
-func (s *GPUJOBStore) key(namespace, name string) string {
-	return path.Join(etcd.GpujobPrefix, namespace, name)
+func (s *GPUJobStore) key(namespace, name string) string {
+	return path.Join(etcd.GPUJobPrefix, namespace, name)
 }
 
-func (s *GPUJOBStore) GetGpuJob(
+func (s *GPUJobStore) GetGPUJob(
 	ctx context.Context,
 	namespace, name string,
 ) (*Job, error) {
@@ -74,7 +74,8 @@ func (s *GPUJOBStore) GetGpuJob(
 
 	return &job, nil
 }
-func (s *GPUJOBStore) AddGpuJob(
+
+func (s *GPUJobStore) AddGPUJob(
 	ctx context.Context,
 	job *Job,
 ) error {

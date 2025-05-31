@@ -2,8 +2,8 @@ package apiserver
 
 const (
 	// The URL of the APIServer.
-	APIServerUrl        = "http://localhost:8080"
-	APIServerIp         = "localhost"
+	APIServerURL        = "localhost"
+	APIServerPort       = "8080"
 	KubeletRegisterURL  = "/kubelet/register"
 	KubeletHeartbeatURL = "/kubelet/heartbeat"
 	KubeletGetNodesURL  = "/kubelet/getNodes"
@@ -36,8 +36,8 @@ const (
 	HpaGetURL    = "/hpa/getHpas"
 	HpaCreateURL = "/hpa/createHpa"
 
-	//gpujob operations
-	GpuJobsCreateUrl      = "/gpujob/createJobs"
-	GpuJobsGetUrl         = "/gpujob/getJobs"
-	UploadJobOutputResult = "/gpujob/updateResult"
+	// GPUJob operations
+	GPUJobsCreateURL = "/gpujob/createJobs"
+	GPUJobsGetURL    = "/gpujob/getJobs"
+	UploadResultURL  = "/gpujob/updateResult"
 )

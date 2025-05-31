@@ -13,13 +13,17 @@ type APIClient struct {
 }
 
 func NewAPIClient(baseURL string) *APIClient {
-	// If baseURL is empty, set it to the default API server URL.
+	// If baseURL is empty, get it from the environment variable or use the default.
 	if baseURL == "" {
-		baseURL = os.Getenv("APISERVER_URL")
-	}
-	// If the environment variable is also not set, use the default value.
-	if baseURL == "" {
-		baseURL = APIServerUrl
+		// Check if the environment variable APISERVER_URL is set.
+		if envURL := os.Getenv("APISERVER_URL"); envURL != "" {
+			baseURL = envURL
+		} else {
+			baseURL = APIServerURL
+		}
+
+		// Add the port to the base URL.
+		baseURL = baseURL + ":" + APIServerPort
 	}
 
 	// Create a new API client with the specified base URL and a default HTTP client.
