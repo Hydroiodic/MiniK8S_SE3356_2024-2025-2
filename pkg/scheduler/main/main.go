@@ -12,16 +12,16 @@ import (
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
 )
 
-func handleCreateNewPod(msg map[string]interface{}) error {
+func handleCreateNewPod(msg map[string]any) error {
 	// Handle the message for creating a new pod.
-	podjson, err := json.Marshal(msg)
+	podJson, err := json.Marshal(msg)
 	if err != nil {
 		return err
 	}
 
 	// Unmarshal the JSON message into a Pod struct.
 	var pod object.Pod
-	if err := json.Unmarshal(podjson, &pod); err != nil {
+	if err := json.Unmarshal(podJson, &pod); err != nil {
 		return err
 	}
 

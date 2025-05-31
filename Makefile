@@ -1,3 +1,6 @@
+ENV_VARS = \
+  APISERVER_URL=192.168.1.6 \
+  RABBITMQ_URL=amqp://myuser:mypassword@192.168.1.6:5672/
 
 install: install-golangci install-golines
 
@@ -15,19 +18,19 @@ lint:
 	@golangci-lint-v2 run
 
 apiserver:
-	@bash scripts/launch/apiserver.sh
+	@$(ENV_VARS) bash scripts/launch/apiserver.sh
 
 controller:
-	@bash scripts/launch/controller.sh
+	@$(ENV_VARS) bash scripts/launch/controller.sh
 
 kubelet:
-	@sudo bash scripts/launch/kubelet.sh
+	@sudo $(ENV_VARS) bash scripts/launch/kubelet.sh
 
 nameserver:
-	@bash scripts/launch/nameserver.sh
+	@$(ENV_VARS) bash scripts/launch/nameserver.sh
 
 scheduler:
-	@bash scripts/launch/scheduler.sh
+	@$(ENV_VARS) bash scripts/launch/scheduler.sh
 
 test:
 	@echo "Running tests..."
@@ -38,4 +41,4 @@ test:
 	@go tool cover -html=coverage.out -o coverage.html
 	@echo "Coverage report generated: coverage.html"
 
-.PHONY: install-golangci install-golines clean lint test
+.PHONY: install-golangci install-golines clean lint test apiserver controller kubelet nameserver scheduler

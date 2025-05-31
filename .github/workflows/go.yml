@@ -18,7 +18,12 @@ jobs:
         with:
           go-version: stable
 
-      - name: Cache Go modules
+      - name: Install APT Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install libbtrfs-dev -y
+
+      - name: Cache Go Modules
         uses: actions/cache@v4
         with:
           path: |
@@ -32,20 +37,20 @@ jobs:
 
       - name: Build
         run: go build -v ./...
-      
-      - name: Set up Docker
+
+      - name: Setup Docker
         uses: docker/setup-buildx-action@v2
-      
-      # - name: Set up etcd
+
+      # - name: Setup Etcd
       #   run: |
       #       bash scripts/etcd/etcd.sh
-      
-      - name: Set up Network
+
+      - name: Setup Network
         run: |
             docker network create --attachable=true --subnet=10.5.20.0/24  -o "com.docker.network.bridge.name"="mini-cni0" flannel 
-      
+
       - uses: actions/checkout@v4
-      - name: Cache APT packages
+      - name: Cache APT Packages
         uses: actions/cache@v4
         with:
           path: /var/cache/apt/archives
@@ -76,7 +81,12 @@ jobs:
         with:
           go-version: stable
 
+      - name: Install APT Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install libbtrfs-dev -y
+
       - name: golangci-lint
         uses: golangci/golangci-lint-action@v7
         with:
-          version: v2.0
+          version: v2.1.6

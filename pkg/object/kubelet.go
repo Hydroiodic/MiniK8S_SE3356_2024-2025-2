@@ -6,11 +6,10 @@ import (
 )
 
 type KubeletConfig struct {
-	ApiServerAddress string `yaml:"apiServerAddress" json:"apiServerAddress"`
-	Name             string `yaml:"name"             json:"name"`
-	Roles            string `yaml:"roles"            json:"roles"`
-	Version          string `yaml:"version"          json:"version"`
-	NodeIP           string `yaml:"nodeIP"           json:"nodeIP"`
+	Name    string `yaml:"name"    json:"name"`
+	Roles   string `yaml:"roles"   json:"roles"`
+	Version string `yaml:"version" json:"version"`
+	NodeIP  string `yaml:"nodeIP"  json:"nodeIP"`
 }
 
 type Kubelet struct {

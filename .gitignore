@@ -19,3 +19,11 @@
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
+
+# Compressed files
+*.zip
+*.tar
+
+# GPU job files
+# TODO: why don't you use `/tmp`?
+jobs/

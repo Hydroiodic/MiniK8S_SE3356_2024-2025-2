@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"os/signal"
+	"os/user"
 	"syscall"
 
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/apiserver"
@@ -14,11 +15,32 @@ import (
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
 )
 
+// NOTE: Currently, we use USERNAME_HOSTNAME as the Kubelet name.
+func getKubeletName() string {
+	// Let's get the hostname of the current machine.
+	hostname, err := os.Hostname()
+	if err != nil {
+		log.Fatalf("failed to get hostname: %v", err)
+	}
+
+	// Get the username of the current user.
+	user, err := user.Current()
+	if err != nil {
+		log.Fatalf("failed to get current user: %v", err)
+	}
+
+	// Combine the username and hostname to create a unique Kubelet name.
+	return user.Username + "_" + hostname
+}
+
 func main() {
-	// 初始化 KubeletConfig，根据需要修改
+	controlPlaneIP := os.Getenv("APISERVER_URL")
+	if controlPlaneIP == "" {
+		log.Fatalf("APISERVER_URL environment variable must be set")
+	}
+
 	config := object.KubeletConfig{
-		Name: "myNode",
-		// 其他字段...
+		Name: getKubeletName(),
 	}
 
 	// 获取NodeIP
@@ -39,13 +61,11 @@ func main() {
 
 	podService := pod.NewPodService(containerService)
 
-	// 初始化 APIServerClient 的实际实现
-	var client = apiserver.NewAPIClient("")
+	// 使用环境变量创建 APIServerClient
+	client := apiserver.NewAPIClient("http://" + controlPlaneIP + ":8080")
 
-	// 创建 KubeletService
 	kubeletService := kubelet.NewKubeletService(config, podService, client)
 
-	// 创建一个 stopCh，用于优雅关闭服务
 	stopCh := make(chan struct{})
 	go func() {
 		sigCh := make(chan os.Signal, 1)

@@ -92,6 +92,42 @@ func AddDNS(c *gin.Context) {
 	c.JSON(http.StatusOK, "DNS added successfully")
 }
 
+func GetDNS(c *gin.Context) {
+	// Create a new etcd connection for DNS operations.
+	st, err := object.NewDNSStore([]string{})
+	if err != nil {
+		// Failed to create DNS store, report error.
+		c.JSON(
+			http.StatusInternalServerError,
+			"Failed to create DNS store: "+err.Error(),
+		)
+
+		return
+	}
+
+	// Ensure the DNS store is closed after use.
+	defer func() {
+		if closeErr := st.Close(); closeErr != nil {
+			log.Printf("Failed to close DNS store: %v\n", closeErr)
+		}
+	}()
+
+	// Get all DNS objects from etcd.
+	dnses, err := st.ListDNS(c.Request.Context())
+	if err != nil {
+		// Failed to list DNS, report error.
+		c.JSON(
+			http.StatusInternalServerError,
+			"Failed to list DNS: "+err.Error(),
+		)
+
+		return
+	}
+
+	// Return the list of DNS objects as a JSON response.
+	c.JSON(http.StatusOK, dnses)
+}
+
 func DeleteDNS(c *gin.Context) {
 	// Create a new etcd connection for DNS operations.
 	st, err := object.NewDNSStore([]string{})

@@ -2,12 +2,14 @@ package interfaces
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
 	"github.com/gin-gonic/gin"
 )
 
+//nolint:dupl
 func CreateHpa(c *gin.Context) {
 	// Parse the JSON body into a hpa object.
 	var hpa object.HorizontalPodAutoscaler
@@ -21,7 +23,7 @@ func CreateHpa(c *gin.Context) {
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
-			"Failed to create hpa store: "+err.Error(),
+			"Failed to create HpaStore: "+err.Error(),
 		)
 
 		return
@@ -30,7 +32,7 @@ func CreateHpa(c *gin.Context) {
 	// Ensure the HpaStore is closed after use.
 	defer func() {
 		if closeErr := st.Close(); closeErr != nil {
-			fmt.Printf("Failed to close hpa store: %v\n", closeErr)
+			log.Printf("Failed to close HpaStore: %v\n", closeErr)
 		}
 	}()
 
@@ -44,7 +46,7 @@ func CreateHpa(c *gin.Context) {
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
-			"Failed to get hpa from etcd: "+err.Error(),
+			"Failed to get HPA from etcd: "+err.Error(),
 		)
 
 		return
@@ -52,10 +54,9 @@ func CreateHpa(c *gin.Context) {
 
 	// If the HPA already exists, return an error.
 	if reply != nil {
-		fmt.Println("Create hpa from file failed: same hpa namespace & name")
 		c.JSON(
 			http.StatusConflict,
-			"Create hpa from file failed: same hpa namespace & name",
+			"Create HPA from file failed: same hpa namespace & name",
 		)
 
 		return
@@ -64,7 +65,7 @@ func CreateHpa(c *gin.Context) {
 	if err := st.AddHpa(c.Request.Context(), &hpa); err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
-			"Failed to add hpa to etcd: "+err.Error(),
+			"Failed to add HPA to etcd: "+err.Error(),
 		)
 
 		return
@@ -77,7 +78,7 @@ func GetHpas(c *gin.Context) {
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
-			"Failed to create hpa store: "+err.Error(),
+			"Failed to create HpaStore: "+err.Error(),
 		)
 
 		return
@@ -86,7 +87,7 @@ func GetHpas(c *gin.Context) {
 	// Ensure the HpaStore is closed after use.
 	defer func() {
 		if closeErr := st.Close(); closeErr != nil {
-			fmt.Printf("Failed to close hpa store: %v\n", closeErr)
+			fmt.Printf("Failed to close HpaStore: %v\n", closeErr)
 		}
 	}()
 
@@ -95,7 +96,7 @@ func GetHpas(c *gin.Context) {
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
-			"Failed to list hpas from etcd: "+err.Error(),
+			"Failed to list HPAs from etcd: "+err.Error(),
 		)
 
 		return

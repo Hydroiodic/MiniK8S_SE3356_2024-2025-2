@@ -74,6 +74,10 @@ EOF
     sudo systemctl daemon-reload
     sudo systemctl restart docker
 
+    # 添加iptables规则，允许flannel网络的流量转发
+    # 贼逆天，非得要不可。不然跨容器通信就不通！
+    sudo iptables -I FORWARD -j FLANNEL-FWD
+
     ip addr show mini-cni0 # 查看flannel网络的网桥设备
 fi
 systemctl status flanneld

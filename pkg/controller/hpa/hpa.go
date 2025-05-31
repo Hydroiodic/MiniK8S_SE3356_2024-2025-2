@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/apiserver"
-	replicasetutil "github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/controller/replicaset"
 	cadvisorutils "github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/cadvisor"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/container"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
@@ -124,7 +123,7 @@ func (hpaC *HPAController) CheckOneHPA(hpa object.HorizontalPodAutoscaler) {
 	var matchPods []object.Pod
 
 	for _, p := range pods {
-		if replicasetutil.HasMatchingLabels(
+		if apiserver.HasMatchingLabels(
 			replicaset.Metadata.Labels,
 			p.Metadata.Labels,
 		) {
@@ -259,14 +258,13 @@ func CalculateDesiredReplicas(
 	for _, oneTargetMtc := range h.Spec.Metrics {
 		// 这里oneCurMtc从map拿出来直接就是一个0~1的浮点值了！
 		if oneCurMtc, exists := curMetrics.Resources[oneTargetMtc.Resource.Name]; exists {
-			// 计算当前指标下的期望的副本数量，计算方式为ceil(当前副本数 * 当前指标值 / 目标指标值)
 			expectedReplicas := int(
 				math.Ceil(
 					float64(
 						curReplicaNum,
 					) * oneCurMtc / *oneTargetMtc.Resource.Target.AverageUtilization,
 				),
-			) // fmt.Printf("%s目标指标值:\n",oneTargetMtc.Resource.Name)
+			)
 
 			fmt.Printf(
 				"%s 目标指标值:%f\n",
@@ -275,14 +273,13 @@ func CalculateDesiredReplicas(
 			)
 
 			fmt.Printf("%s 当前指标值:%f\n", oneTargetMtc.Resource.Name, oneCurMtc)
-			// fmt.Printf("in metrics %s, calculate expectRelicas %v\n", oneTargetMtc.Name, expectedReplicas)
+
 			if expectedReplicas > maxDesiredReplicas {
 				maxDesiredReplicas = expectedReplicas
 			}
 		}
 	}
 
-	// 确保副本数量在最小和最大值之间
 	if maxDesiredReplicas < int(h.Spec.MinReplicas) {
 		maxDesiredReplicas = int(h.Spec.MinReplicas)
 	} else if maxDesiredReplicas > int(h.Spec.MaxReplicas) {
@@ -295,6 +292,5 @@ func CalculateDesiredReplicas(
 		maxDesiredReplicas,
 	)
 
-	// 返回结果
 	return maxDesiredReplicas
 }

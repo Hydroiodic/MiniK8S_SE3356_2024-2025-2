@@ -27,6 +27,7 @@ func declareGinServer() *gin.Engine {
 
 	// DNS operations.
 	r.POST(apiserver.DNSAddURL, interfaces.AddDNS)
+	r.GET(apiserver.DNSGetURL, interfaces.GetDNS)
 	r.POST(apiserver.DNSDeleteURL, interfaces.DeleteDNS)
 	r.GET(apiserver.DNSGetForwardingInfoURL, interfaces.GetForwardingInfo)
 
@@ -45,9 +46,10 @@ func declareGinServer() *gin.Engine {
 	r.POST(apiserver.ServiceDeleteURL, interfaces.DeleteService)
 	r.GET(apiserver.ServiceGetURL, interfaces.GetAllService)
 
-	// r.POST("/createCRFromFile", interfaces.CreateCR)
-	// r.POST("/deleteCRFromFile", interfaces.DeleteCR)
-	// r.POST("/getOneCR", interfaces.GetOneCR)
+	// GPUJob operations.
+	r.POST(apiserver.GPUJobsCreateURL, interfaces.CreateGPUJob)
+	r.GET(apiserver.GPUJobsGetURL, interfaces.GetGPUJobs)
+	r.POST(apiserver.UploadResultURL, interfaces.UpdateResult)
 
 	// r.POST("/createFunctionFromFile", interfaces.CreateFunction)
 	// r.POST("/deleteFunctionFromFile", interfaces.DeleteFunction)
@@ -59,11 +61,6 @@ func declareGinServer() *gin.Engine {
 
 	r.GET("/pvc/:namespace/:name", interfaces.GetPersistentVolumeClaim)
 	r.GET("/pv/:name", interfaces.GetPersistentVolume)
-
-	// r.POST("/createJobFromFile", interfaces.CreateJob)
-
-	// r.POST("/uploadJobOutputResult", interfaces.UploadJobOutputResult)
-	// r.POST("/uploadJobErrorResult", interfaces.UploadJobErrorResult)
 
 	return r
 }

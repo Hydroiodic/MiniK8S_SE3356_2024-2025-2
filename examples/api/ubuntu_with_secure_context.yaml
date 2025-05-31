@@ -8,19 +8,34 @@ metadata:
 spec:
   securityContext:
     runAsUser: 1000
-    runAsGroup: 1000
-    fsGroup: 2000
+    runAsGroup: 2000
+    fsGroup: 3000
     supplementalGroups: [4000]
+    supplementalGroupsPolicy: Strict
   containers:
-    - id: ubuntu-root-container
-      name: ubuntu-root
+    - id: ubuntu-container-merge
+      name: ubuntu-merge
       image: ubuntu:latest
       command: ["sleep", "infinity"]
       securityContext:
-        runAsUser: root
-        runAsGroup: root
-        fsGroup: 2000
-    - id: ubuntu-default-container
-      name: ubuntu-default
+        fsGroup: 1000
+        supplementalGroupsPolicy: Merge
+      volumeMounts:
+        - name: ubuntu-volume-merge
+          mountPath: /home/ubuntu
+    - id: ubuntu-container-strict
+      name: ubuntu-strict
       image: ubuntu:latest
       command: ["sleep", "infinity"]
+      volumeMounts:
+        - name: ubuntu-volume-strict
+          mountPath: /home/ubuntu
+  volumes:
+    - name: ubuntu-volume-merge
+      hostPath: 
+        path: /tmp/ubuntu-merge
+        type: Directory
+    - name: ubuntu-volume-strict
+      hostPath: 
+        path: /tmp/ubuntu-strict
+        type: Directory
