@@ -2,7 +2,7 @@ package apiserver
 
 const (
 	// The URL of the APIServer.
-	APIServerURL        = "localhost"
+	APIServerURL        = "192.168.1.6"
 	APIServerPort       = "8080"
 	KubeletRegisterURL  = "/kubelet/register"
 	KubeletHeartbeatURL = "/kubelet/heartbeat"
