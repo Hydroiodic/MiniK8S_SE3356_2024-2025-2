@@ -11,9 +11,7 @@ import (
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
 )
 
-func (c *APIClient) GetPV(
-	pvName string,
-) (*object.PersistentVolume, error) {
+func (c *APIClient) GetPV(pvName string) (*object.PersistentVolume, error) {
 	// Construct the URL for the PV retrieval endpoint.
 	url := c.BaseURL + PVGetURL + "/" + pvName
 
@@ -52,28 +50,20 @@ func (c *APIClient) GetPV(
 	return &pv, nil
 }
 
-func (c *APIClient) CreatePV(
-	pv *object.PersistentVolume,
-) error {
+func (c *APIClient) CreatePV(pv *object.PersistentVolume) error {
 	// Construct the URL for the PV creation endpoint.
 	url := c.BaseURL + PVCreateURL
 	// Marshal the PV object to JSON.
 	body, err := json.Marshal(pv)
 	if err != nil {
-		return fmt.Errorf("failed to marshal PV: %v", err)
-	}
-
-	// Create a new HTTP POST request with the JSON body.
-	req, err := http.NewRequest(
-		"POST",
-		url,
-		io.NopCloser(bytes.NewReader(body)),
-	)
-	if err != nil {
 		return err
 	}
 
-	req.Header.Set("Content-Type", "application/json")
+	// Create a new HTTP POST request with the JSON body.
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(body))
+	if err != nil {
+		return err
+	}
 
 	// Send the request and return the response.
 	resp, err := c.Client.Do(req)
@@ -97,26 +87,20 @@ func (c *APIClient) CreatePV(
 	return nil
 }
 
-func (c *APIClient) DeletePV(
-	pv *object.PersistentVolume,
-) error {
+func (c *APIClient) DeletePV(pv *object.PersistentVolume) error {
 	// Construct the URL for the PV deletion endpoint.
 	url := c.BaseURL + PVDeleteURL
 	// Marshal the PV object to JSON.
-	body, err := json.Marshal(pv)
-	if err != nil {
-		return fmt.Errorf("failed to marshal PV: %v", err)
-	}
-	// Create a new HTTP POST request with the JSON body.
-	req, err := http.NewRequest(
-		"POST",
-		url,
-		io.NopCloser(bytes.NewReader(body)),
-	)
+	pvJSON, err := json.Marshal(pv)
 	if err != nil {
 		return err
 	}
-	req.Header.Set("Content-Type", "application/json")
+	// Create a new HTTP POST request with the JSON body.
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(pvJSON))
+	if err != nil {
+		return err
+	}
+
 	// Send the request and return the response.
 	resp, err := c.Client.Do(req)
 	if err != nil {
@@ -135,5 +119,6 @@ func (c *APIClient) DeletePV(
 		bodyBytes, _ := io.ReadAll(resp.Body)
 		return fmt.Errorf("%s", string(bodyBytes))
 	}
+
 	return nil
 }

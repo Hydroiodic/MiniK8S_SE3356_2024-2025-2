@@ -1,4 +1,4 @@
-package interfaces //nolint
+package interfaces
 
 import (
 	"fmt"
@@ -76,7 +76,7 @@ func CreatePersistentVolume(c *gin.Context) {
 }
 
 // UpdatePersistentVolume 更新现有的 PersistentVolume
-func UpdatePersistentVolume(c *gin.Context) {
+func UpdatePersistentVolume(c *gin.Context) { //nolint
 	// 解析请求体中的 JSON 到 PersistentVolume 对象
 	var pv object.PersistentVolume
 	if err := c.BindJSON(&pv); err != nil {
@@ -122,13 +122,8 @@ func UpdatePersistentVolume(c *gin.Context) {
 
 // GetPersistentVolume 获取指定的 PersistentVolume
 func GetPersistentVolume(c *gin.Context) {
-	// 从路径参数获取命名空间和名称
-	namespace := c.Param("namespace")
+	// 从路径参数获取名称
 	name := c.Param("name")
-
-	if namespace == "" {
-		namespace = DefaultNamespace
-	}
 
 	// 创建 PersistentVolumeStore
 	st, err := object.NewPersistentVolumeStore([]string{})
@@ -202,7 +197,7 @@ func ListPersistentVolumes(c *gin.Context) {
 }
 
 // DeletePersistentVolume 删除指定的 PersistentVolume
-func DeletePersistentVolume(c *gin.Context) { //nolint
+func DeletePersistentVolume(c *gin.Context) {
 	// 解析请求体中的 JSON 到 PersistentVolume 对象
 	var pv object.PersistentVolume
 	if err := c.BindJSON(&pv); err != nil {

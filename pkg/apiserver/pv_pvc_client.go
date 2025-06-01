@@ -50,29 +50,21 @@ func (c *APIClient) GetPVC(
 	return &pvc, nil
 }
 
-func (c *APIClient) CreatePVC(
-	pvc *object.PersistentVolumeClaim,
-) error {
+func (c *APIClient) CreatePVC(pvc *object.PersistentVolumeClaim) error {
 	// Construct the URL for the PVC creation endpoint.
 	url := c.BaseURL + PVClaimCreateURL
 
 	// Marshal the PVC object to JSON.
-	body, err := json.Marshal(pvc)
-	if err != nil {
-		return fmt.Errorf("failed to marshal PVC: %v", err)
-	}
-
-	// Create a new HTTP POST request with the JSON body.
-	req, err := http.NewRequest(
-		"POST",
-		url,
-		io.NopCloser(bytes.NewReader(body)),
-	)
+	pvcJson, err := json.Marshal(pvc)
 	if err != nil {
 		return err
 	}
 
-	req.Header.Set("Content-Type", "application/json")
+	// Create a new HTTP POST request with the JSON body.
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(pvcJson))
+	if err != nil {
+		return err
+	}
 
 	// Send the request and return the response.
 	resp, err := c.Client.Do(req)

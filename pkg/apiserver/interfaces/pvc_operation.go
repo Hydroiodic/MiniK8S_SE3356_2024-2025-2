@@ -211,7 +211,7 @@ func CreatePersistentVolumeClaim(c *gin.Context) {
 }
 
 // UpdatePersistentVolumeClaim 更新现有的 PersistentVolumeClaim
-func UpdatePersistentVolumeClaim(c *gin.Context) {
+func UpdatePersistentVolumeClaim(c *gin.Context) { //nolint
 	// 解析请求体中的 JSON 到 PersistentVolumeClaim 对象
 	var pvc object.PersistentVolumeClaim
 	if err := c.BindJSON(&pvc); err != nil {
