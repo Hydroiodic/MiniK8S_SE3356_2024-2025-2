@@ -7,6 +7,5 @@ spec:
   accessModes:
   - ReadWriteMany
   resources:
-    requests:
-      storage: 5Gi
-  storageClassName: manual
+    storage: 5Gi
+  # volumeName: pv-static（由服务器指配）

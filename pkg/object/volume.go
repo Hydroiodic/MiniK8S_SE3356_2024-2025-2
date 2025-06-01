@@ -15,7 +15,7 @@ const (
 )
 
 type Volume struct {
-	Name                      string                     `yaml:"name"`
-	HostPath                  *HostPath                  `yaml:"hostPath,omitempty"`
-	PersistentVolumeClaimName *PersistentVolumeClaimName `yaml:"persistentVolumeClaim,omitempty"`
+	Name                  string                     `yaml:"name"`
+	HostPath              *HostPath                  `yaml:"hostPath,omitempty"`
+	PersistentVolumeClaim *PersistentVolumeClaimName `yaml:"persistentVolumeClaim,omitempty"`
 }

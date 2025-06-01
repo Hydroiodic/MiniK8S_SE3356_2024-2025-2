@@ -11,6 +11,7 @@ import (
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/container"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/pod"
+	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/volume"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubeproxy/utils"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
 )
@@ -59,10 +60,16 @@ func main() {
 		log.Panicf("failed to create container service: %v", err)
 	}
 
-	podService := pod.NewPodService(containerService)
-
 	// 使用环境变量创建 APIServerClient
 	client := apiserver.NewAPIClient("http://" + controlPlaneIP + ":8080")
+
+	// FIXME: Volume Manager 和 Client 紧耦合！破坏PodService独立性呜呜呜
+	volumeManager := volume.NewVolumeManager(client)
+
+	podService := pod.NewPodServiceWithVolumeManager(
+		containerService,
+		volumeManager,
+	)
 
 	kubeletService := kubelet.NewKubeletService(config, podService, client)
 

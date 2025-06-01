@@ -36,6 +36,14 @@ const (
 	HpaGetURL    = "/hpa/getHpas"
 	HpaCreateURL = "/hpa/createHpa"
 
+	PVGetURL    = "/pv"
+	PVCreateURL = "/pv/createPV"
+	PVDeleteURL = "/pv/deletePV"
+
+	PVCGetURL        = "/pvc"
+	PVClaimCreateURL = "/pvc/createPVC"
+	PVClaimDeleteURL = "/pvc/deletePVC"
+
 	// GPUJob operations
 	GPUJobsCreateURL = "/gpujob/createJobs"
 	GPUJobsGetURL    = "/gpujob/getJobs"

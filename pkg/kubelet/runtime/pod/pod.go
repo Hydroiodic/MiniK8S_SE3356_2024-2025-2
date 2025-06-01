@@ -7,18 +7,31 @@ import (
 
 	ctr_runtime "github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/container"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/utils"
+	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/kubelet/runtime/volume"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/mount"
 )
 
 type PodService struct {
-	CtrService *ctr_runtime.ContainerService
+	CtrService    *ctr_runtime.ContainerService
+	VolumeManager *volume.VolumeManager // 用于处理卷挂载
 }
 
 func NewPodService(ctrService *ctr_runtime.ContainerService) *PodService {
 	return &PodService{
-		CtrService: ctrService,
+		CtrService:    ctrService,
+		VolumeManager: &volume.VolumeManager{}, // TODO: 这个就不支持PVC了
+	}
+}
+
+func NewPodServiceWithVolumeManager(
+	ctrService *ctr_runtime.ContainerService,
+	volumeManager *volume.VolumeManager,
+) *PodService {
+	return &PodService{
+		CtrService:    ctrService,
+		VolumeManager: volumeManager,
 	}
 }
 
@@ -37,19 +50,18 @@ func (p *PodService) CreatePod(pod *object.Pod) error {
 	// 将 Pause Container 的 ID 储存到 Pod
 	(*pod).Spec.PauseContainerID = pauseId
 
-	// TODO: 获取 Pod 里面 Volume 的信息
-	// 处理 HostPath Volume
-	nameHostPathMap := make(map[string]string)
+	// 处理卷挂载
+	volumePaths, err := p.VolumeManager.MountVolumes(pod)
+	if err != nil {
+		log.Printf(
+			"Failed to mount volumes for pod %s/%s: %v",
+			pod.Metadata.Namespace,
+			pod.Metadata.Name,
+			err,
+		)
 
-	for _, volume := range pod.Spec.Volumes {
-		if volume.HostPath != nil {
-			// 获取 HostPath 的路径
-			hostPath := volume.HostPath.Path
-			// 将 HostPath 的路径存储到 map 中
-			nameHostPathMap[volume.Name] = hostPath
-		}
-		// TODO: 处理 PVC
-	} //nolint
+		return err
+	}
 
 	// Create Pod Containers
 	pauseNsArg := "container:" + pauseId
@@ -90,16 +102,16 @@ func (p *PodService) CreatePod(pod *object.Pod) error {
 		)
 
 		for _, mount := range ctrConfig.VolumeMounts {
-			if hostPath, ok := nameHostPathMap[mount.Name]; ok {
-				// 将 HostPath 的路径存储到容器的挂载路径中
+			if hostPath, ok := volumePaths[mount.Name]; ok {
+				// 将宿主机的路径存储到容器的挂载路径中
 				ctrPathHostPathMap[mount.MountPath] = hostPath
 			} else {
-				// TODO: Name 到 HostPath 的映射不存在时怎么办？
 				log.Printf(
-					"HostPath for volume %s not found in Pod %s/%s",
+					"Path for volume %s not found in Pod %s/%s on VolumeMount Name %s",
 					mount.Name,
 					pod.Metadata.Namespace,
 					pod.Metadata.Name,
+					mount.Name,
 				)
 			}
 		}
@@ -188,8 +200,6 @@ func (p *PodService) CreatePod(pod *object.Pod) error {
 		log.Printf("Created container %s with ID %s", ctr.Name, ctrId)
 	}
 
-	// TODO: 写入 Pod 的状态？
-
 	return nil
 }
 
@@ -220,17 +230,8 @@ func (p *PodService) StartPod(pod *object.Pod) error {
 		log.Printf("Failed to get pause container info: %v", err)
 	}
 
-	pauseIP := info.NetworkSettings.Networks["flannel"].IPAddress
-	if pauseIP == "" {
-		log.Printf("Fuck No IP")
-	}
-
-	// 获取 Pause Container 的 IP 地址
+	// 获取 Pause Container 的 IP 地址（可能为空，后续检查时可以修复）
 	(*pod).Status.IP = info.NetworkSettings.Networks["flannel"].IPAddress
-	log.Printf(
-		"Pause Container Info: %v",
-		info.NetworkSettings.Networks["flannel"],
-	)
 	log.Printf("Pod IP: %s", (*pod).Status.IP)
 
 	return nil

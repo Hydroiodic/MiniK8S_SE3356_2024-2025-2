@@ -12,7 +12,11 @@ const (
 	DNSPrefix        = "/minik8s/dns/"
 	ReplicasetPrefix = "/minik8s/replicaset"
 	HpaPrefix        = "/minik8s/hpa"
-	GPUJobPrefix     = "/minik8s/gpujob"
+
+	PersistentVolumePrefix      = "/minik8s/pv/"
+	PersistentVolumeClaimPrefix = "/minik8s/pvc/"
+
+	GPUJobPrefix = "/minik8s/gpujob"
 
 	// The services in etcd will diff in the following two states:
 	// 1. Pending: The service is created but not yet applied to the cluster.
