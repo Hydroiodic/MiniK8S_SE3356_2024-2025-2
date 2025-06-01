@@ -43,7 +43,6 @@ func CreatePersistentVolume(c *gin.Context) {
 	// 检查 etcd 中是否已存在同名 PV
 	existingPV, err := st.GetPersistentVolume(
 		c.Request.Context(),
-		pv.Metadata.Namespace,
 		pv.Metadata.Name,
 	)
 	if err != nil {
@@ -56,7 +55,7 @@ func CreatePersistentVolume(c *gin.Context) {
 	}
 
 	if existingPV != nil {
-		c.JSON(http.StatusConflict, "创建 PersistentVolume 失败: 命名空间和名称已存在")
+		c.JSON(http.StatusConflict, "创建 PersistentVolume 失败: 名称已存在")
 		return
 	}
 
@@ -150,7 +149,7 @@ func GetPersistentVolume(c *gin.Context) {
 	}()
 
 	// 从 etcd 获取指定 PV
-	pv, err := st.GetPersistentVolume(c.Request.Context(), namespace, name)
+	pv, err := st.GetPersistentVolume(c.Request.Context(), name)
 	if err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
@@ -230,7 +229,7 @@ func DeletePersistentVolume(c *gin.Context) { //nolint
 	}()
 
 	// 从 etcd 删除 PV
-	if err := st.DeletePersistentVolume(c.Request.Context(), pv.Metadata.Namespace, pv.Metadata.Name); err != nil {
+	if err := st.DeletePersistentVolume(c.Request.Context(), pv.Metadata.Name); err != nil {
 		c.JSON(
 			http.StatusInternalServerError,
 			"从 etcd 删除 PersistentVolume 失败: "+err.Error(),

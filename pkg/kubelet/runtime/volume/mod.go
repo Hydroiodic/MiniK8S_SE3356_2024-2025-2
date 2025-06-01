@@ -27,7 +27,7 @@ func FormatPodDir(namespace, name string) string {
 	return fmt.Sprintf("/tmp/kubelet/pods/%s-%s/volumes", namespace, name)
 }
 
-// MountVolumes 处理 Pod 的卷挂载，返回卷名称到节点挂载路径的映射
+// MountVolumes 处理 Pod 的卷挂载，返回卷名称到节点挂载路径（Pod专属路径）的映射
 func (vm *VolumeManager) MountVolumes(
 	pod *object.Pod,
 ) (map[string]string, error) {
@@ -45,6 +45,7 @@ func (vm *VolumeManager) MountVolumes(
 	}
 
 	for _, volume := range pod.Spec.Volumes {
+		// Pod专属的卷目录
 		volumePath := filepath.Join(podDir, volume.Name)
 
 		switch {
@@ -62,7 +63,7 @@ func (vm *VolumeManager) MountVolumes(
 			volumePaths[volume.Name] = volumePath
 
 		case volume.PersistentVolumeClaim != nil:
-			// 处理 PVC 卷
+			// 处理 PVC 卷，支持两种 PV
 			err = vm.handlePVCVolume(
 				pod.Metadata.Namespace,
 				volume.PersistentVolumeClaim.ClaimName,
@@ -288,6 +289,13 @@ func (vm *VolumeManager) mountNFSVolume(
 		mountPoint,
 	)
 
+	log.Printf(
+		"Mounting NFS volume %s at %s with command: %s",
+		pv.Metadata.Name,
+		mountPoint,
+		cmd.String(),
+	)
+
 	output, err := cmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf(
@@ -295,6 +303,15 @@ func (vm *VolumeManager) mountNFSVolume(
 			pv.Metadata.Name,
 			err,
 			string(output),
+		)
+	}
+
+	err = os.Chmod(mountPoint, 0777)
+	if err != nil {
+		return fmt.Errorf(
+			"failed to set permissions for %s: %v",
+			mountPoint,
+			err,
 		)
 	}
 

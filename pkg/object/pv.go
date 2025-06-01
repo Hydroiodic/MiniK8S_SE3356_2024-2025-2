@@ -3,6 +3,7 @@ package object
 import "fmt"
 
 // PersistentVolume 定义精简的 PV 结构体
+// TODO: PV 不应该拥有NameSpace
 type PersistentVolume struct {
 	Kind     string               `json:"kind"`
 	Metadata Metadata             `json:"metadata"`

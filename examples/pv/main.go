@@ -20,24 +20,24 @@ import (
 func main() {
 	client := apiserver.NewAPIClient("")
 	// 创建 PersistentVolume
-	// pv := object.PersistentVolume{
-	// 	Metadata: object.Metadata{
-	// 		Name:      "example-pv",
-	// 		Namespace: "default",
-	// 	},
-	// 	Spec: object.PersistentVolumeSpec{
-	// 		Capacity:                      object.ResourceList{Storage: "10Gi"},
-	// 		PersistentVolumeReclaimPolicy: "Retain",
-	// 		HostPath: &object.HostPathVolumeSource{
-	// 			Path: "/tmp/example-pv",
-	// 		},
-	// 	},
-	// }
-	// err := client.CreatePV(&pv)
+	pv := object.PersistentVolume{
+		Metadata: object.Metadata{
+			Name:      "example-pv",
+			Namespace: "default",
+		},
+		Spec: object.PersistentVolumeSpec{
+			Capacity:                      object.ResourceList{Storage: "10Gi"},
+			PersistentVolumeReclaimPolicy: "Retain",
+			HostPath: &object.HostPathVolumeSource{
+				Path: "/tmp/example-pv",
+			},
+		},
+	}
+	err := client.CreatePV(&pv)
 
-	// if err != nil {
-	// 	panic("创建 PersistentVolume 失败: " + err.Error())
-	// }
+	if err != nil {
+		panic("创建 PersistentVolume 失败: " + err.Error())
+	}
 
 	// 创建 PersistentVolumeClaim
 	pvc := object.PersistentVolumeClaim{
@@ -51,7 +51,7 @@ func main() {
 		},
 	}
 
-	err := client.CreatePVC(&pvc)
+	err = client.CreatePVC(&pvc)
 	if err != nil {
 		panic("创建 PersistentVolumeClaim 失败: " + err.Error())
 	}
@@ -69,7 +69,7 @@ func main() {
 					Image: "nginx:latest",
 					VolumeMounts: []object.VolumeMount{
 						{
-							Name:      "example-pvc-2",
+							Name:      "example-pvc",
 							MountPath: "/usr/share/nginx/html", // 挂载路径
 						},
 					},
@@ -79,7 +79,7 @@ func main() {
 				{
 					Name: "example-pvc",
 					PersistentVolumeClaim: &object.PersistentVolumeClaimName{
-						ClaimName: "example-pvc", // 绑定到 PVC
+						ClaimName: "example-pvc-2", // 绑定到 PVC
 					},
 				},
 			},
@@ -91,3 +91,5 @@ func main() {
 		panic("创建 Pod 失败: " + err.Error())
 	}
 }
+
+// TODO: 测试自动创建

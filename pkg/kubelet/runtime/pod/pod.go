@@ -106,12 +106,12 @@ func (p *PodService) CreatePod(pod *object.Pod) error {
 				// 将宿主机的路径存储到容器的挂载路径中
 				ctrPathHostPathMap[mount.MountPath] = hostPath
 			} else {
-				// TODO: Name 到 HostPath 的映射不存在时怎么办？
 				log.Printf(
-					"HostPath for volume %s not found in Pod %s/%s",
+					"Path for volume %s not found in Pod %s/%s on VolumeMount Name %s",
 					mount.Name,
 					pod.Metadata.Namespace,
 					pod.Metadata.Name,
+					mount.Name,
 				)
 			}
 		}
@@ -232,10 +232,6 @@ func (p *PodService) StartPod(pod *object.Pod) error {
 
 	// 获取 Pause Container 的 IP 地址（可能为空，后续检查时可以修复）
 	(*pod).Status.IP = info.NetworkSettings.Networks["flannel"].IPAddress
-	log.Printf(
-		"Pause Container Info: %v",
-		info.NetworkSettings.Networks["flannel"],
-	)
 	log.Printf("Pod IP: %s", (*pod).Status.IP)
 
 	return nil

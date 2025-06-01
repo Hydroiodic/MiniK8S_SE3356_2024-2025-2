@@ -21,6 +21,7 @@ func NewPersistentVolumeStore(
 	if err != nil {
 		return nil, err
 	}
+
 	return &PersistentVolumeStore{etcdClient: client}, nil
 }
 
@@ -30,8 +31,8 @@ func (s *PersistentVolumeStore) Close() error {
 }
 
 // key generates the etcd key for a PersistentVolume
-func (s *PersistentVolumeStore) key(namespace, name string) string {
-	return path.Join(etcd.PersistentVolumePrefix, namespace, name)
+func (s *PersistentVolumeStore) key(name string) string {
+	return path.Join(etcd.PersistentVolumePrefix, name)
 }
 
 // ListPersistentVolumes lists all PersistentVolumes
@@ -44,35 +45,42 @@ func (s *PersistentVolumeStore) ListPersistentVolumes(
 	}
 
 	var pvs []*PersistentVolume
+
 	for _, v := range kvs {
 		var pv PersistentVolume
+
 		err := json.Unmarshal([]byte(v), &pv)
 		if err != nil {
 			return nil, err
 		}
+
 		pvs = append(pvs, &pv)
 	}
+
 	return pvs, nil
 }
 
 // GetPersistentVolume retrieves a specific PersistentVolume
 func (s *PersistentVolumeStore) GetPersistentVolume(
 	ctx context.Context,
-	namespace, name string,
+	name string,
 ) (*PersistentVolume, error) {
-	data, err := s.etcdClient.Get(ctx, s.key(namespace, name))
+	data, err := s.etcdClient.Get(ctx, s.key(name))
 	if err != nil {
 		return nil, err
 	}
+
 	if data == "" {
 		return nil, nil
 	}
 
 	var pv PersistentVolume
+
 	err = json.Unmarshal([]byte(data), &pv)
 	if err != nil {
 		return nil, err
 	}
+
 	return &pv, nil
 }
 
@@ -85,19 +93,19 @@ func (s *PersistentVolumeStore) AddPersistentVolume(
 	if err != nil {
 		return err
 	}
+
 	return s.etcdClient.Put(
 		ctx,
-		s.key(pv.Metadata.Namespace, pv.Metadata.Name),
+		s.key(pv.Metadata.Name),
 		string(jsonData),
 	)
 }
 
 // DeletePersistentVolume deletes a PersistentVolume
 func (s *PersistentVolumeStore) DeletePersistentVolume(
-	ctx context.Context,
-	namespace, name string,
+	ctx context.Context, name string,
 ) error {
-	return s.etcdClient.Delete(ctx, s.key(namespace, name))
+	return s.etcdClient.Delete(ctx, s.key(name))
 }
 
 // UpdatePersistentVolume updates an existing PersistentVolume
@@ -121,6 +129,7 @@ func NewPersistentVolumeClaimStore(
 	if err != nil {
 		return nil, err
 	}
+
 	return &PersistentVolumeClaimStore{etcdClient: client}, nil
 }
 
@@ -144,14 +153,18 @@ func (s *PersistentVolumeClaimStore) ListPersistentVolumeClaims(
 	}
 
 	var pvcs []*PersistentVolumeClaim
+
 	for _, v := range kvs {
 		var pvc PersistentVolumeClaim
+
 		err := json.Unmarshal([]byte(v), &pvc)
 		if err != nil {
 			return nil, err
 		}
+
 		pvcs = append(pvcs, &pvc)
 	}
+
 	return pvcs, nil
 }
 
@@ -164,15 +177,18 @@ func (s *PersistentVolumeClaimStore) GetPersistentVolumeClaim(
 	if err != nil {
 		return nil, err
 	}
+
 	if data == "" {
 		return nil, nil
 	}
 
 	var pvc PersistentVolumeClaim
+
 	err = json.Unmarshal([]byte(data), &pvc)
 	if err != nil {
 		return nil, err
 	}
+
 	return &pvc, nil
 }
 
@@ -185,6 +201,7 @@ func (s *PersistentVolumeClaimStore) AddPersistentVolumeClaim(
 	if err != nil {
 		return err
 	}
+
 	return s.etcdClient.Put(
 		ctx,
 		s.key(pvc.Metadata.Namespace, pvc.Metadata.Name),

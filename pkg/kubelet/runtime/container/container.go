@@ -511,6 +511,8 @@ func (cs *ContainerService) GetContainersByLabels(
 			}
 		}
 
+		// TODO: 重建挂载卷？暂时无法重建
+
 		if matches {
 			result = append(result, object.Container{
 				ID:      container.ID,
