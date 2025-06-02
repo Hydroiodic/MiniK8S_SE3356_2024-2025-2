@@ -186,6 +186,10 @@ func (p *PodService) CreatePod(pod *object.Pod) error {
 			PidMode:     container.PidMode(pauseNsArg),
 			Mounts:      binds, // Handle VolumeMounts here.
 			GroupAdd:    combinedSecurityContexts.SupplementalGroups,
+			Resources: container.Resources{
+				NanoCPUs: ctrConfig.Resources.CPU * 1e9, // Convert to nanoseconds
+				Memory:   ctrConfig.Resources.Memory,
+			},
 		}
 
 		// Create the container.
@@ -469,6 +473,7 @@ func (p *PodService) ListPods() ([]object.Pod, error) {
 
 		// 去除 pauseCtr.Labels 中的 IsPauseLabelKey
 		delete(pauseCtr.Labels, utils.IsPauseLabelKey)
+		delete(pauseCtr.Labels, utils.PodNsNameLabelKey)
 
 		pod := object.Pod{
 			Metadata: object.Metadata{

@@ -46,8 +46,8 @@ type Container struct {
 }
 
 type ResourceLimits struct {
-	CPU    string `yaml:"cpu"`    // 如 "1"
-	Memory string `yaml:"memory"` // 如 "128Mi"
+	CPU    int64 `yaml:"cpu"`    // 如 1
+	Memory int64 `yaml:"memory"` // 如 128*1024*1024（单位：字节）
 }
 
 type VolumeMount struct {

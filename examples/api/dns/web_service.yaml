@@ -1,0 +1,16 @@
+kind: Service
+type: NodePort
+metadata:
+  name: web-service
+  namespace: default
+  labels:
+    app: web
+    tier: frontend
+spec:
+  selector:
+    app: web
+    tier: frontend
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 80

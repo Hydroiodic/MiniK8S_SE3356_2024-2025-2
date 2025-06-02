@@ -1,0 +1,25 @@
+kind: Pod
+metadata:
+  name: nginx
+  namespace: default
+  labels:
+    app: nginx
+    tier: frontend
+spec:
+  containers:
+    - id: nginx-container
+      name: nginx
+      image: nginx:latest
+      command: ["nginx", "-g", "daemon off;"]
+      ports: [80]
+      resources:
+        cpu: 2
+        memory: 134217728
+      volumeMounts:
+        - name: nginx-volume
+          mountPath: /usr/share/nginx/html # Pod 中的挂载路径
+  volumes:
+    - name: nginx-volume
+      hostPath: 
+        path: /tmp/nginx # 主机上的路径
+        type: Directory
