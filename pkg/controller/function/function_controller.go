@@ -1,0 +1,303 @@
+package function
+
+import (
+	"context"
+	"encoding/base64"
+	"fmt"
+	"io"
+	"os"
+	"strconv"
+	"time"
+
+	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/apiserver"
+	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/controller/gpu"
+	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
+	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/image"
+	"github.com/docker/docker/client"
+	"github.com/mholt/archiver"
+)
+
+// func controller 负责根据etcd中的内容创建function的pod
+type FucntionController struct {
+	cache map[string]object.Function
+	ci    *apiserver.APIClient
+}
+
+func NewFucntionController() *FucntionController {
+	return &FucntionController{
+		cache: make(map[string]object.Function),
+		ci:    apiserver.NewAPIClient(""),
+	}
+}
+
+func (fc *FucntionController) Start() {
+	fc = NewFucntionController()
+
+	ticker := time.NewTicker(10 * time.Second)
+
+	go func() {
+		for range ticker.C {
+			fc.CheckFunctions()
+		}
+	}()
+}
+func (fc *FucntionController) CheckFunctions() {
+	funcs, err := fc.ci.GetAllFunction()
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+
+	fmt.Printf("开始检查Functions : %d\n", len(funcs))
+
+	cur := make(map[string]bool)
+
+	for _, f := range funcs {
+		cur[f.Metadata.Namespace+"/"+f.Metadata.Name] = true
+
+		if _, ok := fc.cache[f.Metadata.Namespace+"/"+f.Metadata.Name]; !ok {
+			fmt.Printf(
+				"Create function %s %s\n",
+				f.Metadata.Namespace,
+				f.Metadata.Name,
+			)
+
+			fc.cache[f.Metadata.Namespace+"/"+f.Metadata.Name] = f
+			fc.CreateFunctionAndReplicaset(f) //这里replicaset方便进行动态伸缩
+		}
+	}
+}
+
+func (fc *FucntionController) CreateFunctionAndReplicaset(f object.Function) {
+	//创建docker容器的挂载目录
+	fmt.Println("开始创建挂载目录")
+	FunctionFilePath := gpu.WorkDir + "/assets/allfunctions/" + f.Metadata.Namespace + "/" + f.Metadata.Name
+	err := os.RemoveAll(FunctionFilePath)
+
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	err = os.MkdirAll(FunctionFilePath, 0777)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	//先检查zip文件是否存在，如果存在，则删除
+	err = os.RemoveAll(FunctionFilePath + "/function.zip")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	err = os.RemoveAll(FunctionFilePath + "/function")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	//创建zip文件
+	fmt.Println("开始创建zip文件")
+	err = os.WriteFile(
+		FunctionFilePath+"/function.zip",
+		f.Spec.UserUploadFile,
+		0777,
+	)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	//解压zip文件
+	//将解压后的文件放入新文件夹
+	fmt.Println("开始解压zip文件")
+	z := archiver.NewZip()
+	z.OverwriteExisting = true
+	err = z.Unarchive(FunctionFilePath+"/function.zip", FunctionFilePath)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	//删除压缩包
+	err = os.Remove(FunctionFilePath + "/function.zip")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	//创建dockerfile
+	fmt.Println("开始创建dockfile")
+	os.Remove(FunctionFilePath + "/Dockerfile")
+	dockerfile, err := os.Create(FunctionFilePath + "/Dockerfile")
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	defer dockerfile.Close()
+
+	dockerfile.WriteString(
+		"FROM " + gpu.ImageRegistryURL + ":" + strconv.Itoa(
+			gpu.ImageRegistryPort,
+		) + "/baseserver:latest\n",
+	)
+
+	funcpath := f.Metadata.Name + "/"
+	_, err = dockerfile.WriteString("COPY " + funcpath + " /app\n") //???????
+
+	if err != nil {
+		fmt.Println(err.Error())
+		fmt.Println("aaaaaaaaaaaaaaaaaa")
+
+		return
+	}
+
+	_, err = dockerfile.WriteString("EXPOSE 10000\n")
+	if err != nil {
+		fmt.Println(err.Error())
+
+		return
+	}
+	fmt.Println("开始打包tar")
+	//构建docker上下文，需要将依赖文件打包成tar格式
+	z2 := archiver.NewTar()
+	z2.OverwriteExisting = true
+	err = z2.Archive(
+		[]string{FunctionFilePath},
+		FunctionFilePath+"/function.tar",
+	)
+
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+
+	ctx, err := os.Open(FunctionFilePath + "/function.tar")
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+
+	//构建docker镜像
+	fmt.Println("开始构建镜像")
+	var cli *client.Client
+	cli, err = client.NewClientWithOpts(
+		client.FromEnv,
+		client.WithAPIVersionNegotiation(),
+	)
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+	defer cli.Close()
+
+	resp, err := cli.ImageBuild(
+		context.Background(),
+		ctx,
+		types.ImageBuildOptions{
+			Dockerfile: f.Metadata.Name + "/Dockerfile",
+			Tags: []string{
+				fmt.Sprintf(
+					"%s:%d/baseserver/%s/%s:latest",
+					gpu.ImageRegistryURL,
+					gpu.ImageRegistryPort,
+					f.Metadata.Namespace,
+					f.Metadata.Name,
+				),
+			},
+			Context: ctx,
+			Remove:  true,
+		},
+	)
+
+	if err != nil {
+		s := fmt.Sprintf(
+			"%s:%d/baseserver/%s/%s:latest",
+			gpu.ImageRegistryURL,
+			gpu.ImageRegistryPort,
+			f.Metadata.Namespace,
+			f.Metadata.Name,
+		)
+		fmt.Println(s)
+		fmt.Println(err.Error())
+		return
+	}
+	defer resp.Body.Close()
+
+	_, err = io.Copy(os.Stdout, resp.Body)
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+	//推送docker镜像到docker registry
+	fmt.Println("开始推送镜像")
+	authEncoded := base64.StdEncoding.EncodeToString(
+		[]byte(gpu.Registry_user + ":" + gpu.Registry_password),
+	)
+	fmt.Println(authEncoded)
+	resp2, err := cli.ImagePush(
+		context.Background(),
+		fmt.Sprintf(
+			"%s:%d/baseserver/%s/%s:latest",
+			gpu.ImageRegistryURL,
+			gpu.ImageRegistryPort,
+			f.Metadata.Namespace,
+			f.Metadata.Name,
+		),
+		image.PushOptions{
+			RegistryAuth: authEncoded,
+			All:          false,
+		},
+	)
+
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+	defer resp2.Close()
+
+	_, err = io.Copy(os.Stdout, resp2)
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+	//删除新文件夹
+	// err = os.RemoveAll(FunctionFilePath)
+	// if err != nil {
+	// 	fmt.Println(err.Error())
+	// 	return
+	// }
+
+	fc.CreateReplicas(f)
+}
+
+func (fc *FucntionController) CreateReplicas(f object.Function) {
+	var rs object.ReplicaSet
+	rs.Kind = "Replicaset"
+	rs.Metadata.Namespace = f.Metadata.Namespace
+	rs.Metadata.Name = f.Metadata.Name
+	rs.Spec.Replicas = 0
+	rs.Spec.Selector = make(map[string]string)
+
+	rs.Spec.Template.Metadata.Name = f.Metadata.Name
+
+	rs.Spec.Template.Metadata.Labels = make(map[string]string)
+	rs.Spec.Selector["FunctionMetadata"] = f.Metadata.Namespace + "/" + f.Metadata.Name
+	rs.Spec.Template.Metadata.Labels["FunctionMetadata"] = f.Metadata.Namespace + "/" + f.Metadata.Name
+	rs.Spec.Template.Spec.Containers = make([]object.Container, 1)
+	rs.Spec.Template.Spec.Containers[0].Ports = make([]int, 1)
+	rs.Spec.Template.Spec.Containers[0].Ports[0] = 10000
+	rs.Spec.Template.Spec.Containers[0].Name = f.Metadata.Name
+	rs.Spec.Template.Spec.Containers[0].Image = fmt.Sprintf(
+		"%s:%d/baseserver/%s/%s:latest",
+		gpu.ImageRegistryURL,
+		gpu.ImageRegistryPort,
+		f.Metadata.Namespace,
+		f.Metadata.Name,
+	)
+	err := fc.ci.CreateReplicaset(&rs)
+
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+}

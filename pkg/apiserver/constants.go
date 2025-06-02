@@ -48,4 +48,8 @@ const (
 	GPUJobsCreateURL = "/gpujob/createJobs"
 	GPUJobsGetURL    = "/gpujob/getJobs"
 	UploadResultURL  = "/gpujob/updateResult"
+
+	// Function operation
+	FunctionCreateURL = "/function/createFunction"
+	FunctionGetURL    = "/function/getFunctions"
 )

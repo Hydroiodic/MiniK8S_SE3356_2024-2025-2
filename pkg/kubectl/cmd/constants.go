@@ -11,6 +11,7 @@ const (
 	DNSKind                     = "DNS"
 	HorizontalPodAutoscalerKind = "HorizontalPodAutoscaler"
 	GPUJobKind                  = "GpuJob"
+	Function                    = "Function"
 )
 
 const (

@@ -16,8 +16,8 @@ const (
 	PersistentVolumePrefix      = "/minik8s/pv/"
 	PersistentVolumeClaimPrefix = "/minik8s/pvc/"
 
-	GPUJobPrefix = "/minik8s/gpujob"
-
+	GPUJobPrefix   = "/minik8s/gpujob"
+	FunctionPrefix = "/minik8s/func"
 	// The services in etcd will diff in the following two states:
 	// 1. Pending: The service is created but not yet applied to the cluster.
 	//             Because cluster IP or endpoint has not been assigned.
