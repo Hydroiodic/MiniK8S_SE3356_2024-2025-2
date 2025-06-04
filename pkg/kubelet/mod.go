@@ -87,7 +87,8 @@ func (s *KubeletService) Run(stopCh <-chan struct{}) {
 	s.kubelet.Mu.Unlock()
 
 	go s.podController.Run(stopCh)
-	go s.statusController.Run(stopCh)
 	go s.serviceController.Run(stopCh)
+	go s.statusController.HeartBeatRoutine(stopCh)
+	go s.statusController.UpdatePodRoutine(stopCh)
 	<-stopCh
 }

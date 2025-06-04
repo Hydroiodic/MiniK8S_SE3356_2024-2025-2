@@ -163,13 +163,16 @@ func (ops *IpvsOps) DelService(svc *object.Service) {
 	ports := svc.Spec.Ports
 
 	for _, port := range ports {
-		svc_clusterip_addr := clusterIP + fmt.Sprintf(":%v", port.Port)
-		_, err := exec.Command("ipvsadm", "-D", "-t", svc_clusterip_addr).
-			Output()
+		err := IPVSADMDelVirtualService(clusterIP, port.Port)
 
 		if err != nil {
-			// log.Printf("Failed to delete IPVS service for %s:%d, reason: %v", clusterIP, port.Port, err)
-			fmt.Printf("")
+			log.Printf(
+				"Failed to delete IPVS service for %s:%d, reason: %v",
+				clusterIP,
+				port.Port,
+				err,
+			)
+
 			continue
 		}
 	}
@@ -185,8 +188,13 @@ func (ops *IpvsOps) DelService(svc *object.Service) {
 
 			err := IPVSADMDelVirtualService(nodeIP, port.NodePort)
 			if err != nil {
-				// log.Printf("Failed to delete IPVS service for %s:%d: %v", nodeIP, port.NodePort, err)
-				fmt.Printf("")
+				log.Printf(
+					"Failed to delete IPVS service for %s:%d: %v",
+					nodeIP,
+					port.NodePort,
+					err,
+				)
+
 				continue
 			}
 		}

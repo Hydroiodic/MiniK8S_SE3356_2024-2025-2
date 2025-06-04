@@ -38,9 +38,6 @@ func NewPodController(
 }
 
 func (c *PodController) CreatePodHandler(msg map[string]any) error {
-	c.kubelet.Mu.Lock()
-	defer c.kubelet.Mu.Unlock()
-
 	// 解析消息体
 	msgBody, err := json.Marshal(msg)
 	if err != nil {
@@ -55,20 +52,26 @@ func (c *PodController) CreatePodHandler(msg map[string]any) error {
 		return err
 	}
 
+	c.kubelet.Mu.RLock()
 	// 遍历 Kubelet 的 Pod 列表，检查 Pod 是否已经存在
 	for _, p := range c.kubelet.Pods {
 		if p.Metadata.Name == pod.Metadata.Name &&
 			p.Metadata.Namespace == pod.Metadata.Namespace {
 			// 找到 Pod，不予处理
+			c.kubelet.Mu.RUnlock()
 			return nil
 		}
 	}
+	c.kubelet.Mu.RUnlock()
 
 	// 将 Pod 对象添加到 Kubelet 的 Pod 列表中
 	// 设置 Pod 的状态为 PodCreating
 	pod.Status.Phase = object.PodCreating // NOTE: Pod Phase
+
 	// 添加到 Kubelet 的 Pod 列表中
+	c.kubelet.Mu.Lock()
 	c.kubelet.Pods = append(c.kubelet.Pods, pod)
+	c.kubelet.Mu.Unlock()
 
 	// 在这里可以对 Pod 进行进一步处理，比如创建或更新
 	// TODO: 错误处理，创建失败时
@@ -85,6 +88,7 @@ func (c *PodController) CreatePodHandler(msg map[string]any) error {
 
 	log.Printf("Pod started: %s", pod.Metadata.Name)
 
+	c.kubelet.Mu.Lock()
 	for i, p := range c.kubelet.Pods {
 		if p.Metadata.Name == pod.Metadata.Name &&
 			p.Metadata.Namespace == pod.Metadata.Namespace {
@@ -95,14 +99,12 @@ func (c *PodController) CreatePodHandler(msg map[string]any) error {
 			break
 		}
 	}
+	c.kubelet.Mu.Unlock()
 
 	return nil
 }
 
 func (c *PodController) DeletePodHandler(msg map[string]interface{}) error {
-	c.kubelet.Mu.Lock()
-	defer c.kubelet.Mu.Unlock()
-
 	// 解析消息体
 	msgBody, err := json.Marshal(msg)
 	if err != nil {
@@ -117,6 +119,7 @@ func (c *PodController) DeletePodHandler(msg map[string]interface{}) error {
 		return err
 	}
 
+	c.kubelet.Mu.RLock()
 	// 检查 Pod 是否存在
 	podExists := false
 	// 遍历 Kubelet 的 Pod 列表，检查 Pod 是否存在
@@ -131,6 +134,7 @@ func (c *PodController) DeletePodHandler(msg map[string]interface{}) error {
 			break
 		}
 	}
+	c.kubelet.Mu.RUnlock()
 
 	// 如果 Pod 不存在，直接返回
 	if !podExists {
@@ -145,24 +149,22 @@ func (c *PodController) DeletePodHandler(msg map[string]interface{}) error {
 		)
 	}
 
-	// 删除 Pod 对象
+	// 删除 Pod 对象kubelet
 	if err := c.podService.DeletePod(&pod); err != nil {
 		log.Printf("Failed to delete pod: %v", err)
 		return err
 	}
 
+	c.kubelet.Mu.Lock()
 	for i, p := range c.kubelet.Pods {
 		if p.Metadata.Name == pod.Metadata.Name &&
 			p.Metadata.Namespace == pod.Metadata.Namespace {
 			// Delete the Pod.
-			c.kubelet.Pods = slices.Delete(
-				c.kubelet.Pods, i,
-				i+1,
-			)
-
+			c.kubelet.Pods = slices.Delete(c.kubelet.Pods, i, i+1)
 			break
 		}
 	}
+	c.kubelet.Mu.Unlock()
 
 	return nil
 }
