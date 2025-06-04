@@ -4,8 +4,6 @@ metadata:
   name: my-pvc
   namespace: default
 spec:
-  accessModes:
-  - ReadWriteMany
   resources:
     storage: 5Gi
   # volumeName: pv-static（由服务器指配）

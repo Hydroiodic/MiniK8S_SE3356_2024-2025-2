@@ -23,20 +23,12 @@ const (
 )
 
 // PersistentVolumeSpec 定义 PV 规格
+// PV 只支持 Retain 策略
 type PersistentVolumeSpec struct {
-	Capacity                      ResourceList          `json:"capacity"`
-	PersistentVolumeReclaimPolicy string                `json:"persistentVolumeReclaimPolicy"`
-	NFS                           *NFSVolumeSource      `json:"nfs,omitempty"`
-	HostPath                      *HostPathVolumeSource `json:"hostPath,omitempty"`
+	Capacity ResourceList          `json:"capacity"`
+	NFS      *NFSVolumeSource      `json:"nfs,omitempty"`
+	HostPath *HostPathVolumeSource `json:"hostPath,omitempty"`
 }
-
-// TODO: 要不要呢？
-const (
-	// PersistentVolumeReclaimDelete 表示 PVC 删除时 PV 也删除
-	PersistentVolumeReclaimDelete = "Delete"
-	// PersistentVolumeReclaimRetain 表示 PV 保留
-	PersistentVolumeReclaimRetain = "Retain"
-)
 
 // NFSVolumeSource 定义 NFS 存储
 type NFSVolumeSource struct {

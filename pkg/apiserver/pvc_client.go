@@ -127,3 +127,16 @@ func (c *APIClient) DeletePVC(pvc *object.PersistentVolumeClaim) error {
 
 	return nil
 }
+
+func (c *APIClient) DeletePVCByName(
+	namespace, name string,
+) error {
+	pvc := &object.PersistentVolumeClaim{
+		Metadata: object.Metadata{
+			Name:      name,
+			Namespace: namespace,
+		},
+	}
+
+	return c.DeletePVC(pvc)
+}

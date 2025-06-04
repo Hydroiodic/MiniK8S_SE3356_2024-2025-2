@@ -148,8 +148,7 @@ func CreatePersistentVolumeClaim(c *gin.Context) {
 				Namespace: pvc.Metadata.Namespace,
 			},
 			Spec: object.PersistentVolumeSpec{
-				Capacity:                      pvc.Spec.Capacity,
-				PersistentVolumeReclaimPolicy: object.PersistentVolumeReclaimRetain,
+				Capacity: pvc.Spec.Capacity,
 				NFS: &object.NFSVolumeSource{
 					Server: os.Getenv("APISERVER_URL"),
 					Path:   nfsPath, // 使用自动生成的 NFS 路径

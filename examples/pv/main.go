@@ -26,8 +26,7 @@ func main() {
 			Namespace: "default",
 		},
 		Spec: object.PersistentVolumeSpec{
-			Capacity:                      object.ResourceList{Storage: "10Gi"},
-			PersistentVolumeReclaimPolicy: "Retain",
+			Capacity: object.ResourceList{Storage: "10Gi"},
 			HostPath: &object.HostPathVolumeSource{
 				Path: "/tmp/example-pv",
 			},

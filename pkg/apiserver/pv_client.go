@@ -122,3 +122,13 @@ func (c *APIClient) DeletePV(pv *object.PersistentVolume) error {
 
 	return nil
 }
+
+func (c *APIClient) DeletePVByName(pvName string) error {
+	pv := &object.PersistentVolume{
+		Metadata: object.Metadata{
+			Name: pvName,
+		},
+	}
+
+	return c.DeletePV(pv)
+}

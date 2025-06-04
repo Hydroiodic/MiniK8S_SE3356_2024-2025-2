@@ -72,6 +72,10 @@ func parseYaml(fileAddr string) {
 		err = handleHPARaw(data)
 	case GPUJobKind:
 		err = handleGPUJOBRaw(data)
+	case PVKind:
+		err = handlePVRaw(data)
+	case PVCKind:
+		err = handlePVCRaw(data)
 	default:
 		fmt.Printf("Unsupported resource kind: %s\n", kindStruct.Kind)
 		return
@@ -208,6 +212,57 @@ func handleHPARaw(rawData []byte) error {
 
 	// Add the HorizontalPodAutoscaler configuration.
 	err := apiserver.NewAPIClient("").CreateHpa(&hpa)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func handlePVRaw(rawData []byte) error {
+	// Parse the raw YAML data into a PersistentVolume object.
+	var pv object.PersistentVolume
+	if err := yaml.Unmarshal(rawData, &pv); err != nil {
+		return err
+	}
+
+	// 检查容量字符串
+	if pv.Spec.Capacity.Storage == "" {
+		return fmt.Errorf("PersistentVolume capacity is not specified")
+	}
+	// Convert the storage capacity to megabytes.
+	_, err := object.StorageToMegabytes(pv.Spec.Capacity.Storage)
+	if err != nil {
+		return fmt.Errorf("invalid storage capacity format: %v", err)
+	}
+
+	// Add the PersistentVolume configuration.
+	err = apiserver.NewAPIClient("").CreatePV(&pv)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func handlePVCRaw(rawData []byte) error {
+	// Parse the raw YAML data into a PersistentVolumeClaim object.
+	var pvc object.PersistentVolumeClaim
+	if err := yaml.Unmarshal(rawData, &pvc); err != nil {
+		return err
+	}
+
+	if pvc.Spec.Capacity.Storage == "" {
+		return fmt.Errorf("PersistentVolume capacity is not specified")
+	}
+	// Convert the storage capacity to megabytes.
+	_, err := object.StorageToMegabytes(pvc.Spec.Capacity.Storage)
+	if err != nil {
+		return fmt.Errorf("invalid storage capacity format: %v", err)
+	}
+
+	// Add the PersistentVolumeClaim configuration.
+	err = apiserver.NewAPIClient("").CreatePVC(&pvc)
 	if err != nil {
 		return err
 	}
