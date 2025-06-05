@@ -15,7 +15,7 @@ const (
 	PodAssignURL = "/pod/assignPodToNode"
 	PodDeleteURL = "/pod/deletePod"
 
-	// TODO: Service operations.
+	// Service operations.
 	ServiceCreateURL = "/service/createService"
 	ServiceGetURL    = "/service/getServices" // GetAllService
 	ServiceDeleteURL = "/service/deleteService"
@@ -45,11 +45,20 @@ const (
 	PVClaimDeleteURL = "/pvc/deletePVC"
 
 	// GPUJob operations
-	GPUJobsCreateURL = "/gpujob/createJobs"
-	GPUJobsGetURL    = "/gpujob/getJobs"
-	UploadResultURL  = "/gpujob/updateResult"
+	GPUJobsCreateURL = "/gpu/createJobs"
+	GPUJobsGetURL    = "/gpu/getJobs"
+	UploadResultURL  = "/gpu/updateResult"
 
 	// Function operation
 	FunctionCreateURL = "/function/createFunction"
 	FunctionGetURL    = "/function/getFunctions"
+	FunctionDeleteURL = "/function/deleteFunction"
+
+	WorkflowCreateURL = "/workflow/createWorkflow"
+	WorkflowGetURL    = "/workflow/getWorkflows"
+	WorkflowDeleteURL = "/workflow/deleteWorkflow"
+
+	EventCreateURL = "/event/createEvent"
+	EventGetURL    = "/event/getEvent"
+	EventDeleteURL = "/event/deleteEvent"
 )

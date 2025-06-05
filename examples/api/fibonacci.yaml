@@ -1,0 +1,7 @@
+kind: Function
+metadata:
+   # 请保证函数的名字小写，否则导致镜像生成不可用
+  name: fibonaccifunc
+  namespace: default
+spec:
+  userUploadFilePath: "/home/ubuntu/wang/MiniK8S_SE3356_2024-2025-2/examples/serverless/fibonacci"

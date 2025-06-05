@@ -1,0 +1,110 @@
+package apiserver
+
+import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+
+	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
+)
+
+func (c *APIClient) CreateEvent(e object.Event) error {
+	// Construct the URL for the Pod creation endpoint.
+	url := c.BaseURL + EventCreateURL
+
+	// Convert the Pod object to JSON to be sent in the request body.
+	EventJSON, err := json.Marshal(e)
+	if err != nil {
+		return err
+	}
+
+	// Create a new HTTP POST request with the pod as the body.
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(EventJSON))
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(e)
+
+	// Send the request and return the response.
+	resp, err := c.Client.Do(req)
+	if err != nil {
+		return err
+	}
+
+	// Ensure the response body is closed after use.
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			// Log the error if closing the response body fails.
+			fmt.Println("Failed to close response body: ", cerr)
+		}
+	}()
+
+	// Check if the response status code is OK (200).
+	if resp.StatusCode != http.StatusOK {
+		// If not, read the response body and return an error.
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("%s", string(bodyBytes))
+	}
+
+	return nil
+}
+
+func (c *APIClient) GetAllEvent() ([]object.Event, error) {
+	var es []object.Event
+	err := c.getAndUnmarshalList(EventGetURL, &es)
+
+	return es, err
+}
+
+func (c *APIClient) DeleteEvent(eventName string) error {
+	es, err := c.GetAllEvent()
+	if err != nil {
+		return err
+	}
+
+	url := c.BaseURL + EventDeleteURL
+	var match_e *object.Event
+	for _, e := range es {
+		if e.Metadata.Name == eventName {
+			match_e = &e
+			break
+		}
+	}
+
+	fJSON, err := json.Marshal(match_e)
+	if err != nil {
+		return err
+	}
+
+	// Create a new HTTP POST request with the pod as the body.
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(fJSON))
+	if err != nil {
+		return err
+	}
+
+	// Send the request and return the response.
+	resp, err := c.Client.Do(req)
+	if err != nil {
+		return err
+	}
+
+	// Ensure the response body is closed after use.
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			// Log the error if closing the response body fails.
+			fmt.Println("Failed to close response body: ", cerr)
+		}
+	}()
+
+	// Check if the response status code is OK (200).
+	if resp.StatusCode != http.StatusOK {
+		// If not, read the response body and return an error.
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("%s", string(bodyBytes))
+	}
+
+	return nil
+}

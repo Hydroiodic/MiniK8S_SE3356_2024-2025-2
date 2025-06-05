@@ -1,6 +1,6 @@
 kind: Function
 metadata:
-   name: func2
+   name: x_y_add
    namespace: default
 spec:
    userUploadFilePath: "/home/ubuntu/wang/MiniK8S_SE3356_2024-2025-2/examples/serverless/x_y_add"

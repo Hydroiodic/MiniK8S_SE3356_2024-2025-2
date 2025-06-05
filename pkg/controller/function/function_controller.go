@@ -65,10 +65,42 @@ func (fc *FucntionController) CheckFunctions() {
 
 			fc.cache[f.Metadata.Namespace+"/"+f.Metadata.Name] = f
 			fc.CreateFunctionAndReplicaset(f) //这里replicaset方便进行动态伸缩
+			fc.CreateService(f)
+		}
+	}
+	//处理etcd中已经删除的记录
+	for k, f := range fc.cache {
+		fmt.Println(k)
+
+		if _, ok := cur[f.Metadata.Namespace+"/"+f.Metadata.Name]; !ok {
+			fmt.Println("DeleteFunction", f.Metadata.Namespace, f.Metadata.Name)
+			fc.DeleteFunctionAndReplicaset(f)
+			fc.DeleteService(f)
+			delete(fc.cache, k)
 		}
 	}
 }
+func (fc *FucntionController) DeleteFunctionAndReplicaset(f object.Function) {
+	var cli *client.Client
+	var err error
+	cli, err = client.NewClientWithOpts(
+		client.FromEnv,
+		client.WithAPIVersionNegotiation(),
+	)
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+	defer cli.Close()
 
+	err = fc.ci.DeleteReplicaset(f.Metadata.Name)
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+}
+
+// 只是会创建镜像，但是不会运行pod（replicaset为0）
 func (fc *FucntionController) CreateFunctionAndReplicaset(f object.Function) {
 	//创建docker容器的挂载目录
 	fmt.Println("开始创建挂载目录")
@@ -300,4 +332,48 @@ func (fc *FucntionController) CreateReplicas(f object.Function) {
 		fmt.Println(err.Error())
 		return
 	}
+}
+
+func (fc *FucntionController) CreateService(f object.Function) {
+	var s object.Service
+	s.Kind = "Service"
+	s.Type = object.SERVICE_TYPE_CLUSTERIP_STR
+	s.Metadata.Labels = make(map[string]string)
+	s.Metadata.Labels["FunctionMetadata"] = f.Metadata.Namespace + "/" + f.Metadata.Name
+	s.Metadata.Name = f.Metadata.Name + "-service"
+	s.Metadata.Namespace = f.Metadata.Namespace
+	s.Spec.Selector = make(map[string]string)
+	s.Spec.Selector["FunctionMetadata"] = f.Metadata.Namespace + "/" + f.Metadata.Name
+	s.Spec.Ports = make([]object.ServicePort, 1)
+	s.Spec.Ports[0].Name = "http"
+	s.Spec.Ports[0].TargetPort = 10000
+	s.Spec.Ports[0].NodePort = 30001
+	s.Spec.Ports[0].Port = 81
+
+	err := fc.ci.CreateService(&s)
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+}
+func (fc *FucntionController) DeleteService(f object.Function) {
+	services, err := fc.ci.GetServices()
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+	var match_s object.Service
+	existFlag := 0
+	for _, s := range services {
+		if s.Metadata.Name == f.Metadata.Name+"-service" {
+			match_s = s
+			existFlag = 1
+			break
+		}
+	}
+	if existFlag == 0 {
+		fmt.Println("function service not found")
+		return
+	}
+	fc.ci.DeleteService(&match_s)
 }

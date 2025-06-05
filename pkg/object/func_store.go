@@ -90,3 +90,10 @@ func (s *FuncStore) AddFunction(
 		string(jsonData),
 	)
 }
+
+func (s *FuncStore) DeleteFunction(
+	ctx context.Context,
+	namespace, name string,
+) error {
+	return s.etcdClient.Delete(ctx, s.key(namespace, name))
+}

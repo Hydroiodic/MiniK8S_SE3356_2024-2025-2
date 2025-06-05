@@ -74,6 +74,10 @@ func parseYaml(fileAddr string) {
 		err = handleGPUJOBRaw(data)
 	case Function:
 		err = handleFunctionRaw(data)
+	case Workflow:
+		err = handleWorkflowRaw(data)
+	case Event:
+		err = handleEventRaw(data)
 	default:
 		fmt.Printf("Unsupported resource kind: %s\n", kindStruct.Kind)
 		return
@@ -89,6 +93,37 @@ func parseYaml(fileAddr string) {
 
 		return
 	}
+}
+
+func handleEventRaw(rawData []byte) error {
+	// Parse the raw YAML data into a Pod object.
+	var e object.Event
+	if err := yaml.Unmarshal(rawData, &e); err != nil {
+		return err
+	}
+
+	// Add the Pod configuration.
+	err := apiserver.NewAPIClient("").CreateEvent(e)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+func handleWorkflowRaw(rawData []byte) error {
+	// Parse the raw YAML data into a Pod object.
+	var wf object.Workflow
+	if err := yaml.Unmarshal(rawData, &wf); err != nil {
+		return err
+	}
+
+	// Add the Pod configuration.
+	err := apiserver.NewAPIClient("").CreateWorkflow(wf)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func handleFunctionRaw(rawData []byte) error {

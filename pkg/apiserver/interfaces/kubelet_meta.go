@@ -157,10 +157,17 @@ func KubeletHeartbeat(c *gin.Context) {
 		c.Request.Context(),
 		kubelet.Config.Name,
 	)
-	if err != nil || oldKubelet == nil {
+	if err != nil {
 		c.JSON(
-			http.StatusBadRequest,
+			http.StatusInternalServerError,
 			"Failed to get kubelet: "+err.Error(),
+		)
+
+		return
+	} else if oldKubelet == nil {
+		c.JSON(
+			http.StatusNotFound,
+			"Kubelet not found: "+kubelet.Config.Name,
 		)
 
 		return

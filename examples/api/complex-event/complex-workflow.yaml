@@ -1,0 +1,40 @@
+kind: Workflow
+metadata:
+  name: "imageProcessWorkflow"
+  namespace: "default"
+spec:
+  entryNode: "load_image_from_url"
+  entryParams:
+    "image_url": ""   # 输入图片的 URL 或 base64
+  nodes:
+    load_image_from_url:
+      type: "func"
+      funcNodeRef:
+        metadata:
+          name: "load_image_from_url"
+          namespace: "default"
+        next: "preprocess_image"
+
+    preprocess_image:
+      type: "func"
+      funcNodeRef:
+        metadata:
+          name: "preprocess_image"
+          namespace: "default"
+        next: "generate_description"
+
+    generate_description:
+      type: "func"
+      funcNodeRef:
+        metadata:
+          name: "generate_description"
+          namespace: "default"
+        next: "outputresult"
+    
+    outputresult:
+      type: "func"
+      funcNodeRef:
+        metadata:
+          name: "outputresult"
+          namespace: "default"
+        next: ""

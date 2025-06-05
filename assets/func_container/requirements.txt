@@ -2,3 +2,5 @@ Flask
 wand
 couchdb
 pillow
+openai
+requests

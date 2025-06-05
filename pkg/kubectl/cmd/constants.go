@@ -12,6 +12,8 @@ const (
 	HorizontalPodAutoscalerKind = "HorizontalPodAutoscaler"
 	GPUJobKind                  = "GpuJob"
 	Function                    = "Function"
+	Workflow                    = "Workflow"
+	Event                       = "Event"
 )
 
 const (
@@ -20,6 +22,8 @@ const (
 	ReplicaSetCmdName = "replicaset"
 	DNSCmdName        = "dns"
 	HPACmdName        = "hpa"
+	FunctionCmdName   = "function"
+	WorkflowCmdName   = "workflow"
 )
 
 var (

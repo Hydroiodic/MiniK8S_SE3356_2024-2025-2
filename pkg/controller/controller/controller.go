@@ -8,19 +8,24 @@ import (
 )
 
 type Controller struct {
-	ReplicasetController *(replicaset.ReplicasetController)
-	HpaController        *(hpa.HPAController)
-	JobController        *(gpu.JobController)
-	FunctionController   *(function.FucntionController)
+	ReplicasetController  *(replicaset.ReplicasetController)
+	HpaController         *(hpa.HPAController)
+	JobController         *(gpu.JobController)
+	FunctionController    *(function.FucntionController)
+	Serverless_controller *(function.Serverless_controller)
+	eventController       *(function.EventTriggerController)
 }
 
 func (c *Controller) StartController() {
 	c.JobController = gpu.NewJobController()
 	c.FunctionController = function.NewFucntionController()
-
+	c.Serverless_controller = function.NewServerlessController()
+	c.eventController = function.NewEventController()
 	go c.ReplicasetController.Start()
 	go c.HpaController.Start()
 	go c.JobController.Start()
 	go c.FunctionController.Start()
+	go c.Serverless_controller.Start()
+	go c.eventController.Start()
 	select {}
 }
