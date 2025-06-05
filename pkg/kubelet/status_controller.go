@@ -61,7 +61,6 @@ func (c *PodStatusController) HeartBeatRoutine(stopCh <-chan struct{}) {
 	for {
 		select {
 		case <-ticker.C:
-			log.Printf("Preparing to send kubelet heartbeat")
 			err := c.apiClient.HeartbeatKubelet(c.kubelet)
 			if err != nil {
 				log.Printf("Failed to heartbeat kubelet: %v", err)
