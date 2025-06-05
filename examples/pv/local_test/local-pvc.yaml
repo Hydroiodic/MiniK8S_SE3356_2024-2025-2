@@ -1,0 +1,9 @@
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: local-pvc
+  namespace: default
+spec:
+  resources:
+    storage: 5Gi
+  # volumeName: pv-static（由服务器指配）

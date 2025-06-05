@@ -288,12 +288,10 @@ func printPVs(pvs []object.PersistentVolume) {
 
 		rows = append(rows, []string{
 			pv.Metadata.Name,
-			pv.Metadata.Namespace,
 			pv.Spec.Capacity.Storage,
 			storageType,
 			storagePath,
 			pv.Status,
-			convertStringMapToString(pv.Metadata.Labels),
 		})
 
 		if i != len(pvs)-1 {
@@ -324,7 +322,6 @@ func printPVCs(pvcs []object.PersistentVolumeClaim) {
 			pvc.Metadata.Namespace,
 			pvc.Spec.Capacity.Storage,
 			volumeName,
-			convertStringMapToString(pvc.Metadata.Labels),
 		})
 
 		if i != len(pvcs)-1 {

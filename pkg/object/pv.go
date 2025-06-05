@@ -25,9 +25,9 @@ const (
 // PersistentVolumeSpec 定义 PV 规格
 // PV 只支持 Retain 策略
 type PersistentVolumeSpec struct {
-	Capacity ResourceList          `json:"capacity"`
-	NFS      *NFSVolumeSource      `json:"nfs,omitempty"`
-	HostPath *HostPathVolumeSource `json:"hostPath,omitempty"`
+	Capacity ResourceList          `json:"capacity"           yaml:"capacity"`           // 存储容量
+	NFS      *NFSVolumeSource      `json:"nfs,omitempty"      yaml:"nfs,omitempty"`      // NFS 存储
+	HostPath *HostPathVolumeSource `json:"hostPath,omitempty" yaml:"hostPath,omitempty"` // hostPath 存储
 }
 
 // NFSVolumeSource 定义 NFS 存储
@@ -57,8 +57,8 @@ type ObjectMeta struct {
 
 // PersistentVolumeClaimSpec 定义 PVC 规格
 type PersistentVolumeClaimSpec struct {
-	Capacity   ResourceList `json:"resources"`            // 期望的存储容量
-	VolumeName string       `json:"volumeName,omitempty"` // 绑定的 PV 名称
+	Capacity   ResourceList `json:"resources"            yaml:"resources"`            // 期望的存储容量
+	VolumeName string       `json:"volumeName,omitempty" yaml:"volumeName,omitempty"` // 绑定的 PV 名称
 }
 
 // ResourceList 定义存储容量

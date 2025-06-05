@@ -1,0 +1,10 @@
+# 该文件用于测试无空闲PV的情况下，PVC自动创建NFS类型的PV
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: autogen-pvc
+  namespace: default
+spec:
+  resources:
+    storage: 10Gi
+  # volumeName: pv-static（由服务器指配）

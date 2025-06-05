@@ -1,0 +1,9 @@
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: hostpath-pv
+spec:
+  capacity:
+    storage: 5Gi
+  hostPath:
+    path: /tmp/hostpath-pv

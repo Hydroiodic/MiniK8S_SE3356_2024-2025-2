@@ -74,13 +74,13 @@ var (
 	pvHeaders = []string{
 		"NAME",     // PersistentVolume.Metadata.Name
 		"CAPACITY", // PersistentVolume.Spec.Capacity
-		"NFS",      // PersistentVolume.Spec.NFS
-		"HOSTPATH", // PersistentVolume.Spec.HostPath
+		"TYPE",     // PersistentVolume.Spec.NFS
+		"PATH",     // PersistentVolume.Spec.HostPath / PersistentVolume.Spec.NFS
+		"STATUS",   // PersistentVolume.Status
 	}
 	pvcHeaders = []string{
 		"NAME",        // PersistentVolumeClaim.Metadata.Name
 		"NAMESPACE",   // PersistentVolumeClaim.Metadata.Namespace
-		"STATUS",      // PersistentVolumeClaim.Status
 		"STORAGE",     // PersistentVolumeClaim.Spec.Resources.Storage
 		"VOLUME_NAME", // PersistentVolumeClaim.Spec.VolumeName
 	}

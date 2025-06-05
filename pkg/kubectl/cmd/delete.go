@@ -109,7 +109,7 @@ func deletePV(name string) {
 // Delete PersistentVolumeClaim.
 func deletePVC(name, namespace string) {
 	err := apiserver.NewAPIClient("").
-		DeletePVCByName(name, namespace)
+		DeletePVCByName(namespace, name)
 	if err != nil {
 		fmt.Println("Error deleting persistent volume claim:", err)
 		return

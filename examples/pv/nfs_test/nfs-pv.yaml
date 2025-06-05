@@ -1,0 +1,11 @@
+kind: PersistentVolume
+apiVersion: v1
+metadata:
+  name: nfs-pv
+spec:
+  capacity:
+    storage: 5Gi
+  persistentVolumeReclaimPolicy: Retain
+  nfs:
+    server: 192.168.1.6
+    path: /test-pv

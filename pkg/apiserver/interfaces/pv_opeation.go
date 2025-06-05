@@ -223,6 +223,35 @@ func DeletePersistentVolume(c *gin.Context) {
 		}
 	}()
 
+	// 检查 PV 是否存在
+	existingPV, err := st.GetPersistentVolume(
+		c.Request.Context(),
+		pv.Metadata.Name,
+	)
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			"从 etcd 获取 PersistentVolume 失败: "+err.Error(),
+		)
+
+		return
+	}
+
+	if existingPV == nil {
+		c.JSON(http.StatusNotFound, "PersistentVolume 未找到: "+pv.Metadata.Name)
+		return
+	}
+
+	// 如果Bound状态为已绑定，拒绝删除
+	if existingPV.Status == object.PersistentVolumeBound {
+		c.JSON(
+			http.StatusConflict,
+			"删除 PersistentVolume 失败: 已绑定到 PersistentVolumeClaim",
+		)
+
+		return
+	}
+
 	// 从 etcd 删除 PV
 	if err := st.DeletePersistentVolume(c.Request.Context(), pv.Metadata.Name); err != nil {
 		c.JSON(
