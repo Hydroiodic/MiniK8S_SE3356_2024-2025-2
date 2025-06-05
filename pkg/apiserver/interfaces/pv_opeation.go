@@ -163,7 +163,7 @@ func GetPersistentVolume(c *gin.Context) {
 }
 
 // ListPersistentVolumes 列出所有 PersistentVolume
-func ListPersistentVolumes(c *gin.Context) {
+func GetPersistentVolumes(c *gin.Context) {
 	// 创建 PersistentVolumeStore
 	st, err := object.NewPersistentVolumeStore([]string{})
 	if err != nil {

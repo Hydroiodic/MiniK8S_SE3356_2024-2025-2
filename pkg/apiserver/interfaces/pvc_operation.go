@@ -306,7 +306,7 @@ func GetPersistentVolumeClaim(c *gin.Context) {
 }
 
 // ListPersistentVolumeClaims 列出所有 PersistentVolumeClaim
-func ListPersistentVolumeClaims(c *gin.Context) {
+func GetPersistentVolumeClaims(c *gin.Context) {
 	// 创建 PersistentVolumeClaimStore
 	st, err := object.NewPersistentVolumeClaimStore([]string{})
 	if err != nil {
