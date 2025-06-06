@@ -1,0 +1,9 @@
+kind: Event
+metadata:
+  name: test-complex-event
+schedule: "*/15 * * * * *"  # cron表达式，每15秒触发一次事件
+jsonData: '{"x": 1, "y": 3}' # 事件的数据，将发给sink消费
+target:
+  kind: workflow
+  name: imageProcessWorkflow
+  namespace: default

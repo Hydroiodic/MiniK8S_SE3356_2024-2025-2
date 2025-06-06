@@ -76,6 +76,12 @@ func parseYaml(fileAddr string) {
 		err = handlePVRaw(data)
 	case PVCKind:
 		err = handlePVCRaw(data)
+	case Function:
+		err = handleFunctionRaw(data)
+	case Workflow:
+		err = handleWorkflowRaw(data)
+	case Event:
+		err = handleEventRaw(data)
 	default:
 		fmt.Printf("Unsupported resource kind: %s\n", kindStruct.Kind)
 		return
@@ -91,6 +97,82 @@ func parseYaml(fileAddr string) {
 
 		return
 	}
+}
+
+func handleEventRaw(rawData []byte) error {
+	// Parse the raw YAML data into a Pod object.
+	var e object.Event
+	if err := yaml.Unmarshal(rawData, &e); err != nil {
+		return err
+	}
+
+	// Add the Pod configuration.
+	err := apiserver.NewAPIClient("").CreateEvent(e)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+func handleWorkflowRaw(rawData []byte) error {
+	// Parse the raw YAML data into a Pod object.
+	var wf object.Workflow
+	if err := yaml.Unmarshal(rawData, &wf); err != nil {
+		return err
+	}
+
+	// Add the Pod configuration.
+	err := apiserver.NewAPIClient("").CreateWorkflow(wf)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func handleFunctionRaw(rawData []byte) error {
+	// Parse the raw YAML data into a GpuJob object.
+	var f object.Function
+	if err := yaml.Unmarshal(rawData, &f); err != nil {
+		return err
+	}
+
+	// Check if the upload path exists.
+	_, err := os.Stat(f.Spec.UserUploadPath)
+	if err != nil {
+		return err
+	}
+
+	// Get every file in the upload path and compress them into a ZIP file.
+	z := archiver.NewZip()
+	z.OverwriteExisting = true
+
+	// Get all files in the specified upload path.
+	files, err := filepath.Glob(filepath.Join(f.Spec.UserUploadPath, "*"))
+	if err != nil {
+		return err
+	}
+
+	// Compress the files into a ZIP archive.
+	err = z.Archive(files, f.Spec.UserUploadPath+".zip")
+	if err != nil {
+		return err
+	}
+
+	// Read the ZIP file into a byte slice.
+	fileByte, err := os.ReadFile(f.Spec.UserUploadPath + ".zip")
+	if err != nil {
+		return err
+	}
+
+	f.Spec.UserUploadFile = fileByte
+
+	err = apiserver.NewAPIClient("").CreateFunction(f)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func handleGPUJOBRaw(rawData []byte) error {

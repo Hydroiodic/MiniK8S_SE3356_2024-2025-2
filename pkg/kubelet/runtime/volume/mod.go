@@ -149,7 +149,7 @@ func (vm *VolumeManager) handlePVCVolume(
 		)
 	}
 
-	if pv.Spec.NFS != nil && pv.Spec.NFS.Server != "" && //nolint
+	if pv.Spec.NFS != nil && pv.Spec.NFS.Server != "" &&
 		pv.Spec.NFS.Path != "" {
 		// 处理 NFS 类型的 PV
 		err = os.MkdirAll(volumePath, os.ModePerm)

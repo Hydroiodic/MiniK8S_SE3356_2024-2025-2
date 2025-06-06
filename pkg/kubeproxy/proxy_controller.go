@@ -85,11 +85,7 @@ func (c *ServiceController) DeleteServiceHandler(svc *object.Service) error {
 	// 从服务映射中删除服务
 	for i, s := range c.kubelet.Services {
 		if s.Metadata.Name == svc.Metadata.Name {
-			c.kubelet.Services = slices.Delete(
-				c.kubelet.Services, i,
-				i+1,
-			)
-
+			c.kubelet.Services = slices.Delete(c.kubelet.Services, i, i+1)
 			break
 		}
 	}

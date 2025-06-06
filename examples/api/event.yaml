@@ -1,0 +1,9 @@
+kind: Event
+metadata:
+  name: test-event
+schedule: "*/15 * * * * *"  # cron表达式，每15秒触发一次事件
+jsonData: '{"x": 1, "y": 3}' # 事件的数据，将发给sink消费
+target:
+  kind: Function
+  name: x_y_add
+  namespace: default

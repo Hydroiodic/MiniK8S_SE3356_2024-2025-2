@@ -1,7 +1,7 @@
 package interfaces
 
 import (
-	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
@@ -35,7 +35,7 @@ func CreateReplicaset(c *gin.Context) {
 	// Ensure the ReplicasetStore is closed after use.
 	defer func() {
 		if closeErr := st.Close(); closeErr != nil {
-			fmt.Printf("Failed to close replicaset store: %v\n", closeErr)
+			log.Printf("Failed to close replicaset store: %v\n", closeErr)
 		}
 	}()
 
@@ -56,7 +56,7 @@ func CreateReplicaset(c *gin.Context) {
 
 	// If the replicaset already exists, return an error.
 	if reply != nil {
-		fmt.Println(
+		log.Println(
 			"Create ReplicaSet from file failed: same namespace & name",
 		)
 		c.JSON(
@@ -67,7 +67,6 @@ func CreateReplicaset(c *gin.Context) {
 		return
 	}
 
-	// 写入etcd即可
 	// Add the replicaset to etcd.
 	if err := st.AddReplicaset(c.Request.Context(), &replicaset); err != nil {
 		c.JSON(
@@ -106,7 +105,7 @@ func UpdateReplicaset(c *gin.Context) {
 	// Ensure the ReplicasetStore is closed after use.
 	defer func() {
 		if closeErr := st.Close(); closeErr != nil {
-			fmt.Printf("Failed to close replicaset store: %v\n", closeErr)
+			log.Printf("Failed to close replicaset store: %v\n", closeErr)
 		}
 	}()
 
@@ -140,7 +139,7 @@ func GetReplicasets(c *gin.Context) {
 	// Ensure the ReplicasetStore is closed after use.
 	defer func() {
 		if closeErr := st.Close(); closeErr != nil {
-			fmt.Printf("Failed to close replicaset store: %v\n", closeErr)
+			log.Printf("Failed to close replicaset store: %v\n", closeErr)
 		}
 	}()
 
@@ -159,7 +158,8 @@ func GetReplicasets(c *gin.Context) {
 	c.JSON(http.StatusOK, replicasets)
 }
 
-func DeleteReplicasetFromEtcd(c *gin.Context) {
+//nolint:dupl
+func DeleteReplicaset(c *gin.Context) {
 	// Parse the JSON body into a Pod object.
 	var rs object.ReplicaSet
 	if err := c.BindJSON(&rs); err != nil {
@@ -181,7 +181,7 @@ func DeleteReplicasetFromEtcd(c *gin.Context) {
 	// Ensure the ReplicasetStore is closed after use.
 	defer func() {
 		if closeErr := st.Close(); closeErr != nil {
-			fmt.Printf("Failed to close replicaset store: %v\n", closeErr)
+			log.Printf("Failed to close replicaset store: %v\n", closeErr)
 		}
 	}()
 

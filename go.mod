@@ -5,6 +5,7 @@ go 1.23.3
 toolchain go1.23.9
 
 require (
+	github.com/Knetic/govaluate v3.0.0+incompatible
 	github.com/containers/image/v5 v5.35.0
 	github.com/coreos/go-iptables v0.8.0
 	github.com/docker/docker v28.1.1+incompatible
@@ -17,11 +18,13 @@ require (
 	github.com/miekg/dns v1.1.66
 	github.com/moby/ipvs v1.1.0
 	github.com/rabbitmq/amqp091-go v1.10.0
+	github.com/robfig/cron/v3 v3.0.0
 	github.com/shirou/gopsutil v3.21.11+incompatible
 	github.com/spf13/cobra v1.9.1
 	github.com/stretchr/testify v1.10.0
 	github.com/vishvananda/netlink v1.3.1
 	go.etcd.io/etcd/client/v3 v3.6.0
+	gopkg.in/yaml.v2 v2.4.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 

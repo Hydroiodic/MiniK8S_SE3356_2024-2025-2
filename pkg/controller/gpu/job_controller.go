@@ -138,8 +138,8 @@ func (fc *JobController) CreateJob(job object.Job) {
 	_, err = fmt.Fprintf(
 		dockerfile,
 		"FROM %s:%d/job-server:latest\n",
-		imageRegistryURL,
-		imageRegistryPort,
+		ImageRegistryURL,
+		ImageRegistryPort,
 	)
 	if err != nil {
 		fmt.Println(err.Error())
@@ -242,8 +242,8 @@ func (fc *JobController) CreateJob(job object.Job) {
 			Tags: []string{
 				fmt.Sprintf(
 					"%s:%d/job-server/%s/%s:latest",
-					imageRegistryURL,
-					imageRegistryPort,
+					ImageRegistryURL,
+					ImageRegistryPort,
 					job.Metadata.Namespace,
 					job.Metadata.Name,
 				),
@@ -274,15 +274,15 @@ func (fc *JobController) CreateJob(job object.Job) {
 	fmt.Println("开始推送镜像")
 
 	authEncoded := base64.StdEncoding.EncodeToString(
-		[]byte(registry_user + ":" + registry_password),
+		[]byte(Registry_user + ":" + Registry_password),
 	)
 	fmt.Println(authEncoded)
 	resp2, err := cli.ImagePush(
 		context.Background(),
 		fmt.Sprintf(
 			"%s:%d/job-server/%s/%s:latest",
-			imageRegistryURL,
-			imageRegistryPort,
+			ImageRegistryURL,
+			ImageRegistryPort,
 			job.Metadata.Namespace,
 			job.Metadata.Name,
 		),
@@ -328,8 +328,8 @@ func (fc *JobController) createPod(job object.Job) {
 			Name: "job_container_" + job.Metadata.Name,
 			Image: fmt.Sprintf(
 				"%s:%d/job-server/%s/%s:latest",
-				imageRegistryURL,
-				imageRegistryPort,
+				ImageRegistryURL,
+				ImageRegistryPort,
 				job.Metadata.Namespace,
 				job.Metadata.Name,
 			),

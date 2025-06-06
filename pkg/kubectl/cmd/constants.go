@@ -11,8 +11,13 @@ const (
 	DNSKind                     = "DNS"
 	HorizontalPodAutoscalerKind = "HorizontalPodAutoscaler"
 	GPUJobKind                  = "GpuJob"
-	PVKind                      = "PersistentVolume"
-	PVCKind                     = "PersistentVolumeClaim"
+
+	PVKind  = "PersistentVolume"
+	PVCKind = "PersistentVolumeClaim"
+
+	Function = "Function"
+	Workflow = "Workflow"
+	Event    = "Event"
 )
 
 const (
@@ -21,8 +26,12 @@ const (
 	ReplicaSetCmdName = "replicaset"
 	DNSCmdName        = "dns"
 	HPACmdName        = "hpa"
-	PVCmdName         = "pv"
-	PVCCmdName        = "pvc"
+
+	PVCmdName  = "pv"
+	PVCCmdName = "pvc"
+
+	FunctionCmdName = "function"
+	WorkflowCmdName = "workflow"
 )
 
 var (
