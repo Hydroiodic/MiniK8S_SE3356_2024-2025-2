@@ -3,6 +3,7 @@ package object
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"path"
 
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/etcd"
@@ -71,6 +72,8 @@ func (s *WorkflowStore) GetWorkflows(
 	if err != nil {
 		return nil, err
 	}
+
+	fmt.Println(wf)
 
 	return &wf, nil
 }

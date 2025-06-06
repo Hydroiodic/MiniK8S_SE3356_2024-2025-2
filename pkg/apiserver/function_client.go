@@ -60,13 +60,17 @@ func (c *APIClient) GetAllFunction() ([]object.Function, error) {
 }
 
 func (c *APIClient) DeleteFunction(funcName string) error {
+	fmt.Println("deleting function now!")
+
 	funcs, err := c.GetAllFunction()
 	if err != nil {
 		return err
 	}
 
 	url := c.BaseURL + FunctionDeleteURL
+
 	var match_f *object.Function
+
 	for _, f := range funcs {
 		if f.Metadata.Name == funcName {
 			match_f = &f

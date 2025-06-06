@@ -35,23 +35,23 @@ func (ec *EventTriggerController) Start() {
 	ticker := time.NewTicker(15 * time.Second)
 
 	go func() {
-		for {
-			select {
-			case <-ticker.C:
-				ec.CheckAllEventTrigger()
-			}
+		for range ticker.C {
+			ec.CheckAllEventTrigger()
 		}
 	}()
 }
 
 func (ec *EventTriggerController) CheckAllEventTrigger() {
 	fmt.Println("开始检查所有的event")
+
 	es, err := ec.Ci.GetAllEvent()
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
+
 	updateEvent := make(map[string]*object.Event)
+
 	for _, ps := range es {
 		psKey := ps.Metadata.Namespace + "/" + ps.Metadata.Name
 		updateEvent[psKey] = &ps
@@ -69,9 +69,10 @@ func (ec *EventTriggerController) CheckAllEventTrigger() {
 				}
 			})
 			if err != nil {
-				fmt.Println("Failed to create cron for Event: %s", err)
+				fmt.Printf("Failed to create cron for Event: %s\n", err)
 				continue
 			}
+
 			c.Start()
 			ec.Crons[psKey] = c
 			ec.QuitChs[psKey] = make(chan struct{})
@@ -113,8 +114,10 @@ func (ec *EventTriggerController) CheckOneEvent(ps object.Event) {
 	if evNamespace == "" {
 		evNamespace = "default"
 	}
+
 	evName := ps.Target.Name
 	evUrl := evNamespace + "/" + evName
+
 	if kindStr == "workflow" {
 		evUrl = "http://localhost:8060/triggerWorkflow/" + evUrl
 	} else {
@@ -123,13 +126,16 @@ func (ec *EventTriggerController) CheckOneEvent(ps object.Event) {
 	//先转成map，再转成byte
 	var dataMapping map[string]interface{}
 	err := json.Unmarshal([]byte(ps.JsonData), &dataMapping)
+
 	if err != nil {
-		fmt.Println("Failed to unmarshal json data: %s", err)
+		fmt.Printf("Failed to unmarshal json data: %s\n", err)
 		return
 	}
+
 	data, err := json.Marshal(dataMapping)
+
 	if err != nil {
-		fmt.Println("Failed to unmarshal json data: %s", err)
+		fmt.Printf("Failed to unmarshal json data: %s\n", err)
 	}
 
 	req, err := http.NewRequest(
@@ -141,13 +147,17 @@ func (ec *EventTriggerController) CheckOneEvent(ps object.Event) {
 		fmt.Println(err)
 		return
 	}
+
 	req.Header.Set("Content-Type", "application/json")
+
 	client := &http.Client{}
 	resp, err := client.Do(req)
+
 	if err != nil {
 		fmt.Println("send post request failed", err.Error())
 		return
 	}
+
 	defer func() {
 		if cerr := resp.Body.Close(); cerr != nil {
 			fmt.Println("Failed to close response body: ", cerr)
@@ -158,17 +168,23 @@ func (ec *EventTriggerController) CheckOneEvent(ps object.Event) {
 		fmt.Println(err)
 		return
 	}
+
 	bodyBytes, err := io.ReadAll(resp.Body) // 读取整个响应体
+
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer resp.Body.Close() // 确保关闭 Body
+
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			fmt.Println("Failed to close response body: ", cerr)
+		}
+	}()
 
 	bodyString := string(bodyBytes) // 转换为字符串
 	fmt.Printf(
 		"do trigger %s, response from serverless function: %s\n",
 		evUrl,
-		string(bodyString),
+		bodyString,
 	)
-
 }

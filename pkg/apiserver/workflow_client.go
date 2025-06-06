@@ -66,7 +66,11 @@ func (c *APIClient) DeleteWorkflow(workflowName string) error {
 	}
 
 	url := c.BaseURL + WorkflowDeleteURL
+
+	fmt.Println(url)
+
 	var match_w *object.Workflow
+
 	for _, w := range wfs {
 		if w.Metadata.Name == workflowName {
 			match_w = &w

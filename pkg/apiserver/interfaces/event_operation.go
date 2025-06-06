@@ -1,6 +1,7 @@
 package interfaces
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
@@ -39,11 +40,9 @@ func GetEvents(c *gin.Context) {
 		return
 	}
 
-	// Convert the GPUJobs to a JSON format and return them.
 	c.JSON(http.StatusOK, funcs)
 }
 
-//nolint:dupl
 func CreateEvent(c *gin.Context) {
 	// Parse the JSON body into a hpa object.
 	var fc object.Event
@@ -52,6 +51,7 @@ func CreateEvent(c *gin.Context) {
 		return
 	}
 
+	fmt.Println(fc)
 	// Create a new GPUJobStore and check for errors.
 	st, err := object.NewEventStore([]string{})
 	if err != nil {

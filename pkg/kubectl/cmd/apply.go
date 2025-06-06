@@ -162,7 +162,6 @@ func handleFunctionRaw(rawData []byte) error {
 	}
 
 	f.Spec.UserUploadFile = fileByte
-	fmt.Println(f)
 
 	err = apiserver.NewAPIClient("").CreateFunction(f)
 	if err != nil {

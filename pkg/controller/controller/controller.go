@@ -21,6 +21,7 @@ func (c *Controller) StartController() {
 	c.FunctionController = function.NewFucntionController()
 	c.Serverless_controller = function.NewServerlessController()
 	c.eventController = function.NewEventController()
+
 	go c.ReplicasetController.Start()
 	go c.HpaController.Start()
 	go c.JobController.Start()

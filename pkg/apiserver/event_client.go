@@ -66,7 +66,9 @@ func (c *APIClient) DeleteEvent(eventName string) error {
 	}
 
 	url := c.BaseURL + EventDeleteURL
+
 	var match_e *object.Event
+
 	for _, e := range es {
 		if e.Metadata.Name == eventName {
 			match_e = &e

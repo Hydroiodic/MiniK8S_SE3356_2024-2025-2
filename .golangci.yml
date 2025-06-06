@@ -16,7 +16,7 @@ linters:
     - goconst
     # - godot
     # - godox # 检查TODO
-    - nestif
+    # - nestif
     # - revive
     - wsl
     - whitespace

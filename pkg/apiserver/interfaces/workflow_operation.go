@@ -1,6 +1,7 @@
 package interfaces
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
@@ -43,7 +44,6 @@ func GetWorkflows(c *gin.Context) {
 	c.JSON(http.StatusOK, funcs)
 }
 
-//nolint:dupl
 func CreateWorkflow(c *gin.Context) {
 	// Parse the JSON body into a hpa object.
 	var fc object.Workflow
@@ -52,6 +52,7 @@ func CreateWorkflow(c *gin.Context) {
 		return
 	}
 
+	fmt.Println("createWorkflow")
 	// Create a new GPUJobStore and check for errors.
 	st, err := object.NewWorkflowStore([]string{})
 	if err != nil {
@@ -104,7 +105,6 @@ func CreateWorkflow(c *gin.Context) {
 	}
 }
 
-//nolint:dupl
 func DeleteWorkflow(c *gin.Context) {
 	// Parse the JSON body into a Pod object.
 	var f object.Workflow
@@ -113,6 +113,7 @@ func DeleteWorkflow(c *gin.Context) {
 		return
 	}
 
+	fmt.Println(f)
 	// Create ReplicasetStore and check for errors.
 	st, err := object.NewWorkflowStore([]string{})
 	if err != nil {

@@ -51,6 +51,7 @@ func (s *FuncStore) ListFunctions(
 }
 
 func (s *FuncStore) key(namespace, name string) string {
+	println(name)
 	return path.Join(etcd.FunctionPrefix, namespace, name)
 }
 

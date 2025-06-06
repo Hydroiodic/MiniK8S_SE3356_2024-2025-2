@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io"
+	"log"
 	"os"
 	"strconv"
 	"time"
@@ -82,16 +83,24 @@ func (fc *FucntionController) CheckFunctions() {
 }
 func (fc *FucntionController) DeleteFunctionAndReplicaset(f object.Function) {
 	var cli *client.Client
+
 	var err error
 	cli, err = client.NewClientWithOpts(
 		client.FromEnv,
 		client.WithAPIVersionNegotiation(),
 	)
+
 	if err != nil {
 		fmt.Println(err.Error())
 		return
 	}
-	defer cli.Close()
+
+	defer func() {
+		if cerr := cli.Close(); cerr != nil {
+			// Log the error if closing the response body fails.
+			log.Println("Failed to close response body: ", cerr)
+		}
+	}()
 
 	err = fc.ci.DeleteReplicaset(f.Metadata.Name)
 	if err != nil {
@@ -104,13 +113,15 @@ func (fc *FucntionController) DeleteFunctionAndReplicaset(f object.Function) {
 func (fc *FucntionController) CreateFunctionAndReplicaset(f object.Function) {
 	//创建docker容器的挂载目录
 	fmt.Println("开始创建挂载目录")
-	FunctionFilePath := gpu.WorkDir + "/assets/allfunctions/" + f.Metadata.Namespace + "/" + f.Metadata.Name
+
+	FunctionFilePath := gpu.WorkDir + "/assets/allfunctions/" +
+		f.Metadata.Namespace + "/" + f.Metadata.Name
 	err := os.RemoveAll(FunctionFilePath)
 
 	if err != nil {
 		fmt.Println(err)
-		return
 	}
+
 	err = os.MkdirAll(FunctionFilePath, 0777)
 	if err != nil {
 		fmt.Println(err)
@@ -120,21 +131,21 @@ func (fc *FucntionController) CreateFunctionAndReplicaset(f object.Function) {
 	err = os.RemoveAll(FunctionFilePath + "/function.zip")
 	if err != nil {
 		fmt.Println(err)
-		return
 	}
 
 	err = os.RemoveAll(FunctionFilePath + "/function")
 	if err != nil {
 		fmt.Println(err)
-		return
 	}
 	//创建zip文件
 	fmt.Println("开始创建zip文件")
+
 	err = os.WriteFile(
 		FunctionFilePath+"/function.zip",
 		f.Spec.UserUploadFile,
 		0777,
 	)
+
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -142,9 +153,11 @@ func (fc *FucntionController) CreateFunctionAndReplicaset(f object.Function) {
 	//解压zip文件
 	//将解压后的文件放入新文件夹
 	fmt.Println("开始解压zip文件")
+
 	z := archiver.NewZip()
 	z.OverwriteExisting = true
 	err = z.Unarchive(FunctionFilePath+"/function.zip", FunctionFilePath)
+
 	if err != nil {
 		fmt.Println(err)
 		return
@@ -154,24 +167,39 @@ func (fc *FucntionController) CreateFunctionAndReplicaset(f object.Function) {
 	err = os.Remove(FunctionFilePath + "/function.zip")
 	if err != nil {
 		fmt.Println(err)
-		return
 	}
 
 	//创建dockerfile
 	fmt.Println("开始创建dockfile")
-	os.Remove(FunctionFilePath + "/Dockerfile")
+
+	err = os.Remove(FunctionFilePath + "/Dockerfile")
+
+	if err != nil {
+		fmt.Println(err)
+	}
+
 	dockerfile, err := os.Create(FunctionFilePath + "/Dockerfile")
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
-	defer dockerfile.Close()
 
-	dockerfile.WriteString(
+	defer func() {
+		if cerr := dockerfile.Close(); cerr != nil {
+			// Log the error if closing the response body fails.
+			log.Println("Failed to close response body: ", cerr)
+		}
+	}()
+
+	_, err = dockerfile.WriteString(
 		"FROM " + gpu.ImageRegistryURL + ":" + strconv.Itoa(
 			gpu.ImageRegistryPort,
 		) + "/baseserver:latest\n",
 	)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
 
 	funcpath := f.Metadata.Name + "/"
 	_, err = dockerfile.WriteString("COPY " + funcpath + " /app\n") //???????
@@ -189,6 +217,7 @@ func (fc *FucntionController) CreateFunctionAndReplicaset(f object.Function) {
 
 		return
 	}
+
 	fmt.Println("开始打包tar")
 	//构建docker上下文，需要将依赖文件打包成tar格式
 	z2 := archiver.NewTar()
@@ -211,16 +240,24 @@ func (fc *FucntionController) CreateFunctionAndReplicaset(f object.Function) {
 
 	//构建docker镜像
 	fmt.Println("开始构建镜像")
+
 	var cli *client.Client
 	cli, err = client.NewClientWithOpts(
 		client.FromEnv,
 		client.WithAPIVersionNegotiation(),
 	)
+
 	if err != nil {
 		fmt.Println(err.Error())
 		return
 	}
-	defer cli.Close()
+
+	defer func() {
+		if cerr := cli.Close(); cerr != nil {
+			// Log the error if closing the response body fails.
+			log.Println("Failed to close response body: ", cerr)
+		}
+	}()
 
 	resp, err := cli.ImageBuild(
 		context.Background(),
@@ -251,9 +288,16 @@ func (fc *FucntionController) CreateFunctionAndReplicaset(f object.Function) {
 		)
 		fmt.Println(s)
 		fmt.Println(err.Error())
+
 		return
 	}
-	defer resp.Body.Close()
+
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			// Log the error if closing the response body fails.
+			log.Println("Failed to close response body: ", cerr)
+		}
+	}()
 
 	_, err = io.Copy(os.Stdout, resp.Body)
 	if err != nil {
@@ -262,6 +306,7 @@ func (fc *FucntionController) CreateFunctionAndReplicaset(f object.Function) {
 	}
 	//推送docker镜像到docker registry
 	fmt.Println("开始推送镜像")
+
 	authEncoded := base64.StdEncoding.EncodeToString(
 		[]byte(gpu.Registry_user + ":" + gpu.Registry_password),
 	)
@@ -285,19 +330,19 @@ func (fc *FucntionController) CreateFunctionAndReplicaset(f object.Function) {
 		fmt.Println(err.Error())
 		return
 	}
-	defer resp2.Close()
+
+	defer func() {
+		if cerr := resp2.Close(); cerr != nil {
+			// Log the error if closing the response body fails.
+			log.Println("Failed to close response body: ", cerr)
+		}
+	}()
 
 	_, err = io.Copy(os.Stdout, resp2)
 	if err != nil {
 		fmt.Println(err.Error())
 		return
 	}
-	//删除新文件夹
-	// err = os.RemoveAll(FunctionFilePath)
-	// if err != nil {
-	// 	fmt.Println(err.Error())
-	// 	return
-	// }
 
 	fc.CreateReplicas(f)
 }
@@ -362,18 +407,29 @@ func (fc *FucntionController) DeleteService(f object.Function) {
 		fmt.Println(err.Error())
 		return
 	}
+
 	var match_s object.Service
+
 	existFlag := 0
+
 	for _, s := range services {
 		if s.Metadata.Name == f.Metadata.Name+"-service" {
 			match_s = s
 			existFlag = 1
+
 			break
 		}
 	}
+
 	if existFlag == 0 {
 		fmt.Println("function service not found")
 		return
 	}
-	fc.ci.DeleteService(&match_s)
+
+	err = fc.ci.DeleteService(&match_s)
+
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
 }

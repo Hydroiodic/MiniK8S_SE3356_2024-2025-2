@@ -53,6 +53,7 @@ func NewServerlessController() *Serverless_controller {
 
 func (s *Serverless_controller) Start() {
 	go s.fcController.Start()
+
 	ticker := time.NewTicker(2 * time.Second)
 
 	go func() {
@@ -71,6 +72,7 @@ func (s *Serverless_controller) Start() {
 		"/triggerWorkflow/:workflowNamespace/:workflowName",
 		s.TriggerWorkflow,
 	)
+
 	err := s.r.Run(":8060")
 	if err != nil {
 		fmt.Println(err.Error())
@@ -80,11 +82,14 @@ func (s *Serverless_controller) Start() {
 
 func (s *Serverless_controller) UpdateRoute() {
 	fmt.Println("开始更新route")
+
 	serviceList, err := s.ci.GetServices()
+
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
+
 	remoteService := make(map[string]string)
 	//更新本地没有，但是etcd中有的
 	for _, service := range serviceList {
@@ -92,6 +97,7 @@ func (s *Serverless_controller) UpdateRoute() {
 			s.route_map[val] = service.Status.ClusterIP + ":" + strconv.Itoa(
 				service.Spec.Ports[0].Port,
 			)
+
 			fmt.Printf(
 				"func: %s ,route%s\n",
 				val,
@@ -99,6 +105,7 @@ func (s *Serverless_controller) UpdateRoute() {
 					service.Spec.Ports[0].Port,
 				),
 			)
+
 			remoteService[val] = service.Status.ClusterIP + strconv.Itoa(
 				service.Spec.Ports[0].Port,
 			)
@@ -109,7 +116,6 @@ func (s *Serverless_controller) UpdateRoute() {
 				s.lastVisitTime[val] = time.Now().Add(-60 * time.Minute)
 				s.lastScaleTime[val] = time.Now().Add(-60 * time.Minute)
 			}
-
 		}
 	}
 	//删除本地有，但是etcd中没有的
@@ -122,7 +128,6 @@ func (s *Serverless_controller) UpdateRoute() {
 			delete(s.lastScaleTime, key)
 		}
 	}
-
 }
 func (s *Serverless_controller) CheckAllFunction() {
 	for key := range s.timeVisitedQueue {
@@ -134,36 +139,42 @@ func (s *Serverless_controller) CheckAllFunction() {
 func (s *Serverless_controller) ScaleToZeroFunction(name string) {
 	q := s.timeVisitedQueue[name]
 
-	for {
-		if len(q) == 0 {
-			//说明很长时间没人访问，已经scale to zero
+	for len(q) > 0 {
+		if time.Since(q[0]) > s.savedTimeLen {
+			// Update timequeue to keep only records within savedTimeLen
+			q = q[1:]
+		} else {
+			// No need to continue once we find the first element within time range
 			break
 		}
-		if time.Since(q[0]) > s.savedTimeLen {
-			//更新timequeue，使得访问记录都是在savedtimelen范围内
-			q = q[1:]
-		}
 	}
+
 	s.timeVisitedQueue[name] = q
 	nameStr := strings.Split(name, "/")
+
 	if s.funcPodNums[name] > 0 &&
 		time.Since(s.lastVisitTime[name]) > s.ToZeroTime {
 		fmt.Println("开始缩容")
 		// scale to zero
 		fmt.Println(name, "scale to zero")
+
 		s.lastScaleTime[name] = time.Now()
 		s.funcPodNums[name] = 0
 
 		//更改replicaset的内容
 		rs, err := s.ci.GetReplicasetyName(nameStr[1])
 		fmt.Println(rs)
+
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
+
 		rs.Spec.Replicas = 0
 		err = s.ci.UpdateReplicaset(&rs)
+
 		fmt.Println("更新replicaset为0")
+
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -172,7 +183,6 @@ func (s *Serverless_controller) ScaleToZeroFunction(name string) {
 }
 
 func (s *Serverless_controller) TriggerFunction(c *gin.Context) {
-
 	functionName := c.Param("functionName")
 	functionNamespace := c.Param("functionNamespace")
 	fmt.Printf(
@@ -190,8 +200,10 @@ func (s *Serverless_controller) TriggerFunction(c *gin.Context) {
 	}
 
 	s.visitFunction(name)
+
 	sendPath := "http://" + functionServiceIP
 	fmt.Println("triggerFunction", sendPath)
+
 	request_body, _ := io.ReadAll(c.Request.Body)
 	fmt.Printf("TriggerFunction request is: %s\n", string(request_body))
 	req, err := http.NewRequest(
@@ -199,18 +211,22 @@ func (s *Serverless_controller) TriggerFunction(c *gin.Context) {
 		sendPath,
 		bytes.NewBuffer(request_body),
 	)
+
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
 	req.Header.Set("Content-Type", "application/json")
+
 	client := &http.Client{}
 	resp, err := client.Do(req)
+
 	if err != nil {
 		fmt.Println("send post request failed", err.Error())
 		return
 	}
+
 	defer func() {
 		if cerr := resp.Body.Close(); cerr != nil {
 			fmt.Println("Failed to close response body: ", cerr)
@@ -222,11 +238,17 @@ func (s *Serverless_controller) TriggerFunction(c *gin.Context) {
 		fmt.Println(err)
 		return
 	}
+
 	bodyBytes, err := io.ReadAll(resp.Body) // 读取整个响应体
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer resp.Body.Close() // 确保关闭 Body
+
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			fmt.Println("Failed to close response body: ", cerr)
+		}
+	}()
 
 	bodyString := string(bodyBytes) // 转换为字符串
 	fmt.Println(bodyString)
@@ -255,13 +277,14 @@ func (s *Serverless_controller) visitFunction(name string) {
 			fmt.Println(err.Error())
 			return
 		}
+
 		rs.Spec.Replicas = scaleNewNum
 		err = s.ci.UpdateReplicaset(&rs)
+
 		if err != nil {
 			fmt.Println(err.Error())
 			return
 		}
-
 	}
 }
 
@@ -280,27 +303,32 @@ func (s *Serverless_controller) TriggerWorkflow(c *gin.Context) {
 	}
 
 	var cur_w object.Workflow
+
 	for _, w := range workflows {
 		fmt.Println(w.Metadata.Name)
+
 		if workflowName == w.Metadata.Name {
 			cur_w = w
 			break
 		}
 	}
+
 	fmt.Println(cur_w)
+
 	request_body, _ := io.ReadAll(c.Request.Body)
+
 	var curParamsMap map[string]interface{}
 	// 如果请求体不为空，那么直接使用请求体作为此时的参数
 	if len(request_body) > 0 {
 		fmt.Printf("TriggerWorkflow request is: %s\n", string(request_body))
 		err = json.Unmarshal(request_body, &curParamsMap)
+
 		if err != nil {
 			fmt.Println(err.Error())
 			c.JSON(400, gin.H{"error": "Parse Entry Params Error"})
 
 			return
 		}
-
 	} else if len(cur_w.Spec.EntryParams) > 0 {
 		// 请求体为空，但是workflow对象中有默认参数，那么使用默认参数
 		curParamsMap = cur_w.Spec.EntryParams
@@ -323,6 +351,7 @@ func (s *Serverless_controller) TriggerWorkflow(c *gin.Context) {
 	isStartFunc := true
 	curNodeName := cur_w.Spec.EntryNode
 	lastFuncResultMap := make(map[string]interface{})
+
 	for {
 		fmt.Printf(
 			"Workflow %s/%s goto Node %s\n",
@@ -341,6 +370,7 @@ func (s *Serverless_controller) TriggerWorkflow(c *gin.Context) {
 				lastFuncResultMap,
 			)
 			c.JSON(200, lastFuncResultMap)
+
 			return
 		}
 
@@ -350,26 +380,26 @@ func (s *Serverless_controller) TriggerWorkflow(c *gin.Context) {
 		}
 
 		if curNode.Type == "func" {
-
 			// 查看本次调用的Func的IP
 			curFuncNamespace := curNode.FuncNodeRef.Metadata.Namespace
 			curFuncName := curNode.FuncNodeRef.Metadata.Name
 
 			functionServiceIP, ok := s.route_map[curFuncNamespace+"/"+curFuncName]
 			if !ok {
-				errStr := fmt.Sprintf(
-					"In Workflow %s/%s, function %s/%s not found",
+				err_print(
+					c,
 					workflowNamespace,
 					workflowName,
 					curFuncNamespace,
 					curFuncName,
 				)
-				fmt.Println(errStr)
-				c.JSON(404, gin.H{"error": errStr})
+
 				return
 			}
+
 			sendPath := "http://" + functionServiceIP
 			curRequestBody, err := json.Marshal(curParamsMap)
+
 			if err != nil {
 				errStr := fmt.Sprintf(
 					"In Workflow %s/%s, function %s/%s params marshal err",
@@ -379,6 +409,7 @@ func (s *Serverless_controller) TriggerWorkflow(c *gin.Context) {
 					curFuncName,
 				)
 				fmt.Println(errStr)
+
 				return
 			}
 
@@ -392,23 +423,28 @@ func (s *Serverless_controller) TriggerWorkflow(c *gin.Context) {
 			)
 
 			s.visitFunction(curFuncNamespace + "/" + curFuncName)
+
 			req, err := http.NewRequest(
 				"POST",
 				sendPath,
 				bytes.NewBuffer(curRequestBody),
 			)
+
 			if err != nil {
 				fmt.Println(err)
 				return
 			}
 
 			req.Header.Set("Content-Type", "application/json")
+
 			client := &http.Client{}
 			resp, err := client.Do(req)
+
 			if err != nil {
 				fmt.Println("send post request failed", err.Error())
 				return
 			}
+
 			defer func() {
 				if cerr := resp.Body.Close(); cerr != nil {
 					fmt.Println("Failed to close response body: ", cerr)
@@ -423,10 +459,13 @@ func (s *Serverless_controller) TriggerWorkflow(c *gin.Context) {
 
 			// 获取响应的字节形式，应该提取为map
 			var curFuncResultMap map[string]interface{}
+
 			body, err := io.ReadAll(resp.Body)
+
 			if err != nil {
 				panic(err)
 			}
+
 			err = json.Unmarshal(body, &curFuncResultMap)
 
 			if err != nil {
@@ -440,6 +479,7 @@ func (s *Serverless_controller) TriggerWorkflow(c *gin.Context) {
 				)
 				fmt.Println(errStr)
 				c.JSON(400, gin.H{"error": errStr})
+
 				return
 			}
 
@@ -459,19 +499,23 @@ func (s *Serverless_controller) TriggerWorkflow(c *gin.Context) {
 				string(body),
 			)
 		} else if curNode.Type == "choice" {
-
 			// 从上到下获取选择条件
 			isSomeConditionMatched := false
+
 			for _, condition := range curNode.ChoiceNodeRef.Conditons {
 				// 利用govaluate库进行表达式计算
 				// 获取表达式
 				expressionStr := condition.Expression
 				expr, err := govaluate.NewEvaluableExpression(expressionStr)
+
 				if err != nil {
 					fmt.Println(err.Error())
-					errStr := fmt.Sprintf("In Workflow %s/%s, choice node %s parse expression error", workflowNamespace, workflowName, curNodeName)
+					errStr := fmt.Sprintf("In Workflow %s/%s, "+
+						"choice node %s parse expression error",
+						workflowNamespace, workflowName, curNodeName)
 					fmt.Println(errStr)
 					c.JSON(400, gin.H{"error": errStr})
+
 					return
 				}
 
@@ -491,7 +535,8 @@ func (s *Serverless_controller) TriggerWorkflow(c *gin.Context) {
 				}
 
 				if resIsOk { //condition 为 true,可以进行下一步
-					fmt.Printf("Workflow %s/%s choice node %s, expression %s matched\n", workflowNamespace, workflowName, curNodeName, expressionStr)
+					fmt.Printf("Workflow %s/%s choice node %s, expression %s "+
+						"matched\n", workflowNamespace, workflowName, curNodeName, expressionStr)
 
 					curNodeName = condition.Next
 					isSomeConditionMatched = true
@@ -504,15 +549,37 @@ func (s *Serverless_controller) TriggerWorkflow(c *gin.Context) {
 
 			// condition为false，
 			if !isSomeConditionMatched {
-				fmt.Printf("Workflow %s/%s choice node %s, no expression matched, default goto end\n", workflowNamespace, workflowName, curNodeName)
+				fmt.Printf("Workflow %s/%s choice node %s, no expression matched, "+
+					"default goto end\n", workflowNamespace, workflowName, curNodeName)
+
 				curNodeName = ""
 			}
 		} else {
 			// 不支持种类的节点，直接返回
-			errStr := fmt.Sprintf("In Workflow %s/%s, node %s type %s not supported", workflowNamespace, workflowName, curNodeName, curNode.Type)
+			errStr := fmt.Sprintf("In Workflow %s/%s, node %s type %s not "+
+				"supported", workflowNamespace, workflowName, curNodeName, curNode.Type)
 			fmt.Println(errStr)
 			c.JSON(400, gin.H{"error": errStr})
+
 			return
 		}
 	}
+}
+
+func err_print(
+	c *gin.Context,
+	workflowNamespace string,
+	workflowName string,
+	curFuncNamespace string,
+	curFuncName string,
+) {
+	errStr := fmt.Sprintf(
+		"In Workflow %s/%s, function %s/%s not found",
+		workflowNamespace,
+		workflowName,
+		curFuncNamespace,
+		curFuncName,
+	)
+	fmt.Println(errStr)
+	c.JSON(404, gin.H{"error": errStr})
 }
