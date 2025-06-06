@@ -34,7 +34,7 @@ func declareGinServer() *gin.Engine {
 	// Replicaset operations.
 	r.GET(apiserver.ReplicasetGetURL, interfaces.GetReplicasets)
 	r.POST(apiserver.ReplicasetCreateURL, interfaces.CreateReplicaset)
-	r.POST(apiserver.ReplicasetDeleteURL, interfaces.DeleteReplicasetFromEtcd)
+	r.POST(apiserver.ReplicasetDeleteURL, interfaces.DeleteReplicaset)
 	r.POST(apiserver.ReplicasetUpdateURL, interfaces.UpdateReplicaset)
 
 	// HPA operations.
@@ -60,6 +60,17 @@ func declareGinServer() *gin.Engine {
 	r.POST(apiserver.PVClaimCreateURL, interfaces.CreatePersistentVolumeClaim)
 	r.POST(apiserver.PVClaimDeleteURL, interfaces.DeletePersistentVolumeClaim)
 
+	r.POST(apiserver.FunctionCreateURL, interfaces.CreateFunction)
+	r.GET(apiserver.FunctionGetURL, interfaces.GetFunctions)
+	r.POST(apiserver.FunctionDeleteURL, interfaces.DeleteFunction)
+
+	r.POST(apiserver.WorkflowCreateURL, interfaces.CreateWorkflow)
+	r.GET(apiserver.WorkflowGetURL, interfaces.GetWorkflows)
+	r.POST(apiserver.WorkflowDeleteURL, interfaces.DeleteWorkflow)
+
+	r.POST(apiserver.EventCreateURL, interfaces.CreateEvent)
+	r.GET(apiserver.EventGetURL, interfaces.GetEvents)
+	r.POST(apiserver.EventDeleteURL, interfaces.DeleteEvent)
 	// r.POST("/deletePVFromFile", interfaces.DeletePV)
 	// r.POST("/createPVCFromFile", interfaces.CreatePVC)
 	// r.POST("/deletePVCFromFile", interfaces.DeletePVC)

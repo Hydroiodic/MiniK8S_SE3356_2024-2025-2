@@ -40,6 +40,7 @@ func (rsc *ReplicasetController) CreatePod(
 
 	for range num {
 		var pod object.Pod
+		pod.Metadata.Labels = rs.Metadata.Labels
 		pod.Metadata = rs.Spec.Template.Metadata
 		pod.Metadata.Name = "Replica" + "-" + rsc.NewUid()[:5]
 		pod.Spec = rs.Spec.Template.Spec

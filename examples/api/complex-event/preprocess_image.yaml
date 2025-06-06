@@ -1,0 +1,7 @@
+kind: Function
+metadata:
+   name: preprocess_image
+   namespace: default
+spec:
+   userUploadFilePath: "/home/ubuntu/wang/MiniK8S_SE3356_2024-2025-2/examples/serverless/preprocess_image"
+

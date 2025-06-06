@@ -40,11 +40,21 @@ var deleteCmd = &cobra.Command{
 			deleteDNS(instanceName, instanceNamespace)
 		case HPACmdName:
 			deleteHPA(instanceName)
+		case FunctionCmdName:
+			deleteFunction(instanceName)
 		default:
 			fmt.Printf("Unknown resource type: %s\n", instanceType)
 			return
 		}
 	},
+}
+
+// Delete ReplicaSet.
+func deleteFunction(name string) {
+	err := apiserver.NewAPIClient("").DeleteFunction(name)
+	if err != nil {
+		fmt.Println("Error deleting function:", err)
+	}
 }
 
 // Register the delete command with the root command.

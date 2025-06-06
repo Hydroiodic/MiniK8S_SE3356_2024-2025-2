@@ -13,15 +13,24 @@ import (
 	"github.com/melbahja/goph"
 )
 
-// app下的文件是job-controller下的文件
-// app/func下的文件是.cu和.slurm文件
+// app - ssh——config
+//   - dockerfile
+//   - go.mod
+//   - go.sum
+//   - main.go
+//   - start.sh
+//   - func - .cu
+//   - .slurm
 func main() {
 	//ssh连接交大slurm平台
 	fmt.Println(goph.HasAgent())
+
 	auth, err := goph.UseAgent()
+
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	cli, err := goph.NewUnknown(
 		"stu1156",
 		"pilogin.hpc.sjtu.edu.cn",
@@ -221,5 +230,10 @@ func postResult(resultType, jobID, jobname, jobnamespace, content string) {
 		fmt.Println("HTTP do error:", err)
 		return
 	}
-	defer resp.Body.Close()
+
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			fmt.Printf("Failed to close resp: %v\n", err)
+		}
+	}()
 }
