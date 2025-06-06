@@ -11,6 +11,13 @@ import (
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
 )
 
+func (c *APIClient) GetPVs() ([]object.PersistentVolume, error) {
+	var nodes []object.PersistentVolume
+	err := c.getAndUnmarshalList(PVGetURL, &nodes)
+
+	return nodes, err
+}
+
 func (c *APIClient) GetPV(pvName string) (*object.PersistentVolume, error) {
 	// Construct the URL for the PV retrieval endpoint.
 	url := c.BaseURL + PVGetURL + "/" + pvName
@@ -121,4 +128,14 @@ func (c *APIClient) DeletePV(pv *object.PersistentVolume) error {
 	}
 
 	return nil
+}
+
+func (c *APIClient) DeletePVByName(pvName string) error {
+	pv := &object.PersistentVolume{
+		Metadata: object.Metadata{
+			Name: pvName,
+		},
+	}
+
+	return c.DeletePV(pv)
 }

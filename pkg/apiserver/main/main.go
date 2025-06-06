@@ -54,9 +54,11 @@ func declareGinServer() *gin.Engine {
 	// r.POST("/createFunctionFromFile", interfaces.CreateFunction)
 	// r.POST("/deleteFunctionFromFile", interfaces.DeleteFunction)
 
+	r.GET(apiserver.PVGetURL, interfaces.GetPersistentVolumes)
 	r.POST(apiserver.PVCreateURL, interfaces.CreatePersistentVolume)
 	r.POST(apiserver.PVDeleteURL, interfaces.DeletePersistentVolume)
 
+	r.GET(apiserver.PVCGetURL, interfaces.GetPersistentVolumeClaims)
 	r.POST(apiserver.PVClaimCreateURL, interfaces.CreatePersistentVolumeClaim)
 	r.POST(apiserver.PVClaimDeleteURL, interfaces.DeletePersistentVolumeClaim)
 

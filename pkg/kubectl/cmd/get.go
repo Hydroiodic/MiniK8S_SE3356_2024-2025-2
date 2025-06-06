@@ -33,6 +33,10 @@ var getCmd = &cobra.Command{
 			getAllDNS()
 		case HPACmdName, HPACmdName + "s":
 			getAllHPA()
+		case PVCmdName, PVCmdName + "s":
+			getAllPV()
+		case PVCCmdName, PVCCmdName + "s":
+			getALLPVC()
 		default:
 			fmt.Printf("Unknown resource type: %s\n", resourceType)
 			return
@@ -97,4 +101,26 @@ func getAllHPA() {
 	}
 
 	printHPAs(hpas)
+}
+
+func getAllPV() {
+	// Get all Persistent Volumes (PVs) from the API server.
+	pvs, err := apiserver.NewAPIClient("").GetPVs()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	printPVs(pvs)
+}
+
+func getALLPVC() {
+	// Get all Persistent Volume Claims (PVCs) from the API server.
+	pvcs, err := apiserver.NewAPIClient("").GetPVCs()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	printPVCs(pvcs)
 }

@@ -40,6 +40,10 @@ var deleteCmd = &cobra.Command{
 			deleteDNS(instanceName, instanceNamespace)
 		case HPACmdName:
 			deleteHPA(instanceName)
+		case PVCmdName:
+			deletePV(instanceName)
+		case PVCCmdName:
+			deletePVC(instanceName, instanceNamespace)
 		case FunctionCmdName:
 			deleteFunction(instanceName)
 		default:
@@ -99,4 +103,31 @@ func deleteDNS(name, namespace string) {
 func deleteHPA(name string) {
 	// TODO: Implement HPA deletion logic.
 	fmt.Printf("WIP: Deleting HPA %s\n", name)
+}
+
+// Delete PersistentVolume.
+func deletePV(name string) {
+	err := apiserver.NewAPIClient("").DeletePVByName(name)
+	if err != nil {
+		fmt.Println("Error deleting persistent volume:", err)
+		return
+	}
+
+	fmt.Printf("PersistentVolume %s deleted successfully.\n", name)
+}
+
+// Delete PersistentVolumeClaim.
+func deletePVC(name, namespace string) {
+	err := apiserver.NewAPIClient("").
+		DeletePVCByName(namespace, name)
+	if err != nil {
+		fmt.Println("Error deleting persistent volume claim:", err)
+		return
+	}
+
+	fmt.Printf(
+		"PersistentVolumeClaim %s in namespace %s deleted successfully.\n",
+		name,
+		namespace,
+	)
 }

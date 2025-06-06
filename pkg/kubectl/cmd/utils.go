@@ -260,3 +260,74 @@ func printHPAs(hpas []object.HorizontalPodAutoscaler) {
 	// Print the table with headers.
 	printTable(hpaHeaders, rows)
 }
+
+func printPVs(pvs []object.PersistentVolume) {
+	// Sort the PersistentVolumes by their names.
+	sort.SliceStable(pvs, func(i, j int) bool {
+		return pvs[i].Metadata.Name < pvs[j].Metadata.Name
+	})
+
+	rows := [][]string{}
+
+	for i, pv := range pvs {
+		// 获取存储类型和路径
+		storageType := ""
+		storagePath := ""
+
+		if pv.Spec.NFS != nil {
+			storageType = "NFS"
+			storagePath = fmt.Sprintf(
+				"%s:%s",
+				pv.Spec.NFS.Server,
+				pv.Spec.NFS.Path,
+			)
+		} else if pv.Spec.HostPath != nil {
+			storageType = "HostPath"
+			storagePath = pv.Spec.HostPath.Path
+		}
+
+		rows = append(rows, []string{
+			pv.Metadata.Name,
+			pv.Spec.Capacity.Storage,
+			storageType,
+			storagePath,
+			pv.Status,
+		})
+
+		if i != len(pvs)-1 {
+			rows = append(rows, []string{})
+		}
+	}
+
+	printTable(pvHeaders, rows)
+}
+
+func printPVCs(pvcs []object.PersistentVolumeClaim) {
+	// Sort the PersistentVolumeClaims by their names.
+	sort.SliceStable(pvcs, func(i, j int) bool {
+		return pvcs[i].Metadata.Name < pvcs[j].Metadata.Name
+	})
+
+	rows := [][]string{}
+
+	for i, pvc := range pvcs {
+		// 获取绑定的 PV 名称
+		volumeName := pvc.Spec.VolumeName
+		if volumeName == "" {
+			volumeName = "-"
+		}
+
+		rows = append(rows, []string{
+			pvc.Metadata.Name,
+			pvc.Metadata.Namespace,
+			pvc.Spec.Capacity.Storage,
+			volumeName,
+		})
+
+		if i != len(pvcs)-1 {
+			rows = append(rows, []string{})
+		}
+	}
+
+	printTable(pvcHeaders, rows)
+}

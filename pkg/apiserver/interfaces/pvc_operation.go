@@ -3,6 +3,7 @@ package interfaces
 import (
 	"context"
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -148,8 +149,7 @@ func CreatePersistentVolumeClaim(c *gin.Context) {
 				Namespace: pvc.Metadata.Namespace,
 			},
 			Spec: object.PersistentVolumeSpec{
-				Capacity:                      pvc.Spec.Capacity,
-				PersistentVolumeReclaimPolicy: object.PersistentVolumeReclaimRetain,
+				Capacity: pvc.Spec.Capacity,
 				NFS: &object.NFSVolumeSource{
 					Server: os.Getenv("APISERVER_URL"),
 					Path:   nfsPath, // 使用自动生成的 NFS 路径
@@ -307,7 +307,7 @@ func GetPersistentVolumeClaim(c *gin.Context) {
 }
 
 // ListPersistentVolumeClaims 列出所有 PersistentVolumeClaim
-func ListPersistentVolumeClaims(c *gin.Context) {
+func GetPersistentVolumeClaims(c *gin.Context) {
 	// 创建 PersistentVolumeClaimStore
 	st, err := object.NewPersistentVolumeClaimStore([]string{})
 	if err != nil {
@@ -367,15 +367,79 @@ func DeletePersistentVolumeClaim(c *gin.Context) {
 		}
 	}()
 
+	// TODO: 检查 PVC 是否存在于 etcd 中
+	existingPVC, err := st.GetPersistentVolumeClaim(
+		c.Request.Context(),
+		pvc.Metadata.Namespace,
+		pvc.Metadata.Name,
+	)
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			"从 etcd 获取 PersistentVolumeClaim 失败: "+err.Error(),
+		)
+
+		return
+	}
+
+	pvc = *existingPVC // 使用从 etcd 获取的 PVC
+
+	// 创建 PersistentVolumeStore
+	pvSt, err := object.NewPersistentVolumeStore([]string{})
+	if err != nil {
+		fmt.Printf("创建 PersistentVolume 存储失败: %v", err)
+	}
+
+	// 确保使用后关闭 PersistentVolumeStore
+	defer func() {
+		if closeErr := pvSt.Close(); closeErr != nil {
+			fmt.Printf("关闭 PersistentVolume 存储失败: %v\n", closeErr)
+		}
+	}()
+
+	log.Printf(
+		"删除 PersistentVolumeClaim: %s/%s",
+		pvc.Metadata.Namespace,
+		pvc.Metadata.Name,
+	)
+
 	// 解绑PV，保留数据
 	// 更新PV的状态为可用
 	if pvc.Spec.VolumeName != "" {
-		err := changePVState(
+		// 获取指定的 PV
+		pv, err := pvSt.GetPersistentVolume(
 			c.Request.Context(),
-			object.PersistentVolumeAvailable,
 			pvc.Spec.VolumeName,
 		)
+
 		if err != nil {
+			c.JSON(
+				http.StatusInternalServerError,
+				"从 etcd 获取 PersistentVolume 失败: "+err.Error(),
+			)
+
+			return
+		}
+
+		if pv == nil {
+			fmt.Printf("PersistentVolume 未找到: %s", pvc.Spec.VolumeName)
+			c.JSON(
+				http.StatusNotFound,
+				"PersistentVolume 未找到: "+pvc.Spec.VolumeName,
+			)
+
+			return
+		}
+
+		// 更新 PV 的状态为可用
+		pv.Status = object.PersistentVolumeAvailable
+
+		log.Printf("解绑 PersistentVolume: %s", pv.Metadata.Name)
+
+		log.Printf("PV: %v", pv)
+
+		if err := pvSt.AddPersistentVolume(context.Background(), pv); err != nil {
+			fmt.Printf("更新 PersistentVolume 状态失败: %v", err)
 			c.JSON(
 				http.StatusInternalServerError,
 				"更新 PersistentVolume 状态失败: "+err.Error(),
@@ -396,41 +460,4 @@ func DeletePersistentVolumeClaim(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, "PersistentVolumeClaim 删除成功: "+pvc.Metadata.Name)
-}
-
-// TODO: 这一块逻辑不好，包括了Store的创建和删除，有一定副作用
-func changePVState(ctx context.Context, state string, volumeName string) error {
-	// 创建 PersistentVolumeStore
-	pvSt, err := object.NewPersistentVolumeStore([]string{})
-	if err != nil {
-		return fmt.Errorf("创建 PersistentVolume 存储失败: %w", err)
-	}
-	// 确保使用后关闭 PersistentVolumeStore
-	defer func() {
-		if closeErr := pvSt.Close(); closeErr != nil {
-			fmt.Printf("关闭 PersistentVolume 存储失败: %v\n", closeErr)
-		}
-	}()
-
-	// 获取指定的 PV
-	pv, err := pvSt.GetPersistentVolume(
-		ctx,
-		volumeName,
-	)
-
-	if err != nil {
-		return fmt.Errorf("从 etcd 获取 PersistentVolume 失败: %w", err)
-	}
-
-	if pv == nil {
-		return fmt.Errorf("PersistentVolume 未找到: %s", volumeName)
-	}
-
-	// 更新 PV 的状态为可用
-	pv.Status = state
-	if err := pvSt.UpdatePersistentVolume(ctx, pv); err != nil {
-		return fmt.Errorf("更新 PersistentVolume 状态失败: %w", err)
-	}
-
-	return nil
 }

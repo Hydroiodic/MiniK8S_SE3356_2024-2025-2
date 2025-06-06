@@ -11,9 +11,13 @@ const (
 	DNSKind                     = "DNS"
 	HorizontalPodAutoscalerKind = "HorizontalPodAutoscaler"
 	GPUJobKind                  = "GpuJob"
-	Function                    = "Function"
-	Workflow                    = "Workflow"
-	Event                       = "Event"
+
+	PVKind  = "PersistentVolume"
+	PVCKind = "PersistentVolumeClaim"
+
+	Function = "Function"
+	Workflow = "Workflow"
+	Event    = "Event"
 )
 
 const (
@@ -22,8 +26,12 @@ const (
 	ReplicaSetCmdName = "replicaset"
 	DNSCmdName        = "dns"
 	HPACmdName        = "hpa"
-	FunctionCmdName   = "function"
-	WorkflowCmdName   = "workflow"
+
+	PVCmdName  = "pv"
+	PVCCmdName = "pvc"
+
+	FunctionCmdName = "function"
+	WorkflowCmdName = "workflow"
 )
 
 var (
@@ -71,5 +79,18 @@ var (
 		"MINPODS", // HorizontalPodAutoscaler.Spec.MinReplicas
 		"MAXPODS", // HorizontalPodAutoscaler.Spec.MaxReplicas
 		"LABELS",  // HorizontalPodAutoscaler.Metadata.Labels
+	}
+	pvHeaders = []string{
+		"NAME",     // PersistentVolume.Metadata.Name
+		"CAPACITY", // PersistentVolume.Spec.Capacity
+		"TYPE",     // PersistentVolume.Spec.NFS
+		"PATH",     // PersistentVolume.Spec.HostPath / PersistentVolume.Spec.NFS
+		"STATUS",   // PersistentVolume.Status
+	}
+	pvcHeaders = []string{
+		"NAME",        // PersistentVolumeClaim.Metadata.Name
+		"NAMESPACE",   // PersistentVolumeClaim.Metadata.Namespace
+		"STORAGE",     // PersistentVolumeClaim.Spec.Resources.Storage
+		"VOLUME_NAME", // PersistentVolumeClaim.Spec.VolumeName
 	}
 )

@@ -11,6 +11,13 @@ import (
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
 )
 
+func (c *APIClient) GetPVCs() ([]object.PersistentVolumeClaim, error) {
+	var nodes []object.PersistentVolumeClaim
+	err := c.getAndUnmarshalList(PVCGetURL, &nodes)
+
+	return nodes, err
+}
+
 func (c *APIClient) GetPVC(
 	namespace, pvcName string,
 ) (*object.PersistentVolumeClaim, error) {
@@ -126,4 +133,17 @@ func (c *APIClient) DeletePVC(pvc *object.PersistentVolumeClaim) error {
 	}
 
 	return nil
+}
+
+func (c *APIClient) DeletePVCByName(
+	namespace, name string,
+) error {
+	pvc := &object.PersistentVolumeClaim{
+		Metadata: object.Metadata{
+			Name:      name,
+			Namespace: namespace,
+		},
+	}
+
+	return c.DeletePVC(pvc)
 }
