@@ -21,6 +21,7 @@ const (
 )
 
 const (
+	NodeCmdName       = "node"
 	PodCmdName        = "pod"
 	ServiceCmdName    = "service"
 	ReplicaSetCmdName = "replicaset"
@@ -35,6 +36,13 @@ const (
 )
 
 var (
+	nodeHeaders = []string{
+		"NAME",           // Node.Config.Name
+		"STATUS",         // Always "Ready"
+		"START TIME",     // Node.Config.StartTime
+		"RUN TIME",       // Node.Config.RunTime
+		"LAST HEARTBEAT", // Node.Config.LastUpdateTime
+	}
 	podHeaders = []string{
 		"NAME",      // Pod.Metadata.Name
 		"NAMESPACE", // Pod.Metadata.Namespace
