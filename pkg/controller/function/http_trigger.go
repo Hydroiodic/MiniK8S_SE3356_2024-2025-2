@@ -223,7 +223,14 @@ func (s *Serverless_controller) TriggerFunction(c *gin.Context) {
 	resp, err := client.Do(req)
 
 	if err != nil {
+		c.JSON(
+			500,
+			gin.H{
+				"error": "Failed to send request to function: " + err.Error(),
+			},
+		)
 		fmt.Println("send post request failed", err.Error())
+
 		return
 	}
 
@@ -241,7 +248,15 @@ func (s *Serverless_controller) TriggerFunction(c *gin.Context) {
 
 	bodyBytes, err := io.ReadAll(resp.Body) // 读取整个响应体
 	if err != nil {
+		c.JSON(
+			500,
+			gin.H{
+				"error": "Failed to send request to function: " + err.Error(),
+			},
+		)
 		log.Fatal(err)
+
+		return
 	}
 
 	defer func() {
@@ -249,6 +264,12 @@ func (s *Serverless_controller) TriggerFunction(c *gin.Context) {
 			fmt.Println("Failed to close response body: ", cerr)
 		}
 	}()
+
+	c.Data(
+		resp.StatusCode,
+		resp.Header.Get("Content-Type"),
+		bodyBytes,
+	)
 
 	bodyString := string(bodyBytes) // 转换为字符串
 	fmt.Println(bodyString)
