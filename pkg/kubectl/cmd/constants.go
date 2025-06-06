@@ -46,10 +46,15 @@ var (
 	serviceHeaders = []string{
 		"NAME",      // Service.Metadata.Name
 		"NAMESPACE", // Service.Metadata.Namespace
+		"TYPE",      // Service.Type
 		"STATUS",
-		"CLUSTER-IP", // Service.Status.ClusterIP
-		"SELECTOR",   // Service.Metadata.Labels
-		"LABELS",     // Service.Metadata.Labels
+		"CLUSTER-IP",   // Service.Status.ClusterIP
+		"ENDPOINTS",    // Service.Status.Endpoints
+		"SELECTOR",     // Service.Metadata.Labels
+		"LABELS",       // Service.Metadata.Labels
+		"PORTS",        // Service.Spec.Ports
+		"TARGET_PORTS", // Service.Spec.TargetPorts
+		"NODE_PORTS",   // Service.Spec.NodePorts
 	}
 	dnsHeaders = []string{
 		"NAME",      // DNS.Metadata.Name

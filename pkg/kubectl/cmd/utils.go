@@ -111,10 +111,15 @@ func printServices(services []object.Service) {
 		rows = append(rows, []string{
 			svc.Metadata.Name,
 			svc.Metadata.Namespace,
+			svc.Type,
 			status,
 			svc.Status.ClusterIP,
+			strings.Join(svc.GetEndpoints(), ","),
 			convertStringMapToString(svc.Spec.Selector),
 			convertStringMapToString(svc.Metadata.Labels),
+			strings.Join(svc.GetPorts(), ","),
+			strings.Join(svc.GetTargetPorts(), ","),
+			strings.Join(svc.GetNodePorts(), ","),
 		})
 
 		// Add a separator row between services.
