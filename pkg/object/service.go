@@ -1,5 +1,7 @@
 package object
 
+import "fmt"
+
 type Service struct {
 	Kind     string        `yaml:"kind"`     // 固定为 "Service"
 	Type     string        `yaml:"type"`     // ClusterIP / NodePort
@@ -67,4 +69,61 @@ func (s *Service) MatchLabels(
 	}
 
 	return true
+}
+
+func (s *Service) GetEndpoints() []string {
+	endpoints := []string{}
+	for _, endpoint := range s.Status.Endpoints {
+		endpoints = append(
+			endpoints,
+			endpoint.IP+":"+fmt.Sprint(endpoint.Port),
+		)
+	}
+
+	return endpoints
+}
+
+func (s *Service) GetPorts() []string {
+	ports := []string{}
+
+	for _, port := range s.Spec.Ports {
+		if port.Port != 0 {
+			ports = append(
+				ports,
+				fmt.Sprint(port.Port),
+			)
+		}
+	}
+
+	return ports
+}
+
+func (s *Service) GetTargetPorts() []string {
+	targetPorts := []string{}
+
+	for _, port := range s.Spec.Ports {
+		if port.TargetPort != 0 {
+			targetPorts = append(
+				targetPorts,
+				fmt.Sprint(port.TargetPort),
+			)
+		}
+	}
+
+	return targetPorts
+}
+
+func (s *Service) GetNodePorts() []string {
+	nodePorts := []string{}
+
+	for _, port := range s.Spec.Ports {
+		if port.NodePort != 0 {
+			nodePorts = append(
+				nodePorts,
+				fmt.Sprint(port.NodePort),
+			)
+		}
+	}
+
+	return nodePorts
 }

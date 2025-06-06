@@ -61,6 +61,35 @@ func convertStringMapToString(m map[string]string) string {
 	return strings.Join(keys, "\n")
 }
 
+func printNodes(nodes []object.Kubelet) {
+	// Sort the nodes by their names.
+	sort.SliceStable(nodes, func(i, j int) bool {
+		// Compare the names of the nodes.
+		return nodes[i].Config.Name < nodes[j].Config.Name
+	})
+
+	// Prepare the rows for the table.
+	rows := [][]string{}
+	// Iterate over the nodes and prepare the rows for the table.
+	for i := range nodes {
+		rows = append(rows, []string{
+			nodes[i].Config.Name,
+			"READY", // Node status is always "Ready"
+			nodes[i].StartTime.Format(time.RFC3339),
+			time.Since(nodes[i].StartTime).Truncate(time.Second).String(),
+			nodes[i].LastUpdateTime.Format(time.RFC3339),
+		})
+
+		// Add a separator row between nodes.
+		if i != len(nodes)-1 {
+			rows = append(rows, []string{})
+		}
+	}
+
+	// Print the table with headers.
+	printTable(nodeHeaders, rows)
+}
+
 func printPods(pods []object.Pod) {
 	// Sort the pods by their start time.
 	sort.SliceStable(pods, func(i, j int) bool {
@@ -111,10 +140,15 @@ func printServices(services []object.Service) {
 		rows = append(rows, []string{
 			svc.Metadata.Name,
 			svc.Metadata.Namespace,
+			svc.Type,
 			status,
 			svc.Status.ClusterIP,
+			strings.Join(svc.GetEndpoints(), ","),
 			convertStringMapToString(svc.Spec.Selector),
 			convertStringMapToString(svc.Metadata.Labels),
+			strings.Join(svc.GetPorts(), ","),
+			strings.Join(svc.GetTargetPorts(), ","),
+			strings.Join(svc.GetNodePorts(), ","),
 		})
 
 		// Add a separator row between services.
