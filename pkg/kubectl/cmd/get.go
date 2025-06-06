@@ -23,6 +23,8 @@ var getCmd = &cobra.Command{
 
 		// Now handle the resource type and name.
 		switch strings.ToLower(resourceType) {
+		case NodeCmdName, NodeCmdName + "s":
+			getAllNodes()
 		case PodCmdName, PodCmdName + "s":
 			getAllPods()
 		case ServiceCmdName, ServiceCmdName + "s":
@@ -46,6 +48,17 @@ var getCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(getCmd)
+}
+
+func getAllNodes() {
+	// Get all Nodes from the API server.
+	results, err := apiserver.NewAPIClient("").GetNodes()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	printNodes(results)
 }
 
 func getAllPods() {
