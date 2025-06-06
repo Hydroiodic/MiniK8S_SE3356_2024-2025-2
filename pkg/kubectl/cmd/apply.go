@@ -335,7 +335,7 @@ func handlePVCRaw(rawData []byte) error {
 	}
 
 	if pvc.Spec.Capacity.Storage == "" {
-		return fmt.Errorf("PersistentVolume capacity is not specified")
+		return fmt.Errorf("PersistentVolumeClaim capacity is not specified")
 	}
 	// Convert the storage capacity to megabytes.
 	_, err := object.StorageToMegabytes(pvc.Spec.Capacity.Storage)
