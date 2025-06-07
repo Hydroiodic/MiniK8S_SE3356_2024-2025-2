@@ -18,6 +18,17 @@ spec:
       volumeMounts:
         - name: nginx-volume
           mountPath: /usr/share/nginx/html # Pod 中的挂载路径
+    - id: curl-container
+      name: nginx
+      image: nginx:latest
+      command: ["curl", "http://localhost", "-o", "/test/result.txt"]
+      ports: [80]
+      resources:
+        cpu: "1"
+        memory: "128Mi"
+      volumeMounts:
+        - name: nginx-volume
+          mountPath: /test # Pod 中的挂载路径
   volumes:
     - name: nginx-volume
       hostPath: 

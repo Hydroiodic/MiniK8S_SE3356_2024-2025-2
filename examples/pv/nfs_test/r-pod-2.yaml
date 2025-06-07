@@ -1,0 +1,18 @@
+kind: Pod
+metadata:
+  name: nfs-pv-read-pod-2
+  namespace: default
+spec:
+  containers:
+    - id: nginx-container
+      name: nginx
+      image: nginx:latest
+      command: ["nginx", "-g", "daemon off;"]
+      ports: [80]
+      volumeMounts:
+        - name: nginx-volume
+          mountPath: /usr/share/nginx/html # Pod 中的挂载路径
+  volumes:
+    - name: nginx-volume
+      persistentVolumeClaim:
+        claimName: autogen-pvc # 使用之前创建的 PVC

@@ -1,0 +1,33 @@
+kind: Pod
+metadata:
+  name: nginx-1
+  namespace: default
+  labels:
+    app: nginx
+    tier: frontend
+spec:
+  containers:
+    - name: nginx
+      image: nginx:latest
+      command: ["nginx", "-g", "daemon off;"]
+      ports: [80]
+      resources:
+        cpu: "1"
+        memory: "128Mi"
+      volumeMounts:
+        - name: nginx-volume
+          mountPath: /usr/share/nginx/html # Pod 中的挂载路径
+    - name: edit-html
+      image: nginx:latest
+      command: ["/bin/sh", "-c", "echo 'This is Nginx 1' > /test/index.html; sleep 9h"]
+      resources:
+        cpu: "1"
+        memory: "128Mi"
+      volumeMounts:
+        - name: nginx-volume
+          mountPath: /test # Pod 中的挂载路径
+  volumes:
+    - name: nginx-volume
+      hostPath: 
+        path: /tmp/nginx # 主机上的路径
+        type: Directory
