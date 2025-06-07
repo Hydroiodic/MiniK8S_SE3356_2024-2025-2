@@ -3,7 +3,7 @@
 1. 静态创建 PV （HostPath）
 
 ```shell
-kubectl apply -f examples/pv/hostpath-pv.yaml
+./kubectl.sh apply -f examples/pv/local_test/hostpath-pv.yaml
 ```
 
 查看 PV 情况，观察到可用
@@ -11,13 +11,13 @@ kubectl apply -f examples/pv/hostpath-pv.yaml
 2. 创建PVC, 展示自动绑定
 
 ```shell
-kubectl apply -f examples/pv/local-pvc.yaml
+./kubectl.sh apply -f examples/pv/local_test/local-pvc.yaml
 ```
 
 3. 再次创建PVC,展示PV不存在情况下PVC的自动创建
 
 ```shell
-kubectl apply -f examples/pv/autogen-pvc.yaml
+./kubectl.sh apply -f examples/pv/nfs_test/autogen-pvc.yaml
 ```
 
 查看 PV 和 PVC 情况

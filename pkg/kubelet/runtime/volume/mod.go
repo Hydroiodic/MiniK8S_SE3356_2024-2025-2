@@ -151,14 +151,22 @@ func (vm *VolumeManager) handlePVCVolume(
 
 	if pv.Spec.NFS != nil && pv.Spec.NFS.Server != "" &&
 		pv.Spec.NFS.Path != "" {
-		// 处理 NFS 类型的 PV
-		err = os.MkdirAll(volumePath, os.ModePerm)
-		if err != nil {
-			return fmt.Errorf(
-				"failed to create volume path %s: %v",
+		// 如果目录已经存在，不再处理
+		if _, err := os.Stat(volumePath); err == nil {
+			log.Printf(
+				"Volume path %s already exists, skipping NFS mount",
 				volumePath,
-				err,
 			)
+		} else if os.IsNotExist(err) {
+			// 处理 NFS 类型的 PV
+			err = os.MkdirAll(volumePath, os.ModePerm)
+			if err != nil {
+				return fmt.Errorf(
+					"failed to create volume path %s: %v",
+					volumePath,
+					err,
+				)
+			}
 		}
 
 		// TODO: 如果不行，就换成类似 symlink 的方式
