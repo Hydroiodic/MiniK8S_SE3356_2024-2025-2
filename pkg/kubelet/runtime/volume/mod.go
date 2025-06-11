@@ -51,16 +51,7 @@ func (vm *VolumeManager) MountVolumes(
 		switch {
 		case volume.HostPath != nil:
 			// 处理直接的 HostPath 卷
-			err = vm.handleHostPathVolume(volume.HostPath.Path, volumePath)
-			if err != nil {
-				return nil, fmt.Errorf(
-					"failed to handle HostPath volume %s: %v",
-					volume.Name,
-					err,
-				)
-			}
-
-			volumePaths[volume.Name] = volumePath
+			volumePaths[volume.Name] = volume.HostPath.Path
 
 		case volume.PersistentVolumeClaim != nil:
 			// 处理 PVC 卷，支持两种 PV
