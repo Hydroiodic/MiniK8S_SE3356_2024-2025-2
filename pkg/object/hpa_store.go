@@ -88,3 +88,10 @@ func (s *HpaStore) ListHpas(
 
 	return hpas, nil
 }
+
+func (s *HpaStore) DeleteHpa(
+	ctx context.Context,
+	namespace, name string,
+) error {
+	return s.etcdClient.Delete(ctx, s.key(namespace, name))
+}

@@ -35,7 +35,7 @@ func NewFucntionController() *FucntionController {
 func (fc *FucntionController) Start() {
 	fc = NewFucntionController()
 
-	ticker := time.NewTicker(10 * time.Second)
+	ticker := time.NewTicker(5 * time.Second)
 
 	go func() {
 		for range ticker.C {
@@ -74,10 +74,10 @@ func (fc *FucntionController) CheckFunctions() {
 		fmt.Println(k)
 
 		if _, ok := cur[f.Metadata.Namespace+"/"+f.Metadata.Name]; !ok {
+			delete(fc.cache, k)
 			fmt.Println("DeleteFunction", f.Metadata.Namespace, f.Metadata.Name)
 			fc.DeleteFunctionAndReplicaset(f)
 			fc.DeleteService(f)
-			delete(fc.cache, k)
 		}
 	}
 }
@@ -371,6 +371,25 @@ func (fc *FucntionController) CreateReplicas(f object.Function) {
 		f.Metadata.Namespace,
 		f.Metadata.Name,
 	)
+	rs.Spec.Template.Spec.Containers[0].VolumeMounts = make(
+		[]object.VolumeMount,
+		1,
+	)
+	rs.Spec.Template.Spec.Containers[0].VolumeMounts[0] = object.VolumeMount{
+		Name:      f.Metadata.Name + f.Metadata.Namespace,
+		MountPath: "/app",
+	}
+	rs.Spec.Template.Spec.Volumes = make(
+		[]object.Volume,
+		1,
+	)
+	rs.Spec.Template.Spec.Volumes[0] = object.Volume{
+		Name: f.Metadata.Name + f.Metadata.Namespace,
+		HostPath: &object.HostPath{
+			Path: f.Spec.UserUploadPath,
+			Type: "",
+		},
+	}
 	err := fc.ci.CreateReplicaset(&rs)
 
 	if err != nil {

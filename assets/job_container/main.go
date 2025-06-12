@@ -118,13 +118,14 @@ func monitorJob(jobID, jobname, jobnamespace, workdir string, cli goph.Client) {
 
 		status := strings.TrimSuffix(string(res), "\n")
 		fmt.Printf("Job status: %s\n", status)
+		UpdateStatus(jobID, jobname, jobnamespace, status)
 
 		switch status {
 		case "COMPLETED":
 			fmt.Println("Job completed")
 
 			outputfile := os.Getenv("OUTPUT_FILE")
-			// outputfile := "44636434.out"
+
 			if err := cli.Download(workdir+outputfile, "/app/"+outputfile); err != nil {
 				fmt.Println("Download error:", err)
 				return
@@ -191,6 +192,47 @@ func monitorJob(jobID, jobname, jobnamespace, workdir string, cli goph.Client) {
 			fmt.Println("Unknown job status:", status)
 		}
 	}
+}
+
+func UpdateStatus(jobID, jobname, jobnamespace, status string) {
+	apiserverIp := os.Getenv("API_SERVER_IP&PORT")
+
+	body := map[string]interface{}{
+		"job_id":       jobID,
+		"jobname":      jobname,
+		"jobnamespace": jobnamespace,
+		"status":       status,
+	}
+
+	requestBody, err := json.Marshal(body)
+	if err != nil {
+		fmt.Println("JSON marshal error:", err)
+		return
+	}
+
+	url := apiserverIp + "/gpu/updateStatus"
+
+	req, err := http.NewRequest("POST", url, bytes.NewReader(requestBody))
+	if err != nil {
+		fmt.Println("HTTP request error:", err)
+		return
+	}
+
+	req.Header.Set("Content-Type", "application/json")
+
+	client := &http.Client{}
+	resp, err := client.Do(req)
+
+	if err != nil {
+		fmt.Println("HTTP do error:", err)
+		return
+	}
+
+	defer func() {
+		if err := resp.Body.Close(); err != nil {
+			fmt.Printf("Failed to close resp: %v\n", err)
+		}
+	}()
 }
 
 func postResult(resultType, jobID, jobname, jobnamespace, content string) {

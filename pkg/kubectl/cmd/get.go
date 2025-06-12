@@ -39,6 +39,10 @@ var getCmd = &cobra.Command{
 			getAllPV()
 		case PVCCmdName, PVCCmdName + "s":
 			getALLPVC()
+		case FunctionCmdName + "s":
+			getAllFunctions()
+		case JobCmdName + "s":
+			getJobs()
 		default:
 			fmt.Printf("Unknown resource type: %s\n", resourceType)
 			return
@@ -50,6 +54,29 @@ func init() {
 	rootCmd.AddCommand(getCmd)
 }
 
+func getJobs() {
+	// Get all Nodes from the API server.
+	results, err := apiserver.NewAPIClient("").GetAllGPUJob()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	for _, j := range results {
+		fmt.Printf("jobname : %s , status : %s\n", j.Metadata.Name, j.Status)
+	}
+}
+
+func getAllFunctions() {
+	// Get all Nodes from the API server.
+	results, err := apiserver.NewAPIClient("").GetAllFunction()
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	printFuncs(results)
+}
 func getAllNodes() {
 	// Get all Nodes from the API server.
 	results, err := apiserver.NewAPIClient("").GetNodes()

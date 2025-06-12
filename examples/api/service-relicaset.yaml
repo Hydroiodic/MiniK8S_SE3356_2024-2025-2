@@ -1,0 +1,15 @@
+kind: Service
+type: NodePort
+metadata:
+  name: replicaset-service
+  namespace: default
+  labels:
+    app: myapp
+spec:
+  selector:
+    app: myapp
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+      nodePort: 30080

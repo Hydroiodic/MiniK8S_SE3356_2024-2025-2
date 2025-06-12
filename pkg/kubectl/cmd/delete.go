@@ -6,6 +6,7 @@ import (
 
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/apiserver"
 	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/apiserver/interfaces"
+	"github.com/Hydroiodic/MiniK8S_SE3356_2024-2025-2/pkg/object"
 	"github.com/spf13/cobra"
 )
 
@@ -103,6 +104,29 @@ func deleteDNS(name, namespace string) {
 func deleteHPA(name string) {
 	// TODO: Implement HPA deletion logic.
 	fmt.Printf("WIP: Deleting HPA %s\n", name)
+
+	ci := apiserver.NewAPIClient("")
+	hpas, err := ci.GetHpas()
+
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	var match_h object.HorizontalPodAutoscaler
+
+	for _, hpa := range hpas {
+		if hpa.Metadata.Name == name {
+			match_h = hpa
+		}
+	}
+
+	err = ci.DeleteHpa(&match_h)
+
+	if err != nil {
+		fmt.Println("Error deleting DNS:", err)
+		return
+	}
 }
 
 // Delete PersistentVolume.

@@ -33,6 +33,7 @@ const (
 
 	FunctionCmdName = "function"
 	WorkflowCmdName = "workflow"
+	JobCmdName      = "job"
 )
 
 var (

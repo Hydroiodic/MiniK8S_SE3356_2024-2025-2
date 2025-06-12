@@ -1,11 +1,11 @@
 package object
 
 type Job struct {
-	ApiVersion string    `yaml:"apiVersion" json:"apiVersion"`
-	Kind       string    `yaml:"kind"       json:"kind"`
-	Metadata   Metadata  `yaml:"metadata"   json:"metadata"`
-	Spec       JobSpec   `yaml:"spec"       json:"spec"`
-	Status     JobStatus `yaml:"status"     json:"status"`
+	ApiVersion string   `yaml:"apiVersion" json:"apiVersion"`
+	Kind       string   `yaml:"kind"       json:"kind"`
+	Metadata   Metadata `yaml:"metadata"   json:"metadata"`
+	Spec       JobSpec  `yaml:"spec"       json:"spec"`
+	Status     string   `yaml:"status"     json:"status"`
 }
 
 type JobSpec struct {
@@ -21,17 +21,11 @@ type JobSpec struct {
 	UserUploadFile []byte   `yaml:"userUploadFile" json:"userUploadFile"`
 }
 
-type JobStatus struct {
-	StartTime         string `yaml:"startTime"         json:"startTime"`
-	JobState          string `yaml:"jobState"          json:"jobState"`
-	OutputFileContent string `yaml:"outputFileContent" json:"outputFileContent"`
-	ErrorFileContent  string `yaml:"errorFileContent"  json:"errorFileContent"`
-}
-
 type JobRequestBody struct {
 	JobID        string `json:"job_id"`
 	JobName      string `json:"jobname"`
 	JobNamespace string `json:"jobnamespace"`
 	Output       string `json:"output,omitempty"`
 	Error        string `json:"error,omitempty"`
+	Status       string `json:"status"`
 }

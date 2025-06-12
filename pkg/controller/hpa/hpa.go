@@ -81,6 +81,10 @@ func (hpaC *HPAController) CheckAllHPA() {
 					case <-hpaC.Tickers[hpaKey].C:
 						hpaC.CheckOneHPA(hpa) // 检查单个HPA对象
 					case <-hpaC.QuitChs[hpaKey]:
+						delete(hpaC.Tickers, hpaKey)
+						delete(hpaC.QuitChs, hpaKey)
+						delete(hpaC.HpasMap, hpaKey)
+
 						return // 收到退出信号，结束协程
 					}
 				}
@@ -95,9 +99,6 @@ func (hpaC *HPAController) CheckAllHPA() {
 		if _, ok := updatedHpas[hpaKey]; !ok {
 			ticker.Stop()
 			close(hpaC.QuitChs[hpaKey]) // 关闭退出通道，通知协程退出
-			delete(hpaC.Tickers, hpaKey)
-			delete(hpaC.QuitChs, hpaKey)
-			delete(hpaC.HpasMap, hpaKey)
 		}
 	}
 }
@@ -116,7 +117,8 @@ func (hpaC *HPAController) CheckOneHPA(hpa object.HorizontalPodAutoscaler) {
 	)
 	if err != nil {
 		fmt.Println(err)
-		return
+		// return
+		fmt.Println("该hpa已被删除")
 	}
 
 	// 现在已经获取到了replicaset，接下来需要获取到replicaset下的所有pod

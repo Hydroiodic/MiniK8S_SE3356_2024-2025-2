@@ -90,6 +90,36 @@ func printNodes(nodes []object.Kubelet) {
 	printTable(nodeHeaders, rows)
 }
 
+func printFuncs(functions []object.Function) {
+	functionHeaders := []string{
+		"NAME",
+		"NAMESPACE",
+		"KIND",
+		"UPLOAD_PATH",
+		"LABELS",
+	}
+	functionRows := [][]string{}
+
+	for i, fn := range functions {
+		fn.Metadata.Labels = make(map[string]string)
+		fn.Metadata.Labels["FunctionMetadata"] = fn.Metadata.Namespace + "/" + fn.Metadata.Name
+		functionRows = append(functionRows, []string{
+			fn.Metadata.Name,
+			fn.Metadata.Namespace,
+			fn.Kind,
+			fn.Spec.UserUploadPath,
+			convertStringMapToString(fn.Metadata.Labels),
+		})
+
+		// 添加分隔行（可选，取决于你的需求）
+		if i != len(functions)-1 {
+			functionRows = append(functionRows, []string{})
+		}
+	}
+
+	// 打印表格
+	printTable(functionHeaders, functionRows)
+}
 func printPods(pods []object.Pod) {
 	// Sort the pods by their start time.
 	sort.SliceStable(pods, func(i, j int) bool {
