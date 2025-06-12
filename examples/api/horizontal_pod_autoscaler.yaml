@@ -13,7 +13,13 @@ spec:
   metrics:
   - type: Resource
     resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 0.002
+  - type: Resource
+    resource:
       name: memory
       target:
         type: Utilization
-        averageUtilization: 0.00001
+        averageUtilization: 0.1

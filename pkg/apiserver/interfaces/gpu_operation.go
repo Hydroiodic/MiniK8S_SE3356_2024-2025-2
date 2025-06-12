@@ -162,3 +162,62 @@ func UpdateResult(c *gin.Context) {
 
 	c.JSON(http.StatusOK, "File created successfully: "+fullPath)
 }
+
+func UpdateStatus(c *gin.Context) {
+	// Parse the JSON body into a hpa object.
+	var body object.JobRequestBody
+	if err := c.BindJSON(&body); err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	st, err := object.NewGPUJobStore([]string{})
+
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			"Failed to create GPUJob store: "+err.Error(),
+		)
+
+		return
+	}
+
+	// Ensure the GPUJobStore is closed after use.
+	defer func() {
+		if closeErr := st.Close(); closeErr != nil {
+			log.Printf("Failed to close GPUJob store: %v\n", closeErr)
+		}
+	}()
+
+	// List all GPUJobs in etcd.
+	GPUJobs, err := st.ListGPUJobs(c.Request.Context())
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			"Failed to list GPUJobs from etcd: "+err.Error(),
+		)
+
+		return
+	}
+
+	for _, gpujob := range GPUJobs {
+		if gpujob.Metadata.Name == body.JobName &&
+			gpujob.Metadata.Namespace == body.JobNamespace {
+			gpujob.Status = body.Status
+
+			err = st.AddGPUJob(c.Request.Context(), gpujob)
+			if err != nil {
+				c.JSON(
+					http.StatusInternalServerError,
+					"Failed to change status: "+err.Error(),
+				)
+
+				return
+			}
+
+			break
+		}
+	}
+
+	c.JSON(http.StatusOK, "status updated successfully: ")
+}

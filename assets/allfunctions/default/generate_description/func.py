@@ -9,9 +9,10 @@ from typing import Dict, Any
 
 def handle(param) -> Dict[str, Any]:
     client = OpenAI(
-        base_url="http://47.242.151.133:24576/v1/",
-        api_key="ml2025",
+        base_url="https://dashscope.aliyuncs.com/compatible-mode/v1",
+        api_key="sk-dd41976c22094389bfa54cfe1aa04e34",
     )
+
     """
     调用模型生成图片描述
     参数:
@@ -21,10 +22,13 @@ def handle(param) -> Dict[str, Any]:
     """
     encoded_image_text = param["processed_image_base64"]
     base64_image = f"data:image;base64,{encoded_image_text}"
-    chat_response = client.chat.completions.create(
-        model="Qwen/Qwen2.5-VL-3B-Instruct",
+    completion = client.chat.completions.create(
+        model="qwen-vl-max-latest", # 此处以qwen-vl-max-latest为例，可按需更换模型名称。模型列表：https://help.aliyun.com/model-studio/getting-started/models
         messages=[
-            {"role": "system", "content": "You are a helpful assistant that describes images in detail."},
+            {
+                "role": "system",
+                "content": [{"type": "text", "text": "You are a helpful assistant."}],
+            },
             {
                 "role": "user",
                 "content": [
@@ -34,13 +38,12 @@ def handle(param) -> Dict[str, Any]:
                             "url": base64_image
                         },
                     },
-                    {"type": "text", "text": "Please describe this image in detail."},
+                    {"type": "text", "text": "请描述图中景象"},
                 ],
             },
         ],
     )
-    
-    description = chat_response.choices[0].message.content
+    description = completion.choices[0].message.content
     # param["description"] = description
     return {
         "description": description

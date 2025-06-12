@@ -12,7 +12,7 @@ spec:
     metadata:
       labels:
         app: myapp
-      name: r-pod
+      name: Replica
       namespace: default
     spec:
       containers:

@@ -38,7 +38,6 @@ int main() {
     }
 
     //这里说明了在host上的指针组成的数组是好的
-    cout<<"host上面的矩阵A:"<<endl;
     for (int i = 0; i < M; i++) {
         for (int j = 0; j < N ; j++) {
             cout<<host_A[i][j]<<" ";
@@ -46,7 +45,6 @@ int main() {
         cout<<endl;
     }
 
-    cout<<"host上面的矩阵B:"<<endl;
     for (int i = 0; i < M; i++) {
         for (int j = 0; j < N ; j++) {
             cout<<host_B[i][j]<<" ";

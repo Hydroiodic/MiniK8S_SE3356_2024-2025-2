@@ -105,3 +105,47 @@ func GetHpas(c *gin.Context) {
 	// Convert the HPA to a JSON format and return them.
 	c.JSON(http.StatusOK, hpas)
 }
+
+//nolint:dupl
+func DeleteHpa(c *gin.Context) {
+	// Parse the JSON body into a Pod object.
+	var f object.HorizontalPodAutoscaler
+	if err := c.BindJSON(&f); err != nil {
+		c.JSON(http.StatusBadRequest, "Invalid JSON: "+err.Error())
+		return
+	}
+
+	// Create ReplicasetStore and check for errors.
+	st, err := object.NewHpaStore([]string{})
+	if err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			"Failed to create Hpa store: "+err.Error(),
+		)
+
+		return
+	}
+
+	// Ensure the ReplicasetStore is closed after use.
+	defer func() {
+		if closeErr := st.Close(); closeErr != nil {
+			log.Printf("Failed to close Hpa store: %v\n", closeErr)
+		}
+	}()
+
+	// Delete the replicaset from etcd.
+	if err := st.DeleteHpa(
+		c.Request.Context(),
+		f.Metadata.Namespace,
+		f.Metadata.Name,
+	); err != nil {
+		c.JSON(
+			http.StatusInternalServerError,
+			"Failed to delete Hpa from etcd: "+err.Error(),
+		)
+
+		return
+	}
+
+	c.JSON(http.StatusOK, "hpa deleted: "+f.Metadata.Name)
+}

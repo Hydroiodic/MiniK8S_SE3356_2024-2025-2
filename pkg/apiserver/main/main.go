@@ -40,7 +40,7 @@ func declareGinServer() *gin.Engine {
 	// HPA operations.
 	r.GET(apiserver.HpaGetURL, interfaces.GetHpas)
 	r.POST(apiserver.HpaCreateURL, interfaces.CreateHpa)
-
+	r.POST(apiserver.HpaDeleteURL, interfaces.DeleteHpa)
 	// Service operations.
 	r.POST(apiserver.ServiceCreateURL, interfaces.CreateService)
 	r.POST(apiserver.ServiceDeleteURL, interfaces.DeleteService)
@@ -50,7 +50,7 @@ func declareGinServer() *gin.Engine {
 	r.POST(apiserver.GPUJobsCreateURL, interfaces.CreateGPUJob)
 	r.GET(apiserver.GPUJobsGetURL, interfaces.GetGPUJobs)
 	r.POST(apiserver.UploadResultURL, interfaces.UpdateResult)
-
+	r.POST(apiserver.UpdateStatus, interfaces.UpdateStatus)
 	// r.POST("/createFunctionFromFile", interfaces.CreateFunction)
 	// r.POST("/deleteFunctionFromFile", interfaces.DeleteFunction)
 

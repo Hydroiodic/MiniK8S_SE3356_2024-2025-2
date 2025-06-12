@@ -38,6 +38,8 @@ func (rsc *ReplicasetController) CreatePod(
 ) {
 	ci := apiserver.NewAPIClient("")
 
+	fmt.Println("开始创建pod")
+
 	for range num {
 		var pod object.Pod
 		pod.Metadata.Labels = rs.Metadata.Labels
@@ -61,6 +63,8 @@ func (rsc *ReplicasetController) DeletePod(
 	pods []object.Pod,
 	num int,
 ) {
+	fmt.Println("开始删除pod")
+
 	ci := apiserver.NewAPIClient("")
 	for i := range num {
 		err := ci.DeletePod(&pods[i])
@@ -73,6 +77,8 @@ func (rsc *ReplicasetController) DeletePod(
 
 func (rsc *ReplicasetController) CheckAllReplicaset() {
 	ci := apiserver.NewAPIClient("")
+
+	fmt.Println("开始检查所有replicaset")
 
 	var replicasets []object.ReplicaSet
 
@@ -102,8 +108,12 @@ func (rsc *ReplicasetController) CheckAllReplicaset() {
 
 		rs.Status.AvailableReplicas = len(matchPods)
 
+		fmt.Println("当前replica数量为")
+		fmt.Println(matchPods)
+
 		if len(matchPods) == rs.Spec.Replicas {
 			rs.Status.AvailableReplicas = rs.Spec.Replicas
+			return
 		} else if len(matchPods) < rs.Spec.Replicas {
 			// 创建新的pod
 			log.Printf("数量不够 : %d", rs.Spec.Replicas-len(matchPods))

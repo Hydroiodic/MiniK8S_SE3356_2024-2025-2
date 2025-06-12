@@ -112,3 +112,43 @@ func (c *APIClient) CreateHpa(hpa *object.HorizontalPodAutoscaler) error {
 
 	return nil
 }
+
+func (c *APIClient) DeleteHpa(pod *object.HorizontalPodAutoscaler) error {
+	// Construct the URL for the Pod deletion endpoint.
+	url := c.BaseURL + HpaDeleteURL
+
+	// Convert the Pod object to JSON to be sent in the request body.
+	HpaJSON, err := json.Marshal(pod)
+	if err != nil {
+		return err
+	}
+
+	// Create a new HTTP POST request with the pod as the body.
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(HpaJSON))
+	if err != nil {
+		return err
+	}
+
+	// Send the request and return the response.
+	resp, err := c.Client.Do(req)
+	if err != nil {
+		return err
+	}
+
+	// Ensure the response body is closed after use.
+	defer func() {
+		if cerr := resp.Body.Close(); cerr != nil {
+			// Log the error if closing the response body fails.
+			fmt.Println("Failed to close response body: ", cerr)
+		}
+	}()
+
+	// Check if the response status code is OK (200).
+	if resp.StatusCode != http.StatusOK {
+		// If not, read the response body and return an error.
+		bodyBytes, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("%s", string(bodyBytes))
+	}
+
+	return nil
+}

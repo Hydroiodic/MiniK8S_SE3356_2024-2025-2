@@ -35,6 +35,7 @@ const (
 	// HPA operations.
 	HpaGetURL    = "/hpa/getHpas"
 	HpaCreateURL = "/hpa/createHpa"
+	HpaDeleteURL = "/hpa/deleteHpa"
 
 	PVGetURL    = "/pv"
 	PVCreateURL = "/pv/createPV"
@@ -48,6 +49,7 @@ const (
 	GPUJobsCreateURL = "/gpu/createJobs"
 	GPUJobsGetURL    = "/gpu/getJobs"
 	UploadResultURL  = "/gpu/updateResult"
+	UpdateStatus     = "/gpu/updateStatus"
 
 	// Function operation
 	FunctionCreateURL = "/function/createFunction"
