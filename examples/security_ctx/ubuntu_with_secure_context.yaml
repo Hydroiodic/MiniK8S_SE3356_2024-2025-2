@@ -1,10 +1,9 @@
 kind: Pod
 metadata:
-  name: ubuntu
+  name: security-ctx-ubuntu-example
   namespace: default
   labels:
-    app: ubuntu
-    tier: test
+    app: security-ctx-ubuntu-example
 spec:
   securityContext:
     runAsUser: 1000
@@ -13,29 +12,32 @@ spec:
     supplementalGroups: [4000]
     supplementalGroupsPolicy: Strict
   containers:
-    - id: ubuntu-container-merge
-      name: ubuntu-merge
+    - name: ubuntu-merge
       image: ubuntu:latest
       command: ["sleep", "infinity"]
       securityContext:
-        fsGroup: 1000
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 2000
         supplementalGroupsPolicy: Merge
       volumeMounts:
         - name: ubuntu-volume-merge
           mountPath: /home/ubuntu
-    - id: ubuntu-container-strict
-      name: ubuntu-strict
+    - name: ubuntu-strict
       image: ubuntu:latest
       command: ["sleep", "infinity"]
       volumeMounts:
         - name: ubuntu-volume-strict
           mountPath: /home/ubuntu
+    - name: ubuntu-test
+      image: ubuntu:latest
+      command: ["sleep", "infinity"]
   volumes:
     - name: ubuntu-volume-merge
       hostPath: 
-        path: /tmp/ubuntu-merge
+        path: /tmp/ctx/ubuntu-merge
         type: Directory
     - name: ubuntu-volume-strict
       hostPath: 
-        path: /tmp/ubuntu-strict
+        path: /tmp/ctx/ubuntu-strict
         type: Directory

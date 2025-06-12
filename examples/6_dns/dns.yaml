@@ -1,11 +1,11 @@
 kind: DNS
 metadata:
-  name: my-dns
+  name: example-dns
   namespace: default
   labels:
     app: myapp
 spec:
-  host: example.com
+  host: internal-example.com
   paths:
     - path: /web
       serviceName: web-service

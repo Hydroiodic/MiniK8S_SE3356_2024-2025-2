@@ -1,0 +1,11 @@
+kind: Service
+metadata:
+  name: web-service
+  namespace: default
+spec:
+  selector:
+    app: dns-web
+  ports:
+  - protocol: TCP
+    port: 8080
+    targetPort: 80
