@@ -1,0 +1,22 @@
+kind: Pod
+metadata:
+  name: w-pod
+  namespace: default
+  labels:
+    app: write
+spec:
+  containers:
+    - name: curl
+      image: nginx:latest
+      command: ["/bin/sh", "-c", "echo 'Hello World' > /test/result.txt; sleep 9h"]
+      resources:
+        cpu: "1"
+        memory: "128Mi"
+      volumeMounts:
+        - name: w-volume
+          mountPath: /test # Pod 中的挂载路径
+  volumes:
+    - name: w-volume
+      hostPath: 
+        path: /tmp/w-test # 主机上的路径
+        type: Directory

@@ -1,0 +1,16 @@
+kind: Pod
+metadata:
+  name: restart-nginx
+  namespace: default
+  labels:
+    app: nginx
+    tier: frontend
+spec:
+  containers:
+    - name: nginx
+      image: nginx:latest
+      command: ["nginx", "-g", "daemon off;"]
+      ports: [80]
+      resources:
+        cpu: "1"
+        memory: "128Mi"

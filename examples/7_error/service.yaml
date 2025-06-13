@@ -1,0 +1,17 @@
+kind: Service
+type: NodePort
+metadata:
+  name: nginx-service
+  namespace: default
+  labels:
+    app: nginx
+    tier: frontend
+spec:
+  selector:
+    app: nginx
+    tier: frontend
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+      nodePort: 30080

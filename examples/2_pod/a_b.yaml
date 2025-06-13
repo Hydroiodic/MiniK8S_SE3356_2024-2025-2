@@ -1,0 +1,29 @@
+kind: Pod
+metadata:
+  name: multi-container-localhost
+  namespace: default
+  labels:
+    app: multi-container-localhost
+spec:
+  containers:
+    - name: nginx
+      image: nginx:latest
+      command: ["nginx", "-g", "daemon off;"]
+      ports: [80]
+      resources:
+        cpu: "1"
+        memory: "128Mi"
+    - name: curl
+      image: nginx:latest
+      command: ["/bin/sh", "-c", "curl http://localhost -o /test/result.txt; sleep 9h"]
+      resources: # 资源限制
+        cpu: "1"
+        memory: "128Mi"
+      volumeMounts: # 挂载卷
+        - name: result-volume
+          mountPath: /test # Pod 中的挂载路径
+  volumes:
+    - name: result-volume
+      hostPath: 
+        path: /tmp/result # 主机上的路径
+        type: Directory
